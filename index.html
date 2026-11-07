@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ศึกออฟฟิศ: Office Fight Night</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#140f17;font-family:'Kanit','Sukhumvit Set',sans-serif;color:#fff;-webkit-user-select:none;user-select:none;touch-action:none}
+#game{position:fixed;inset:0}
+#game canvas{display:block;touch-action:none}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+.hidden{display:none!important}
+
+/* HUD */
+#hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 14px;pointer-events:none;opacity:0;transition:opacity .3s}
+#hud.on{opacity:1}
+.grp{flex:1;display:flex;gap:10px;max-width:560px}
+.grp.r{justify-content:flex-end}
+.pnl{flex:1;max-width:520px;min-width:0}
+.grp.r .pnl{text-align:right}
+.nm{font-weight:800;font-size:clamp(13px,2vw,20px);text-shadow:0 2px 0 #000,0 0 8px rgba(0,0,0,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nm small{font-weight:800;font-size:.68em;padding:1px 7px;border-radius:6px;margin:0 5px;vertical-align:middle;background:var(--c)}
+.bar{height:20px;background:#2a1018;border:3px solid #fff;border-radius:7px;overflow:hidden;position:relative;box-shadow:0 3px 0 #000;margin-top:3px}
+.four .bar{height:14px;border-width:2px}
+.bar i{position:absolute;inset:0;transform-origin:left center}
+.grp.r .bar i,.grp.r .rage i{transform-origin:right center}
+.bar .lag{background:#fff}
+.bar .hp{background:linear-gradient(#fff07a,#ffb03a 60%,#ff7a1a)}
+.bar .hp.low{background:linear-gradient(#ff8a7a,#e8262e)}
+.pnl.dead{opacity:.45}
+.rage{height:8px;margin-top:4px;background:rgba(0,0,0,.55);border-radius:5px;overflow:hidden;border:1px solid rgba(255,255,255,.4);position:relative}
+.rage i{position:absolute;inset:0;transform-origin:left center;background:linear-gradient(90deg,#8a3cff,#ff4fd8)}
+.rage.full i{animation:pulse .5s infinite alternate;background:linear-gradient(90deg,#ffd000,#ff3d00)}
+.sub{font-size:12px;margin-top:2px;min-height:17px;text-shadow:0 1px 0 #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub b{color:#ffd23d}
+@keyframes pulse{from{filter:brightness(1)}to{filter:brightness(1.6)}}
+.mid{text-align:center;min-width:80px}
+#timer{font-size:clamp(26px,4.2vw,42px);font-weight:800;line-height:1;background:rgba(0,0,0,.55);border:3px solid #fff;border-radius:10px;padding:4px 10px;text-shadow:0 2px 0 #000}
+#timer.hurry{color:#ff5b5b}
+#roundLab{font-size:12px;margin-top:4px;opacity:.95;text-shadow:0 1px 0 #000}
+#topBtns{margin-top:6px;display:flex;gap:6px;justify-content:center;pointer-events:auto}
+.ib{background:rgba(0,0,0,.55);border:2px solid rgba(255,255,255,.7);color:#fff;border-radius:8px;width:36px;height:32px;font-size:16px}
+#banner{position:fixed;top:92px;left:50%;transform:translateX(-50%);background:rgba(20,10,20,.85);border:3px solid #ffd23d;border-radius:14px;padding:6px 16px;font-weight:800;font-size:clamp(15px,2.4vw,22px);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .25s}
+#banner.on{opacity:1}
+#hint{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);font-size:13px;opacity:.75;pointer-events:none;text-shadow:0 1px 0 #000;white-space:nowrap}
+body.touch #hint{display:none}
+
+/* tags & popups */
+#tags,#pops{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.ftag{position:absolute;left:0;top:0;font-weight:800;font-size:13px;padding:1px 7px;border-radius:7px;background:var(--c);white-space:nowrap;box-shadow:0 2px 0 rgba(0,0,0,.4);will-change:transform}
+.ftag.off{font-size:15px;padding:3px 8px}
+.pop{position:absolute;left:0;top:0;font-weight:800;white-space:nowrap;will-change:transform}
+.dmg{font-size:28px;color:#ffe14d;-webkit-text-stroke:2px #3a1200;paint-order:stroke fill}
+.crit{font-size:36px;color:#ff4747;-webkit-text-stroke:2px #2a0000;paint-order:stroke fill}
+.blk{font-size:21px;color:#9fd4ff;-webkit-text-stroke:2px #001a33;paint-order:stroke fill}
+.info{font-size:21px;color:#fff;-webkit-text-stroke:2px #000;paint-order:stroke fill}
+.good{font-size:21px;color:#7dff8a;-webkit-text-stroke:2px #002a08;paint-order:stroke fill}
+.combo{font-size:26px;color:#ff9be0;-webkit-text-stroke:2px #3a0030;paint-order:stroke fill;font-style:italic}
+.bubble{background:#fff;color:#1d1d1d;font-size:16px;font-weight:600;padding:4px 11px;border-radius:14px;box-shadow:0 3px 0 rgba(0,0,0,.35);border:2px solid #1d1d1d}
+.bubble.sp{background:#ffd23d;font-size:21px;font-weight:800}
+
+#center{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center}
+#center h1{font-size:clamp(50px,11vw,128px);font-weight:800;line-height:1;color:#ffd23d;-webkit-text-stroke:4px #2a0d00;paint-order:stroke fill;text-shadow:0 8px 0 rgba(0,0,0,.45);opacity:0;transform:scale(.4)}
+#center p{font-size:clamp(17px,3vw,30px);font-weight:600;-webkit-text-stroke:2px #000;paint-order:stroke fill;opacity:0;margin-top:8px}
+#center.show h1{animation:slam .45s cubic-bezier(.2,1.6,.4,1) forwards}
+#center.show p{animation:fadeIn .4s .15s forwards}
+@keyframes slam{from{opacity:0;transform:scale(2.4)}to{opacity:1;transform:scale(1)}}
+@keyframes fadeIn{to{opacity:1}}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+#replayLab{position:fixed;top:16px;left:16px;font-weight:800;font-size:22px;background:#e0303a;padding:4px 14px;border-radius:8px;letter-spacing:2px;animation:blink 1s infinite;pointer-events:none}
+#replayLab small{font-size:12px;letter-spacing:0;font-weight:600;margin-left:8px;opacity:.9}
+@keyframes blink{50%{opacity:.6}}
+.letterbox::before,.letterbox::after{content:'';position:fixed;left:0;right:0;height:9vh;background:#000;z-index:5;pointer-events:none}
+.letterbox::before{top:0}.letterbox::after{bottom:0}
+
+/* panels */
+.overlay{position:fixed;inset:0;overflow:auto;background:rgba(16,9,22,.76);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);touch-action:pan-y;z-index:10}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 14px 40px}
+.title{text-align:center;margin-bottom:10px}
+.title h1{font-size:clamp(42px,8vw,80px);font-weight:800;line-height:1;color:#ffd23d;-webkit-text-stroke:3px #3a1200;paint-order:stroke fill;text-shadow:0 6px 0 #000}
+.title .sub2{font-size:clamp(13px,2vw,17px);opacity:.9;margin-top:6px}
+.row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:8px 0}
+.seg{display:inline-flex;flex-wrap:wrap;background:rgba(255,255,255,.08);border-radius:12px;padding:4px;gap:4px}
+.seg button{background:transparent;border:0;color:#fff;font-size:14px;font-weight:600;padding:7px 12px;border-radius:9px}
+.seg button.on{background:#ffd23d;color:#2a1600}
+.seg .lab{font-size:12px;opacity:.7;align-self:center;padding:0 6px}
+.slots{display:flex;flex-wrap:wrap;align-items:stretch;justify-content:center;gap:8px;margin:12px 0 6px}
+.slot{flex:1;min-width:150px;max-width:260px;background:rgba(255,255,255,.07);border:3px solid transparent;border-radius:14px;padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:8px}
+.slot.on{border-color:#ffd23d;background:rgba(255,210,61,.12)}
+.slot b{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{font-size:12px;font-weight:800;padding:2px 8px;border-radius:7px;flex:none;background:var(--c)}
+.vs{align-self:center;font-weight:800;font-size:22px;color:#ffd23d}
+.hint{text-align:center;font-size:13px;opacity:.85;margin-bottom:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:10px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.04));border:3px solid rgba(255,255,255,.12);border-radius:14px;padding:8px;cursor:pointer;position:relative;transition:transform .12s,border-color .12s}
+.card:hover{transform:translateY(-3px)}
+.card.sel{border-color:var(--c)}
+.card .badges{position:absolute;top:6px;right:6px;display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;max-width:80%}
+.card canvas{width:100%;aspect-ratio:1/1;border-radius:10px;display:block;background:#3b2b45}
+.card input.nmIn{width:100%;margin-top:6px;font-size:15px;font-weight:800;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:4px 7px}
+.card .role{font-size:11px;opacity:.75;margin:3px 2px;line-height:1.3}
+.stat{display:flex;align-items:center;gap:5px;font-size:11px;margin:2px}
+.stat span{width:40px;opacity:.85}
+.stat b{flex:1;height:6px;background:rgba(0,0,0,.4);border-radius:4px;overflow:hidden}
+.stat b i{display:block;height:100%;background:#ffd23d}
+.card .spc{font-size:11px;color:#ffd23d;margin:4px 2px}
+.card .ttl{font-size:11px;color:#9fe3ff;margin:0 2px 5px}
+.pbtns{display:flex;gap:5px;flex-wrap:wrap}
+.btn{background:#ffd23d;color:#2a1600;border:0;border-radius:10px;font-weight:800;font-size:15px;padding:8px 14px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.sm{font-size:11px;padding:4px 6px;border-radius:7px;flex:1;cursor:pointer;white-space:nowrap}
+.btn.ghost{background:rgba(255,255,255,.12);color:#fff}
+.btn.big{font-size:24px;padding:12px 40px;border-radius:14px;box-shadow:0 5px 0 #a87b00}
+.btn.big:active{transform:translateY(3px);box-shadow:0 2px 0 #a87b00}
+.btn.blue{background:#2f6fe0;color:#fff;box-shadow:0 5px 0 #1a3f8a}
+.btn:disabled{opacity:.45;cursor:default}
+.onrow{display:flex;gap:10px;align-items:center;justify-content:center;margin:10px 0;flex-wrap:wrap}
+.onrow canvas{width:84px;height:84px;border-radius:12px}
+.onrow select,.onrow input{font-family:inherit;font-size:17px;padding:7px 10px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.35);color:#fff}
+#onCode{width:140px;text-transform:lowercase;letter-spacing:3px;text-align:center;font-weight:800}
+.onmsg{color:#ffd23d;min-height:20px}
+.small{font-size:12px;opacity:.8;margin-top:8px}
+.roomcode{font-size:18px;margin:6px 0}.roomcode b{font-size:30px;letter-spacing:6px;color:#ffd23d;margin:0 8px}
+.onplayers{display:flex;flex-direction:column;gap:6px;margin:10px 0;text-align:left}
+.onp{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.07);border-radius:12px;padding:6px 10px}
+.onp canvas{width:44px;height:44px;border-radius:10px}
+.onp .who{flex:1}.onp .who small{display:block;opacity:.75;font-size:12px}
+.onseg{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px 0}
+.startRow{text-align:center;margin:18px 0 8px}
+.ctrl{text-align:center;font-size:13px;opacity:.92;line-height:1.9;margin-top:6px}
+kbd{background:#fff;color:#222;border-radius:5px;padding:0 5px;font-family:inherit;font-weight:800;font-size:11px;box-shadow:0 2px 0 #888;margin:0 1px}
+.panel{max-width:520px;margin:9vh auto 30px;background:rgba(30,18,40,.96);border:3px solid #ffd23d;border-radius:20px;padding:22px;text-align:center}
+.panel h2{font-size:32px;font-weight:800;color:#ffd23d;line-height:1.2}
+.panel .pics{display:flex;justify-content:center;gap:10px;margin:12px 0}
+.panel .pics canvas{width:130px;height:130px;border-radius:14px;background:#3b2b45}
+.panel .btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.panel p{opacity:.92}
+#sickNote{width:100%;max-width:380px;margin:12px auto 0;display:block;border-radius:6px}
+.vsrow{display:flex;align-items:center;justify-content:center;gap:12px;margin:14px 0}
+.vsrow canvas{width:140px;height:140px;border-radius:14px}
+.vsrow .vs{font-size:34px}
+#photoBar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.6);padding:8px 12px;border-radius:14px;z-index:9}
+#photoBar span{font-size:13px;opacity:.9}
+#shotImg{width:100%;border-radius:10px;margin-top:10px;-webkit-user-select:auto;user-select:auto;-webkit-touch-callout:default}
+
+/* touch */
+#touch{position:fixed;inset:auto 0 0 0;height:230px;pointer-events:none;display:none;z-index:4}
+body.touch.fighting #touch{display:block}
+#stick{position:absolute;left:22px;bottom:26px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);pointer-events:auto;touch-action:none}
+#knob{position:absolute;left:45px;top:45px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.55)}
+#tbtns{position:absolute;right:14px;bottom:16px;width:236px;height:200px;pointer-events:auto}
+.tb{position:absolute;width:66px;height:66px;border-radius:50%;border:3px solid rgba(255,255,255,.7);background:rgba(224,48,58,.55);color:#fff;font-size:13px;font-weight:800;touch-action:none}
+.tb[data-k=TJab]{right:0;bottom:56px}
+.tb[data-k=THook]{right:72px;bottom:4px}
+.tb[data-k=TSpec]{right:72px;bottom:106px;background:rgba(255,170,0,.6)}
+.tb[data-k=TJump]{right:0;bottom:132px;background:rgba(43,182,115,.6);width:58px;height:58px}
+.tb[data-k=TGrab]{right:146px;bottom:76px;background:rgba(140,80,220,.6);width:58px;height:58px}
+.tb[data-k=TBlock]{right:146px;bottom:4px;background:rgba(47,111,224,.6);width:58px;height:58px}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="tags"></div>
+<div id="hud">
+  <div class="grp" id="hudL"></div>
+  <div class="mid">
+    <div id="timer">99</div>
+    <div id="roundLab">ROUND 1</div>
+    <div id="topBtns"><button class="ib" id="pauseBtn" title="พัก">⏸</button><button class="ib" id="muteBtn" title="เสียง">🔊</button></div>
+  </div>
+  <div class="grp r" id="hudR"></div>
+</div>
+<div id="banner"></div>
+<div id="hint"></div>
+<div id="pops"></div>
+<div id="center"><h1 id="cH"></h1><p id="cP"></p></div>
+<div id="flash"></div>
+<div id="replayLab" class="hidden">● REPLAY<small>กดปุ่มใดก็ได้เพื่อข้าม</small></div>
+
+<div id="menu" class="overlay">
+  <div class="wrap">
+    <div class="title"><h1>ศึกออฟฟิศ 🥊</h1><div class="sub2">OFFICE FIGHT NIGHT · ตะลุมบอนกันทั้งในโชว์รูมและริมถนนหน้าร้าน</div></div>
+    <div class="row">
+      <div class="seg" id="modeSeg"><button data-m="duel" class="on">ดวล 1v1</button><button data-m="ffa">ตะลุมบอน 4 คน</button><button data-m="team">ทีม 2v2</button><button data-m="arcade">ไต่บันได 🏆</button></div>
+    </div>
+    <div class="row">
+      <div class="seg" id="humSeg"><span class="lab">ผู้เล่น</span><button data-h="1" class="on">1 คน</button><button data-h="2">2 คน (เครื่องเดียวกัน)</button></div>
+      <div class="seg" id="diffSeg"><span class="lab">คอม</span><button data-d="0">ง่าย</button><button data-d="1" class="on">กลาง</button><button data-d="2">โหด</button></div>
+      <div class="seg" id="locSeg"><span class="lab">เริ่มที่</span><button data-l="in" class="on">ในโชว์รูม</button><button data-l="out">ริมถนนหน้าร้าน</button></div>
+    </div>
+    <div class="slots" id="slots"></div>
+    <div class="hint" id="menuHint"></div>
+    <div class="grid" id="grid"></div>
+    <div class="startRow"><button id="startBtn" class="btn big">เริ่มชก! 🥊</button> <button id="onlineBtn" class="btn big blue">🌐 เล่นออนไลน์กับเพื่อน</button></div>
+    <div class="ctrl" id="ctrlHelp"></div>
+  </div>
+</div>
+
+<div id="onlineP" class="overlay hidden">
+  <div class="panel" style="max-width:640px">
+    <h2>เล่นออนไลน์กับเพื่อน 🌐</h2>
+    <p id="onMsg" class="onmsg"></p>
+    <div class="onrow"><canvas id="onPic" width="168" height="168"></canvas><div style="text-align:left"><div>ตัวละครของคุณ</div><select id="onChar"></select><div class="small">แก้ชื่อหรือใส่รูปหน้าได้ที่การ์ดในเมนูหลัก</div></div></div>
+    <div id="onJoinBox">
+      <div class="onrow"><button class="btn big" id="onCreate">สร้างห้องใหม่</button></div>
+      <div class="onrow"><input id="onCode" maxlength="6" placeholder="รหัสห้อง" autocomplete="off"><button class="btn blue" id="onEnter">เข้าห้อง</button></div>
+    </div>
+    <div id="onLobby" class="hidden">
+      <div class="roomcode">รหัสห้อง <b id="onCodeShow"></b><button class="btn sm ghost" id="onCopy" style="flex:none">คัดลอก</button></div>
+      <div id="onPlayers" class="onplayers"></div>
+      <div id="onHostBox">
+        <div class="onseg seg" id="onMode"><button data-v="duel">ดวล 1v1</button><button data-v="ffa">ตะลุมบอน 4 คน</button><button data-v="team">ทีม 2v2</button></div>
+        <div class="onseg"><div class="seg" id="onDiff"><span class="lab">คอม</span><button data-v="0">ง่าย</button><button data-v="1">กลาง</button><button data-v="2">โหด</button></div><div class="seg" id="onLoc"><span class="lab">เริ่มที่</span><button data-v="in">ในโชว์รูม</button><button data-v="out">หน้าร้าน</button></div></div>
+        <div class="onrow"><button class="btn big" id="onStart">เริ่มเกม! 🥊</button></div>
+      </div>
+      <p id="onWait" class="hidden">รอโฮสต์กดเริ่มเกม...</p>
+      <div class="onrow"><button class="btn hidden" id="onRejoin">กลับเข้าแมตช์ที่กำลังเล่น</button><button class="btn ghost" id="onLeave">ออกจากห้อง</button></div>
+    </div>
+    <div class="btns"><button class="btn ghost" id="onBack">กลับเมนูหลัก</button></div>
+    <p class="small">ชวนเพื่อน: กด Share ที่หน้านี้บน claude.ai แล้วส่งลิงก์ให้เพื่อน เพื่อนต้องล็อกอิน claude.ai แล้วเปิดลิงก์นั้น ใส่รหัสห้อง · ห้องละไม่เกิน 4 คน ช่องที่ว่างให้คอมเล่นแทน · โฮสต์ (👑) ห้ามสลับแท็บระหว่างเล่น</p>
+  </div>
+</div>
+
+<div id="pause" class="overlay hidden">
+  <div class="panel">
+    <h2>พักเบรก ☕</h2>
+    <div class="ctrl" id="ctrlHelp2"></div>
+    <div class="btns"><button class="btn" id="resumeBtn">ชกต่อ</button><button class="btn ghost" id="photoBtn">📸 โหมดถ่ายรูป</button><button class="btn ghost" id="quitBtn">กลับเมนู</button></div>
+  </div>
+</div>
+
+<div id="interP" class="overlay hidden">
+  <div class="panel">
+    <h2 id="interT">ด่าน 1 / 6</h2>
+    <p id="interLoc"></p>
+    <div class="vsrow"><canvas id="interA" width="280" height="280"></canvas><div class="vs">VS</div><canvas id="interB" width="280" height="280"></canvas></div>
+    <p id="interQ" style="font-size:18px"></p>
+    <div class="btns"><button class="btn big" id="interGo">ลุย!</button></div>
+  </div>
+</div>
+
+<div id="endP" class="overlay hidden">
+  <div class="panel">
+    <h2 id="endTitle">ชนะ!</h2>
+    <div class="pics" id="endPics"></div>
+    <p id="endSub"></p>
+    <canvas id="sickNote" width="760" height="460"></canvas>
+    <div class="btns" id="endBtns"></div>
+  </div>
+</div>
+
+<div id="shotP" class="overlay hidden">
+  <div class="panel">
+    <h2>ได้รูปแล้ว! 📸</h2>
+    <p style="font-size:13px">กดค้างที่รูป (มือถือ) หรือคลิกขวา → บันทึกรูปภาพ แล้วส่งเข้ากลุ่ม LINE ได้เลย</p>
+    <img id="shotImg" alt="ภาพจากเกม">
+    <div class="btns"><button class="btn" id="copyShot">คัดลอกรูป</button><button class="btn ghost" id="shotBack">ถ่ายต่อ</button><button class="btn ghost" id="shotDone">เสร็จ</button></div>
+  </div>
+</div>
+
+<div id="photoBar" class="hidden"><span>ลากเพื่อหมุนกล้อง · ล้อเมาส์/ปุ่ม ± ซูม</span><button class="ib" id="zIn">＋</button><button class="ib" id="zOut">－</button><button class="btn" id="snapBtn">📸 ถ่าย!</button><button class="btn ghost" id="photoExit">ออก</button></div>
+
+<div id="touch">
+  <div id="stick"><div id="knob"></div></div>
+  <div id="tbtns">
+    <button class="tb" data-k="TSpec">ไม้ตาย</button>
+    <button class="tb" data-k="TJab">จ็อบ</button>
+    <button class="tb" data-k="THook">ฮุก</button>
+    <button class="tb" data-k="TJump">โดด</button>
+    <button class="tb" data-k="TGrab">หยิบ/จับ</button>
+    <button class="tb" data-k="TBlock">กัน</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/core.js"></script>
+<script src="js/world.js"></script>
+<script src="js/fighter.js"></script>
+<script src="js/game.js"></script>
+<script src="js/net.js"></script>
+</body>
+</html>

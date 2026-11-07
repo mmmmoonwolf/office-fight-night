@@ -1,0 +1,13 @@
+{
+  "name": "office-fight-night",
+  "version": "0.3.0",
+  "private": true,
+  "description": "ศึกออฟฟิศ — silly 3D office brawler (three.js) set in a piano shop and the street outside; offline 1-2P and online up to 4 via the claude.ai room capability",
+  "scripts": {
+    "dev": "node scripts/serve.js 8765",
+    "test": "node test/e2e.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}
