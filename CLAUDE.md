@@ -11,7 +11,8 @@ street (motorbike-taxi stand, som-tam cart, pickup truck, poles with tangled cab
 
 - 14 characters (`ROSTER` in `js/core.js`), each with a unique special (`SPECIALS` in `js/fighter.js`)
 - Modes: duel 1v1, FFA 4, team 2v2, arcade ladder (5 + boss) — offline 1–2 players on one keyboard
-- Online up to 4 players on separate devices through the claude.ai Artifact `room` capability (`js/net.js`)
+- Online up to 4 players on separate devices (`js/net.js`), over one of two transports:
+  the claude.ai Artifact `room` capability, or peer-to-peer WebRTC via PeerJS when served from GitHub Pages / any static host
 - Weapons to pick up/throw, power-ups, combos (jab-jab-hook), grabs/throws, stage hazards, random events
   (customer walks in → no punching inside, piano movers, rain makes the street slippery, motorbikes, stray dog),
   KO replay, photo mode, glove unlocks/titles stored in `localStorage`, sick-leave note for the loser
@@ -25,6 +26,7 @@ npm run dev     # node scripts/serve.js 8765
                 #   /               real game, offline (three.js from CDN)
                 #   /mp-local.html  same + test/room_mock.js → open 2-4 tabs to play "online" locally
                 #   /test.html      room mock + three.js stub (what the tests load; nothing renders)
+                #   /test-p2p.html  PeerJS mock + three.js stub (tests the P2P transport)
 npm install && npx playwright install chromium
 npm test        # node test/e2e.js — offline flow + host/2 clients online flow
 ```
@@ -44,6 +46,7 @@ npm test        # node test/e2e.js — offline flow + host/2 clients online flow
 | `scripts/serve.js` | zero-dependency static server with the three page variants |
 | `test/three_stub.js` | Proxy-based fake THREE (real Vector3 math, everything else no-ops) |
 | `test/room_mock.js` | `window.claude.use('room')` stand-in over BroadcastChannel (presence + peers only) |
+| `test/peer_mock.js` | `window.Peer` (PeerJS) stand-in over BroadcastChannel |
 | `test/e2e.js` | Playwright checks |
 
 Scripts are classic `<script>` files sharing one global scope, loaded in order core → world → fighter → game → net.
@@ -70,6 +73,14 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
 
 ## Online model (`js/net.js`)
 
+Transport is chosen at load: inside a claude.ai Artifact (`window.claude.use('room')`) → the platform room;
+top-level page without `window.claude` (GitHub Pages: https://mmmmoonwolf.github.io/office-fight-night) → **P2P**:
+PeerJS 1.5.4 is lazy-loaded from unpkg (jsDelivr fallback) and uses the free `0.peerjs.com` broker + public STUN.
+The room creator takes peer id `ofn-<code>` and relays every member's presence (star topology); `p2pRoom()` exposes
+the same `presence()`/`peers()` surface as the claude.ai room, so everything below is shared. In P2P the lobby host
+is always the creator. No TURN server: some strict NATs / mobile carriers cannot connect (the lobby says so).
+
+
 Everything goes through **presence only** (no event topics), because presence is allowed for every viewer:
 
 | who | presence fields |
@@ -89,8 +100,8 @@ Everything goes through **presence only** (no event topics), because presence is
   Quantise with `Q()` (×100 ints). Tests assert the max size.
 - Leaver → CPU takes over. Host leaves / ends the match → clients go back to the lobby. No host migration yet.
 - The host's tab must stay visible (browsers throttle hidden tabs).
-- Online needs viewers signed in to claude.ai with access to the shared Artifact. Outside claude.ai `window.claude`
-  is missing and the online button explains that.
+- On claude.ai, viewers must be signed in with access to the shared Artifact. On GitHub Pages anyone with the link can
+  join; if the creator closes the tab the room is gone (clients see "โฮสต์ปิดห้องแล้ว").
 
 ## Publishing as a claude.ai Artifact
 
