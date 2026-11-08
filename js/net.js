@@ -62,7 +62,7 @@ function members(){
     .slice().sort((a,b)=>((+a.presence.jt||0)-(+b.presence.jt||0))||(a.peer<b.peer?-1:1));
 }
 function myPeerId(){if(!NET.room)return null;const p=NET.room.peers().find(p=>p.sameTab);return p?p.peer:null;}
-function lobbyHost(){const m=members();return m.find(p=>p.presence.v!==0)||m[0]||null;}
+function lobbyHost(){const m=members();if(NET.room&&NET.room.p2p)return m.find(p=>p.peer===P2P_PREFIX+NET.code)||null;return m.find(p=>p.presence.v!==0)||m[0]||null;}
 function amLobbyHost(){const h=lobbyHost();return!!(h&&h.sameTab);}
 function setPresence(patch){if(!NET.room)return;NET.room.presence(patch).then(()=>{},err=>{if(err&&err.code==='invalid_argument')console.warn('presence',err.message);});}
 function myLobbyPresence(){const c=+$('#onChar').value||0;const ch=ROSTER[c]||ROSTER[0];return{rc:NET.code,jt:NET.jt,nm:safeStr(ch.name,18),c,gl:ch.glove|0,v:document.hidden?0:1};}
@@ -76,18 +76,41 @@ function showOnline(msg){
   ROSTER.forEach((c,i)=>{sel.options[i].textContent=c.name+' — '+c.role;});
   if(!NET.code)sel.value=G.slots[0];
   portrait(ROSTER[+sel.value],$('#onPic'));
-  $('#onMsg').textContent=msg||(NET.room?'':'โหมดออนไลน์ใช้ได้เมื่อเปิดเกมนี้บน claude.ai (หน้าเกมที่ล็อกอินอยู่) · ถ้าเพิ่งเปิด รอสักครู่แล้วลองใหม่');
-  $('#onCreate').disabled=$('#onEnter').disabled=!NET.room;
+  const ready=!!NET.room||NET.p2p;
+  $('#onMsg').textContent=msg||(ready?'':'กำลังเตรียมระบบออนไลน์... รอสักครู่แล้วลองใหม่');
+  $('#onCreate').disabled=$('#onEnter').disabled=!ready||joining;
+  $('#onVia').textContent=NET.p2p?'เชื่อมต่อแบบ P2P ผ่านอินเทอร์เน็ต — เพื่อนเปิดลิงก์เกมนี้แล้วใส่รหัสห้องได้เลย ไม่ต้องล็อกอิน':'เชื่อมต่อผ่านระบบห้องของ claude.ai — เพื่อนต้องล็อกอิน claude.ai และเปิดลิงก์ที่คุณแชร์';
   renderLobby();
 }
-function enterRoom(code){
+let joining=false;
+async function enterRoom(code,create){
   code=String(code||'').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,6);
-  if(!NET.room||code.length<3){$('#onMsg').textContent='ใส่รหัสห้องให้ถูกก่อนนะ';return;}
+  if(code.length<3){$('#onMsg').textContent='ใส่รหัสห้องให้ถูกก่อนนะ';return;}
+  if(NET.p2p){
+    if(joining)return;joining=true;$('#onCreate').disabled=$('#onEnter').disabled=true;
+    $('#onMsg').textContent=create?'กำลังสร้างห้อง...':'กำลังเชื่อมต่อห้อง '+code+' ...';
+    try{
+      await loadPeerJS();
+      let room=null;
+      for(let k=0;k<3&&!room;k++){
+        try{room=await p2pRoom(code,create);}
+        catch(e){if(create&&e.message==='taken'){code=newCode();continue;}throw e;}
+      }
+      NET.room=room;
+      room.onClose(()=>{NET.room=null;const inMatch=NET.role==='client';NET.code='';NET.role='off';if(inMatch)toLobby('โฮสต์ปิดห้องแล้ว');else if(!$('#onlineP').classList.contains('hidden'))showOnline('โฮสต์ปิดห้องแล้ว');});
+    }catch(e){
+      joining=false;$('#onCreate').disabled=$('#onEnter').disabled=false;
+      $('#onMsg').textContent=e.message==='nohost'?'เข้าห้องไม่ได้: ไม่พบรหัสนี้ หรือเน็ตของเครื่องใดเครื่องหนึ่งบล็อกการเชื่อมต่อตรง (P2P)':e.message==='load'?'โหลดระบบออนไลน์ไม่ได้ ลองเช็กอินเทอร์เน็ตแล้วลองใหม่':'เชื่อมต่อไม่ได้ ('+e.message+') ลองใหม่อีกครั้ง';
+      return;
+    }
+    joining=false;$('#onCreate').disabled=$('#onEnter').disabled=false;
+  }
+  if(!NET.room){$('#onMsg').textContent='ระบบออนไลน์ยังไม่พร้อม';return;}
   SFX.init();NET.code=code;NET.jt=Date.now();NET.role='lobby';NET.declined=null;
   setPresence(Object.assign(myLobbyPresence(),{g:null,s:null,in:null,st:null}));
   $('#onMsg').textContent='';renderLobby();
 }
-function leaveRoom(){NET.code='';NET.role='off';setPresence({rc:null,jt:null,g:null,s:null,in:null,st:null});renderLobby();}
+function leaveRoom(){NET.code='';NET.role='off';if(NET.room&&NET.room.p2p){NET.room.close();NET.room=null;}else setPresence({rc:null,jt:null,g:null,s:null,in:null,st:null});renderLobby();}
 function renderLobby(){
   const inRoom=!!NET.code;
   $('#onJoinBox').classList.toggle('hidden',inRoom);$('#onLobby').classList.toggle('hidden',!inRoom);
@@ -109,7 +132,7 @@ function renderLobby(){
 }
 $('#onlineBtn').addEventListener('click',()=>{SFX.init();showOnline();});
 $('#onBack').addEventListener('click',()=>{if(NET.code)leaveRoom();$('#onlineP').classList.add('hidden');$('#menu').classList.remove('hidden');});
-$('#onCreate').addEventListener('click',()=>enterRoom(newCode()));
+$('#onCreate').addEventListener('click',()=>enterRoom(newCode(),true));
 $('#onEnter').addEventListener('click',()=>enterRoom($('#onCode').value));
 $('#onCode').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')enterRoom($('#onCode').value);});
 $('#onLeave').addEventListener('click',leaveRoom);
@@ -314,5 +337,59 @@ function netClientFrame(raw){
   const c=window.claude;
   if(c&&typeof c.use==='function'){
     c.use('room').then(r=>{if(r){NET.room=r;if(!$('#onlineP').classList.contains('hidden'))showOnline();}},()=>{});
-  }else if(tries<20)setTimeout(()=>connect(tries+1),500);
+  }else if(tries<4&&window.top!==window)setTimeout(()=>connect(tries+1),500);
+  else{NET.p2p=true;if(!$('#onlineP').classList.contains('hidden')&&!NET.code)showOnline();}
 })(0);
+
+/* ==========================================================================
+   P2P transport (GitHub Pages / any static host): PeerJS + its free cloud broker.
+   The room creator owns peer id "ofn-<code>" and relays everyone's presence (star topology).
+   Exposes the same presence()/peers() surface as the claude.ai room, so the code above is shared.
+   ========================================================================== */
+const P2P_PREFIX='ofn-';
+const P2P_ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}]};
+function loadPeerJS(){
+  if(window.Peer)return Promise.resolve();
+  const urls=['https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js','https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'];
+  return new Promise((res,rej)=>{let i=0;const next=()=>{if(i>=urls.length)return rej(new Error('load'));const s=document.createElement('script');s.src=urls[i++];s.onload=()=>window.Peer?res():next();s.onerror=next;document.head.appendChild(s);};next();});
+}
+function p2pRoom(code,create){
+  return new Promise((resolve,reject)=>{
+    const hostId=P2P_PREFIX+code;let done=false,myId=null,mine={},snap=[],hostConn=null,closeCb=null,closed=false;
+    const others=new Map(),conns=new Map();
+    const peer=create?new Peer(hostId,{config:P2P_ICE}):new Peer({config:P2P_ICE});
+    const fz=p=>Object.freeze(p&&typeof p==='object'?Object.assign({},p):{});
+    const rebuild=()=>{snap=Object.freeze([Object.freeze({peer:myId,by:null,isMe:true,sameTab:true,kind:'viewer',guest:false,presence:fz(mine),updatedAt:Date.now()}),
+      ...[...others].map(([id,p])=>Object.freeze({peer:id,by:null,isMe:false,sameTab:false,kind:'viewer',guest:false,presence:p,updatedAt:Date.now()}))]);};
+    const send=(c,m)=>{if(c&&c.open)try{c.send(m);}catch(e){}};
+    const broadcast=(m,except)=>{for(const[id,c]of conns)if(id!==except)send(c,m);};
+    const shut=why=>{if(closed)return;closed=true;try{peer.destroy();}catch(e){}if(closeCb)closeCb(why);};
+    const room={p2p:true,
+      presence(patch){for(const k in patch){if(patch[k]===null)delete mine[k];else mine[k]=patch[k];}rebuild();
+        if(create)broadcast({t:'p',id:myId,p:mine});else send(hostConn,{t:'p',p:mine});return Promise.resolve();},
+      peers(){return snap;},onPeers(){return()=>{};},connected(){return!closed;},emit(){return Promise.resolve();},on(){return()=>{};},
+      onClose(fn){closeCb=fn;},close(){closeCb=null;shut('leave');}};
+    const fail=why=>{if(done)return;done=true;try{peer.destroy();}catch(e){}reject(new Error(why));};
+    peer.on('open',id=>{myId=id;rebuild();
+      if(create){done=true;resolve(room);return;}
+      hostConn=peer.connect(hostId,{reliable:true,serialization:'json'});
+      hostConn.on('open',()=>{if(done)return;done=true;send(hostConn,{t:'p',p:mine});resolve(room);});
+      hostConn.on('data',m=>{if(!m||typeof m!=='object')return;
+        if(m.t==='p'&&typeof m.id==='string'&&m.id!==myId){others.set(m.id,fz(m.p));rebuild();}
+        else if(m.t==='bye'){others.delete(m.id);rebuild();}
+        else if(m.t==='all'&&Array.isArray(m.list)){others.clear();for(const e of m.list)if(Array.isArray(e)&&typeof e[0]==='string'&&e[0]!==myId)others.set(e[0],fz(e[1]));rebuild();}});
+      hostConn.on('close',()=>{others.clear();rebuild();if(done)shut('host');});
+      hostConn.on('error',()=>{});
+      setTimeout(()=>fail('nohost'),12000);
+    });
+    if(create)peer.on('connection',c=>{
+      c.on('open',()=>{if(conns.size>=7){c.close();return;}conns.set(c.peer,c);send(c,{t:'all',list:[[myId,mine],...[...others].map(([id,p])=>[id,p])]});});
+      c.on('data',m=>{if(m&&m.t==='p'){const p=fz(m.p);others.set(c.peer,p);rebuild();broadcast({t:'p',id:c.peer,p},c.peer);}});
+      c.on('close',()=>{conns.delete(c.peer);if(others.delete(c.peer)){rebuild();broadcast({t:'bye',id:c.peer});}});
+      c.on('error',()=>{});
+    });
+    peer.on('error',e=>{const t=e&&e.type;if(!done)fail(t==='peer-unavailable'?'nohost':t==='unavailable-id'?'taken':(t||'error'));});
+    peer.on('disconnected',()=>{if(!closed)try{peer.reconnect();}catch(e){}});
+    addEventListener('beforeunload',()=>{try{peer.destroy();}catch(e){}});
+  });
+}

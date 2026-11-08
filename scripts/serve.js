@@ -3,16 +3,18 @@
 //   /               -> index.html (real three.js from CDN, offline only)
 //   /mp-local.html  -> index.html + test/room_mock.js  (open 2-4 tabs to play "online" on one PC)
 //   /test.html      -> index.html + room mock + three.js stub (headless tests, nothing renders)
+//   /test-p2p.html  -> index.html + PeerJS mock + three.js stub (headless tests of the P2P transport)
 const http = require('http'), fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json' };
 const CDN = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>';
 function page(kind) {
   let html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  if (kind === 'test') html = html.split(CDN).join('<script src="test/three_stub.js"></script>');
+  if (kind === 'test' || kind === 'test-p2p') html = html.split(CDN).join('<script src="test/three_stub.js"></script>');
   if (kind === 'test' || kind === 'mp') html = html.split('<script src="js/core.js">').join('<script src="test/room_mock.js"></script>\n<script src="js/core.js">');
+  if (kind === 'test-p2p') html = html.split('<script src="js/core.js">').join('<script src="test/peer_mock.js"></script>\n<script src="js/core.js">');
   // test pages: no web fonts
-  if (kind === 'test') html = html.replace(/<link[^>]+fonts\.googleapis[^>]+>/g, '');
+  if (kind.startsWith('test')) html = html.replace(/<link[^>]+fonts\.googleapis[^>]+>/g, '');
   return html;
 }
 function start(port) {
@@ -22,6 +24,7 @@ function start(port) {
     if (url === '/' || url === '/index.html') { res.writeHead(200, { 'Content-Type': TYPES['.html'] }); return res.end(page('play')); }
     if (url === '/mp-local.html') { res.writeHead(200, { 'Content-Type': TYPES['.html'] }); return res.end(page('mp')); }
     if (url === '/test.html') { res.writeHead(200, { 'Content-Type': TYPES['.html'] }); return res.end(page('test')); }
+    if (url === '/test-p2p.html') { res.writeHead(200, { 'Content-Type': TYPES['.html'] }); return res.end(page('test-p2p')); }
     const file = path.normalize(path.join(ROOT, url));
     if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end('not found'); }
     res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream' });

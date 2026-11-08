@@ -4,16 +4,16 @@
 // Run: npm test   (needs: npm install && npx playwright install chromium)
 const { chromium } = require('playwright');
 const { start } = require('../scripts/serve.js');
-const PORT = 8791, URL = `http://localhost:${PORT}/test.html`;
+const PORT = 8791, BASE = `http://localhost:${PORT}`;
 let failures = 0;
 const ok = (cond, msg) => { console.log((cond ? '  ✓ ' : '  ✗ ') + msg); if (!cond) failures++; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-async function openPage(ctx, errs) {
+async function openPage(ctx, errs, url = BASE + '/test.html') {
   const pg = await ctx.newPage({ viewport: { width: 1280, height: 720 } });
   pg.on('pageerror', e => errs.push('pageerror: ' + e.message));
   pg.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
-  await pg.goto(URL); await sleep(700);
+  await pg.goto(url); await sleep(700);
   return pg;
 }
 
@@ -52,10 +52,11 @@ async function offline(browser) {
   await ctx.close();
 }
 
-async function online(browser) {
-  console.log('\n[online] host + 2 clients through the room mock');
-  const errs = []; const ctx = await browser.newContext();
-  const host = await openPage(ctx, errs), c1 = await openPage(ctx, errs);
+const leave = pg => pg.evaluate("window.__roomMockLeave&&__roomMockLeave();window.__peerMockKill&&__peerMockKill()");
+async function online(browser, page, label) {
+  console.log(`\n[online: ${label}] host + 2 clients`);
+  const errs = []; const ctx = await browser.newContext(); const url = BASE + page;
+  const host = await openPage(ctx, errs, url), c1 = await openPage(ctx, errs, url);
   const H = s => host.evaluate(s), C1 = s => c1.evaluate(s);
   await host.click('#onlineBtn'); await host.selectOption('#onChar', '0'); await host.click('#onCreate'); await sleep(500);
   const code = await H('NET.code');
@@ -86,10 +87,11 @@ async function online(browser) {
   ok(await H("G.phase") === 'end' && await C1("G.phase") === 'end', 'both tabs reach the end of the match');
   ok(await C1("!document.querySelector('#endP').classList.contains('hidden')"), 'client sees the end panel');
   ok(await C1('NET.lastFx') > 5, 'client replayed host fx events (' + await C1('NET.lastFx') + ')');
-  ok(await H('window.__maxPresence') <= 4096, 'host presence stayed under 4 KiB (max ' + await H('window.__maxPresence') + ' B)');
+  if (label === 'claude.ai room') ok(await H('window.__maxPresence') <= 4096, 'host presence stayed under 4 KiB (max ' + await H('window.__maxPresence') + ' B)');
+  else ok(await H('NET.room && NET.room.p2p') && await C1('NET.room && NET.room.p2p'), 'both tabs use the P2P transport');
 
   console.log('  -- 3 players free-for-all, one leaves mid-match');
-  const c2 = await openPage(ctx, errs); const C2 = s => c2.evaluate(s);
+  const c2 = await openPage(ctx, errs, url); const C2 = s => c2.evaluate(s);
   await H('netQuitMatch()'); await sleep(800);
   ok(await C1("NET.role") === 'lobby', 'client returns to lobby when host leaves the match');
   await c2.click('#onlineBtn'); await c2.fill('#onCode', code); await c2.click('#onEnter'); await sleep(1500);
@@ -97,10 +99,11 @@ async function online(browser) {
   ok(await C2('NET.role') === 'client' && await C2('G.f.length') === 4, 'third player joins a 4-slot FFA');
   ok(await H("G.f.filter(f=>f.player).length") === 3, '3 human slots + 1 CPU');
   for (let i = 0; i < 10; i++) { await c1.keyboard.press('KeyJ'); await c2.keyboard.press('KeyK'); await c2.keyboard.press('Space'); await sleep(120); }
-  await c2.evaluate('__roomMockLeave()'); await c2.close(); await sleep(1500);
+  await leave(c2); await c2.close(); await sleep(1500);
   ok(await H("G.f.filter(f=>f.net).length") === 1, 'leaver is replaced by a CPU on the host');
-  await H('netQuitMatch()'); await host.evaluate('__roomMockLeave()'); await host.close(); await sleep(5200);
-  ok(await C1("NET.role") === 'lobby', 'client survives host closing the tab');
+  await H('netQuitMatch()'); await leave(host); await host.close(); await sleep(5200);
+  if (label === 'claude.ai room') ok(await C1("NET.role") === 'lobby', 'client survives host closing the tab');
+  else ok(await C1("NET.role") === 'off' && (await C1("document.querySelector('#onMsg').textContent")).includes('ปิดห้อง'), 'client is told the room closed when the host tab goes away');
   ok(errs.length === 0, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
   await ctx.close();
 }
@@ -108,7 +111,7 @@ async function online(browser) {
 (async () => {
   const server = await start(PORT);
   const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME, args: ['--no-sandbox'] } : {});
-  try { await offline(browser); await online(browser); }
+  try { await offline(browser); await online(browser, '/test.html', 'claude.ai room'); await online(browser, '/test-p2p.html', 'P2P/PeerJS'); }
   catch (e) { console.error(e); failures++; }
   await browser.close(); server.close();
   console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
