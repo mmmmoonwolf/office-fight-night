@@ -36,7 +36,7 @@ async function offline(browser) {
   ok(await ev('onMezz(G.f[0])'), 'stairs lead up to the mezzanine');
   await pg.keyboard.down('KeyW'); await sleep(1500); await pg.keyboard.up('KeyW');
   ok(await ev("lvlOf(G.f[0])") === 'f2', 'mezzanine doorway leads into the 2nd-floor violin shop');
-  await ev("G.f[0].state='idle';G.f[0].pos.x=16;G.f[0].pos.z=-6.5;G.f[0].y=2.4;G.f[0].vel.x=0;G.f[0].vel.z=0");
+  await ev("G.f[0].state='idle';G.f[0].pos.x=14.6;G.f[0].pos.z=-6.6;G.f[0].y=2.4;G.f[0].vel.x=0;G.f[0].vel.z=0");
   await sleep(200);
   ok((await ev("document.querySelector('#prompts').textContent")).includes('หยิบ'), 'button prompt shows next to a weapon');
   await ev("G.f[1].state='idle';G.f[1].invT=0;G.f[1].hp=G.f[1].maxHp;G.f[1].pos.x=16.6;G.f[1].pos.z=1.8;G.f[1].y=2.4;G.f[1].vy=0;G.f[1].vel.z=0");
@@ -95,10 +95,11 @@ async function online(browser, page, label) {
   await H("breakPane(PANES[2].b,null)"); await sleep(600);
   ok(await C1("PANES[2].mesh.visible===false"), 'broken glass is synced to clients');
   for (let k = 0; k < 2; k++) {
+    for (let w = 0; w < 40 && await H('G.phase') !== 'fight'; w++) { await host.keyboard.press('KeyX'); await sleep(250); }
     await H("G.f[1].hp=1;G.f[1].state='idle';G.f[1].invT=0;G.f[1].takeHit(G.f[0],{dmg:5,knock:1,stun:.3})");
-    await sleep(2300); await host.keyboard.press('KeyX'); await sleep(2600);
+    await sleep(2300); await host.keyboard.press('KeyX'); await sleep(1500);
   }
-  await sleep(2600);
+  for (let w = 0; w < 40 && !(await H('G.phase') === 'end' && await C1("!document.querySelector('#endP').classList.contains('hidden')")); w++) { await host.keyboard.press('KeyX'); await sleep(300); }
   ok(await H("G.phase") === 'end' && await C1("G.phase") === 'end', 'both tabs reach the end of the match');
   ok(await C1("!document.querySelector('#endP').classList.contains('hidden')"), 'client sees the end panel');
   ok(await C1('NET.lastFx') > 5, 'client replayed host fx events (' + await C1('NET.lastFx') + ')');

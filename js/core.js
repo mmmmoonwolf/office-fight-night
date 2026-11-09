@@ -297,3 +297,13 @@ addEventListener('keydown',e=>{
 addEventListener('keyup',e=>held.delete(e.code));
 addEventListener('blur',()=>held.clear());
 const has=(set,arr)=>arr.some(c=>set.has(c));
+// Mobile: stop iOS/Android from zooming the page (double-tap, pinch while pressing several buttons, input focus)
+(function noZoom(){
+  const typing=t=>t&&t.closest&&t.closest('input,select,textarea');
+  const scrollable=t=>t&&t.closest&&t.closest('.overlay');
+  ['gesturestart','gesturechange','gestureend'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+  document.addEventListener('touchmove',e=>{if(e.touches.length>1||(e.scale&&e.scale!==1)||!scrollable(e.target))e.preventDefault();},{passive:false});
+  let lastEnd=0;
+  document.addEventListener('touchend',e=>{const now=Date.now();if(now-lastEnd<400&&!typing(e.target))e.preventDefault();lastEnd=now;},{passive:false});
+  document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
+})();
