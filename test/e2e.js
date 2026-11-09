@@ -34,6 +34,19 @@ async function offline(browser) {
   await ev("G.f[0].pos.x=2.6;G.f[0].pos.z=-5.3;G.f[0].y=0;CAM.yaw=-Math.PI/2");
   await pg.keyboard.down('KeyW'); await sleep(1800); await pg.keyboard.up('KeyW');
   ok(await ev('onMezz(G.f[0])'), 'stairs lead up to the mezzanine');
+  await pg.keyboard.down('KeyW'); await sleep(1500); await pg.keyboard.up('KeyW');
+  ok(await ev("lvlOf(G.f[0])") === 'f2', 'mezzanine doorway leads into the 2nd-floor violin shop');
+  await ev("G.f[0].state='idle';G.f[0].pos.x=16;G.f[0].pos.z=-6.5;G.f[0].y=2.4;G.f[0].vel.x=0;G.f[0].vel.z=0");
+  await sleep(200);
+  ok((await ev("document.querySelector('#prompts').textContent")).includes('หยิบ'), 'button prompt shows next to a weapon');
+  await ev("G.f[1].state='idle';G.f[1].invT=0;G.f[1].hp=G.f[1].maxHp;G.f[1].pos.x=16.6;G.f[1].pos.z=1.8;G.f[1].y=2.4;G.f[1].vy=0;G.f[1].vel.z=0");
+  await sleep(150);
+  const hpBefore = await ev('G.f[1].hp');
+  await ev("G.f[1].takeHit(null,{dmg:1,knock:12,stun:1,launch:3,kd:1,unblockable:1,dir:{x:0,z:1}})");
+  await sleep(1800);
+  ok(await ev("PANES.some(p=>p.b.broken)"), '2nd-floor glass breaks when someone is knocked into it');
+  ok(await ev("G.f[1].pos.z>3 && G.f[1].y<0.5"), 'fighter falls out of the window onto the street');
+  ok(await ev('G.f[1].hp') < hpBefore - 5, 'fall damage applied');
   for (let k = 0; k < 2; k++) {
     await ev("G.f[1].hp=1;G.f[1].state='idle';G.f[1].invT=0;G.f[1].takeHit(G.f[0],{dmg:5,knock:1,stun:.3})");
     await sleep(2200); await pg.keyboard.press('KeyX'); await sleep(2600);
@@ -79,6 +92,8 @@ async function online(browser, page, label) {
   const hpB = await H('G.f[1].hp');
   await H("G.f[0].tryAttack('hook')"); await sleep(600);
   ok(await H('G.f[1].hp') < hpB && Math.abs(await C1('G.f[1].hp') - await H('G.f[1].hp')) < 2, 'damage shows on both screens');
+  await H("breakPane(PANES[2].b,null)"); await sleep(600);
+  ok(await C1("PANES[2].mesh.visible===false"), 'broken glass is synced to clients');
   for (let k = 0; k < 2; k++) {
     await H("G.f[1].hp=1;G.f[1].state='idle';G.f[1].invT=0;G.f[1].takeHit(G.f[0],{dmg:5,knock:1,stun:.3})");
     await sleep(2300); await host.keyboard.press('KeyX'); await sleep(2600);

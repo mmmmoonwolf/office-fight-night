@@ -7,7 +7,9 @@ Handoff notes for Claude Code. Read this first.
 A silly 3D brawler in the browser (three.js r128 from cdnjs, no bundler). Fighters are the owner's coworkers at a
 piano/guitar shop (Peterson Sukhumvit26). One continuous map: the showroom (grand-piano podium, upright row, guitar
 wall, book shelf, counter, mezzanine "ห้องหัวหน้า" with stairs) opens through a glass door onto the sidewalk and the
-street (motorbike-taxi stand, som-tam cart, pickup truck, poles with tangled cables). GetAmped-style chase camera.
+street (motorbike-taxi stand, som-tam cart, pickup truck, poles with tangled cables). A doorway on the mezzanine leads
+into the 2nd-floor violin & book shop (built above the right-hand neighbour) whose 4 front glass panes break when
+someone is knocked into them — they drop onto the sidewalk and take fall damage. GetAmped-style chase camera.
 
 - 14 characters (`ROSTER` in `js/core.js`), each with a unique special (`SPECIALS` in `js/fighter.js`)
 - Modes: duel 1v1, FFA 4, team 2v2, arcade ladder (5 + boss) — offline 1–2 players on one keyboard
@@ -55,13 +57,26 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
 
 ## World & physics
 
-- Units are metres. Store interior x ∈ [-11, 11], z ∈ [-8, 3]; glass front at z = 3 with a door gap |x| < 2.3;
+- Units are metres. 2nd floor: x ∈ [11.3, 22], z ∈ [-8, 2.85], floor y = 2.4 (`lvlOf(f)` → 'g' | 'mz' | 'f2');
+  breakable panes live in `PANES` (`breakPane`, `restorePanes`; a broken pane's block is moved to y = -100).
+- Store interior x ∈ [-11, 11], z ∈ [-8, 3]; glass front at z = 3 with a door gap |x| < 2.3;
   sidewalk z ∈ [3.1, 7.5] (y 0.15); road z ∈ [7.5, 15]; far sidewalk + shophouses z ≥ 15; side walls x = ±22.
 - Every solid thing is an AABB in `blocks` (`solid(x0,x1,z0,z1,y0,y1,tag)`). `groundAt` returns the highest top a
   fighter can stand on (step height `STEP` = 0.42); `resolveBlocks` pushes fighters out sideways and reports
   high-speed impacts to `Fighter.onWallHit` (tag → sound/popup in `WALLFX`).
 - Walls that would hide the action fade via `fadeGroup(meshes, cond)`.
 - `zoneOf` ('in'/'out') and `onMezz` drive AI path-finding (door waypoint, stair waypoint).
+
+## Characters, sound, prompts
+
+- Fighters are chibi: `S = ch.size × 0.84`, short legs (hip 0.72), bean torso, head group `this.head` scaled 1.2
+  (head accessories use the old head-relative coordinates inside it). `GLOVE_OFS` nudges all glove poses forward.
+- `SFX` has a master bus + compressor, procedural lounge music (`music`, `musicTempo`, faster in the last 15 s),
+  street ambience (`amb`), formant voices per fighter (`SFX.voice(f.vp, 'atk'|'hurt'|'ko'|'win'|'sp'|'grunt')`),
+  3 randomised hit variants. Names in `SFX_LOCAL` are never broadcast online (music, footsteps, internals).
+- Floating key hints (`updPrompts` in game.js): pick up / throw / swing / grab / special ready / power-up names,
+  labelled with the right key for P1, P2, touch or online. Clients read weapon positions from `NET.cl.items`.
+- `later(sec, fn)` schedules host-side follow-ups for multi-stage specials (cleared on round reset).
 
 ## Combat cheat-sheet
 

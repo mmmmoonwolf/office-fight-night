@@ -16,8 +16,8 @@ function slotInfo(i){
 
 /* ================= SPAWNS ================= */
 function spawnList(n,loc){
-  const IN=[[-2.6,0,-1.4],[2.6,0,-1.4],[-2.6,0,1.4],[2.6,0,1.4]],OUT=[[-3,0.15,5.2],[3,0.15,5.2],[-3,0,10.4],[3,0,10.4]],BOSS=[[2.0,0,-2.4],[9.4,2.4,-5.8]];
-  const L=(loc==='boss'?BOSS:(loc==='out'?OUT:IN)).slice(0,n);
+  const IN=[[-2.6,0,-1.4],[2.6,0,-1.4],[-2.6,0,1.4],[2.6,0,1.4]],OUT=[[-3,0.15,5.2],[3,0.15,5.2],[-3,0,10.4],[3,0,10.4]],UP=[[13.2,2.4,1.4],[19.4,2.4,-5.6],[13.2,2.4,-5.6],[19.4,2.4,1.6]],BOSS=[[2.0,0,-2.4],[9.4,2.4,-5.8]];
+  const L=(loc==='boss'?BOSS:loc==='out'?OUT:loc==='up'?UP:IN).slice(0,n);
   return L.map(([x,y,z],i)=>{let cx=0,cz=0;L.forEach((q,j)=>{if(j!==i){cx+=q[0];cz+=q[2];}});cx/=Math.max(1,L.length-1);cz/=Math.max(1,L.length-1);return[x,y,z,Math.atan2(cx-x,cz-z)];});
 }
 
@@ -87,7 +87,7 @@ function updCamera(raw){
   else if(G.phase==='end'){const w=G.f.find(f=>f.win)||G.f[0];focus=V(w.pos.x,w.y+0.4,w.pos.z);yaw=lerpAngle(CAM.yaw,w.face,0.03);CAM.yaw=yaw;pitch=0.3;dist=6;}
   else{
     if(G.humans===1&&!G.paused){if(held.has('KeyQ'))CAM.yaw-=2.2*raw;if(held.has('KeyE'))CAM.yaw+=2.2*raw;}
-    const hf=humansFocus();focus=hf.p;yaw=CAM.yaw;pitch=CAM.pitch;dist=(10.5+hf.spread*(G.humans===2?1.1:0.25))*CAM.zoom;dist=clamp(dist,5,26);
+    const hf=humansFocus();focus=hf.p;yaw=CAM.yaw;pitch=CAM.pitch;dist=(9.4+hf.spread*(G.humans===2?1.1:0.25))*CAM.zoom;dist=clamp(dist,4.5,26);
   }
   CAM.focus.lerp(focus,G.phase==='replay'?1:1-Math.exp(-8*raw));
   const des=V(CAM.focus.x+Math.sin(yaw)*Math.cos(pitch)*dist,CAM.focus.y+1.2+Math.sin(pitch)*dist,CAM.focus.z+Math.cos(yaw)*Math.cos(pitch)*dist);
@@ -142,7 +142,7 @@ window.onGlobalKey=e=>{
 
 /* ================= ROUND FLOW ================= */
 function startMatch(){
-  SFX.init();
+  SFX.init();SFX.music(true);
   if(G.mode==='arcade'){startArcade();return;}
   buildFromSlots();G.wins={};G.round=1;
   enterFightUI();startRound();
@@ -191,7 +191,7 @@ function endRound(){
   if(champ!==undefined||G.round>=5){let t=champ!==undefined?+champ:+Object.keys(G.wins).sort((a,b)=>G.wins[b]-G.wins[a])[0];if(isNaN(t))t=0;endMatch(t);}
   else{G.round++;startRound();}
 }
-function locName(f){if(onMezz(f))return'ห้องหัวหน้า';return f.pos.z<2.95?'กลางโชว์รูม':'ริมถนนหน้าร้าน';}
+function locName(f){if(lvlOf(f)==='f2')return'ร้านไวโอลินชั้น 2';if(onMezz(f))return'ห้องหัวหน้า';return f.pos.z<2.95?'กลางโชว์รูม':'ริมถนนหน้าร้าน';}
 function endMatch(team){
   G.matchWinner=team;G.phase='end';G.phaseT=0;hideCenter();SFX.crowd();hype=1;
   const winners=G.f.filter(f=>f.team===team),losers=G.f.filter(f=>f.team!==team);
@@ -231,12 +231,12 @@ function startArcade(){
   G.arc={stage:0,list:[...pool,bossIdx],me};G.wins={};
   showInter();
 }
-function arcadeLoc(stage,list){return stage===list.length-1?'boss':(stage%2?'out':'in');}
+function arcadeLoc(stage,list){return stage===list.length-1?'boss':['in','out','up'][stage%3];}
 function showInter(){
   G.phase='between';$('#hud').classList.remove('on');document.body.classList.remove('fighting');$('#menu').classList.add('hidden');$('#endP').classList.add('hidden');
   const A=G.arc,opp=ROSTER[A.list[A.stage]],me=ROSTER[A.me],loc=arcadeLoc(A.stage,A.list),final=A.stage===A.list.length-1;
   $('#interT').textContent=final?'ด่านสุดท้าย: บอสใหญ่! 👑':'ด่าน '+(A.stage+1)+' / '+A.list.length;
-  $('#interLoc').textContent='สถานที่: '+({in:'กลางโชว์รูม',out:'ริมถนนหน้าร้าน',boss:'ห้องหัวหน้า (ชั้นลอย)'}[loc])+' · คู่ต่อสู้: '+opp.name+' — '+opp.role;
+  $('#interLoc').textContent='สถานที่: '+({in:'กลางโชว์รูม',out:'ริมถนนหน้าร้าน',up:'ร้านไวโอลินชั้น 2',boss:'ห้องหัวหน้า (ชั้นลอย)'}[loc])+' · คู่ต่อสู้: '+opp.name+' — '+opp.role;
   portrait(me,$('#interA'));portrait(opp,$('#interB'),'attack');
   $('#interQ').textContent='"'+pick(opp.quotes)+'"';
   $('#interP').classList.remove('hidden');
@@ -334,7 +334,7 @@ function togglePause(force){if(NET.role!=='off'){const show=force!==undefined?fo
 $('#resumeBtn').addEventListener('click',()=>togglePause(false));
 $('#quitBtn').addEventListener('click',()=>{if(NET.role!=='off')netQuitMatch();else toMenu();});
 $('#pauseBtn').addEventListener('click',()=>{if(['fight','intro','ko','post'].includes(G.phase))togglePause();});
-$('#muteBtn').addEventListener('click',()=>{SFX.muted=!SFX.muted;$('#muteBtn').textContent=SFX.muted?'🔇':'🔊';});
+$('#muteBtn').addEventListener('click',()=>{SFX.setMuted(!SFX.muted);$('#muteBtn').textContent=SFX.muted?'🔇':'🔊';});
 
 /* ================= MENU ================= */
 function ctrlHTML(){
@@ -415,6 +415,46 @@ function separateAll(){
     if(d<min){const p=(min-d)/2;a.pos.x-=dx/d*p;a.pos.z-=dz/d*p;b.pos.x+=dx/d*p;b.pos.z+=dz/d*p;}}
 }
 
+/* ================= BUTTON PROMPTS (floating key hints) ================= */
+const PROMPTS=[];let promptN=0;
+function promptAt(wp,html,cls){const v=wp.clone().project(camera);if(v.z>1||v.x<-1.1||v.x>1.1||v.y<-1.1||v.y>1.1)return;
+  let el=PROMPTS[promptN];if(!el){el=document.createElement('div');$('#prompts').appendChild(el);PROMPTS.push(el);}promptN++;
+  const c='kp'+(cls?' '+cls:'');if(el.className!==c)el.className=c;if(el._h!==html){el.innerHTML=html;el._h=html;}el.style.display='';
+  el.style.transform=`translate(${(v.x+1)/2*innerWidth}px,${(1-v.y)/2*innerHeight}px) translate(-50%,-100%)`;}
+function keyCap(f,act,hot){
+  const touchUI=document.body.classList.contains('touch')&&f.human===0;
+  const S=f.human===1?SCH.p2:(G.humans===2&&NET.role==='off'?SCH.p1:SCH.solo);
+  const txt=touchUI?{grab:'หยิบ/จับ',jab:'จ็อบ',sp:'ไม้ตาย'}[act]:S[act][0].replace(/^Key|^Digit/,'').replace('ShiftLeft','Shift');
+  return `<b class="${touchUI?'tb2':''}${hot?' hot':''}">${txt}</b>`;
+}
+function weaponsNear(f,d){
+  if(NET.role==='client'){let best=null,bd=d;for(const o of NET.cl.items.values()){if(o.k!==0)continue;const p=o.mesh.position,dd=Math.hypot(p.x-f.pos.x,p.z-f.pos.z);if(dd<bd&&Math.abs(o.y-f.y)<1.3){bd=dd;best={x:p.x,y:o.y,z:p.z,type:o.type};}}return best;}
+  return nearestWeapon(f,d);
+}
+function powersNear(f,d){
+  const out=[];if(NET.role==='client'){for(const o of NET.cl.items.values())if(o.k===1&&Math.hypot(o.mesh.position.x-f.pos.x,o.mesh.position.z-f.pos.z)<d)out.push({x:o.mesh.position.x,y:o.y,z:o.mesh.position.z,type:o.type});}
+  else for(const it of items)if(it.kind==='p'&&Math.hypot(it.x-f.pos.x,it.z-f.pos.z)<d)out.push(it);
+  return out;
+}
+function updPrompts(){
+  promptN=0;
+  if(['fight','intro','ko','post'].includes(G.phase)&&!G.photo&&!(G.paused&&NET.role==='off')){
+    const locals=G.f.filter(f=>f.human!=null&&f.state!=='ko');const seenP=new Set();
+    for(const f of locals){
+      const top=f.y+2.95*f.S;let off=0;
+      if(f.rage>=100){promptAt(V(f.pos.x,top+0.42,f.pos.z),keyCap(f,'sp',true)+'ไม้ตาย!');off=0.42;}
+      if(f.held){const W=WEAPONS[f.held.type];promptAt(V(f.pos.x,top+off,f.pos.z),keyCap(f,'grab')+'ขว้าง<span class="sep"></span>'+keyCap(f,'jab')+'ฟาด'+(W?' ('+f.held.dur+')':''));}
+      else if(!['stun','down','grabbed'].includes(f.state)){
+        const w=weaponsNear(f,1.7);
+        if(w&&WEAPONS[w.type])promptAt(V(w.x,w.y+1.05,w.z),keyCap(f,'grab')+'หยิบ '+WEAPONS[w.type].name);
+        else{const e=nearestEnemy(f,1.55);if(e&&!['down','grabbed','ko'].includes(e.state)&&Math.abs(e.y-f.y)<0.9)promptAt(V(e.pos.x,e.y+2.95*e.S+0.32,e.pos.z),keyCap(f,'grab')+'จับทุ่ม');}
+      }
+      for(const p of powersNear(f,5)){const k=p.x+','+p.z;if(seenP.has(k)||!POWER[p.type])continue;seenP.add(k);promptAt(V(p.x,p.y+1.0,p.z),POWER[p.type].name,'item');}
+    }
+  }
+  for(let i=promptN;i<PROMPTS.length;i++)if(PROMPTS[i].style.display!=='none')PROMPTS[i].style.display='none';
+}
+
 /* ================= MAIN LOOP ================= */
 let last=performance.now();
 function loop(now){
@@ -441,7 +481,8 @@ function loop(now){
     hype=Math.max(0,hype-raw*0.35);
   }
   if(NET.role==='host')netHostFrame(raw);
-  updRain(raw,CAM.focus);updCamera(raw);updFades(raw,CAM.focus);updTags();updPops(raw);
+  updRain(raw,CAM.focus);updCamera(raw);updFades(raw,CAM.focus);updTags();updPops(raw);updPrompts();
+  SFX.amb(G.phase==='menu'?0.4:(CAM.focus.z>3?1:CAM.focus.y>2?0.15:0.35));SFX.musicTempo(G.phase==='fight'&&G.timer<=15?132:G.phase==='end'?108:96);
   renderer.render(scene,camera);
   pressed.clear();
 }

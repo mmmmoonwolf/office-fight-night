@@ -30,13 +30,13 @@ hideCenter=function(){RAWF.hideCenter();if(isHost())netFx('h');};
 banner=function(t,d){RAWF.banner(t,d);if(isHost())netFx('n',safeStr(t,60),d===undefined?3:d);};
 ringFx=function(x,y,z,r,c,l){RAWF.ringFx(x,y,z,r,c,l);if(isHost())netFx('r',Q(x),Q(y),Q(z),r,c,l||0.45);};
 cloudAt=function(x,y,z,o){const r=RAWF.cloudAt(x,y,z,o);if(isHost()&&o)netFx('cl',Q(x),Q(y),Q(z));return r;};
-dropAt=function(x,z,o){const r=RAWF.dropAt(x,z,o);if(isHost()&&o)netFx('dr',Q(x),Q(z));return r;};
+dropAt=function(x,z,o,k){const r=RAWF.dropAt(x,z,o,k);if(isHost()&&o)netFx('dr',Q(x),Q(z),k==='sofa'?'sofa':'grand');return r;};
 couponAt=function(id,sx,sy,sz,x,y,z,o){const c=RAWF.couponAt(id,sx,sy,sz,x,y,z,o);if(isHost()&&o)netFx('cp',id,Q(sx),Q(sy),Q(sz),Q(x),Q(y),Q(z));return c;};
 couponGone=function(c){if(isHost())netFx('cx',c.id);};
 addTape=function(a,b){RAWF.addTape(a,b);if(isHost())netFx('tp',G.f.indexOf(a),G.f.indexOf(b));};
 flashFor=function(f){RAWF.flashFor(f);if(isHost())netFx('fl',G.f.indexOf(f));};
 const RAWS={};let sfxDepth=0;
-Object.keys(SFX).forEach(k=>{const fn=SFX[k];if(typeof fn!=='function'||k==='init'||k==='env'||k==='noise')return;RAWS[k]=fn;
+Object.keys(SFX).forEach(k=>{const fn=SFX[k];if(typeof fn!=='function')return;RAWS[k]=fn;if(SFX_LOCAL.has(k))return;
   SFX[k]=function(...a){const top=sfxDepth===0;sfxDepth++;try{return fn.apply(SFX,a);}finally{sfxDepth--;if(top&&isHost())netFx('s',k,...a);}};});
 function playFx(e){
   const t=e[1];
@@ -48,7 +48,7 @@ function playFx(e){
   else if(t==='n')RAWF.banner(safeStr(e[2],60),+e[3]||3);
   else if(t==='r')RAWF.ringFx(UQ(e[2]),UQ(e[3]),UQ(e[4]),clamp(+e[5]||1,0.1,8),e[6]|0,+e[7]||0.45);
   else if(t==='cl')RAWF.cloudAt(UQ(e[2]),UQ(e[3]),UQ(e[4]),null);
-  else if(t==='dr')RAWF.dropAt(UQ(e[2]),UQ(e[3]),null);
+  else if(t==='dr')RAWF.dropAt(UQ(e[2]),UQ(e[3]),null,e[4]==='sofa'?'sofa':'grand');
   else if(t==='cp')RAWF.couponAt(e[2],UQ(e[3]),UQ(e[4]),UQ(e[5]),UQ(e[6]),UQ(e[7]),UQ(e[8]),null);
   else if(t==='cx'){const c=coupons.find(c=>c.id===e[2]);if(c)c.gone=true;}
   else if(t==='tp'){const a=G.f[e[2]],b=G.f[e[3]];if(a&&b)RAWF.addTape(a,b);}
@@ -74,7 +74,7 @@ function showOnline(msg){
   $('#menu').classList.add('hidden');$('#onlineP').classList.remove('hidden');
   const sel=$('#onChar');if(!sel.options.length)ROSTER.forEach((c,i)=>{const o=document.createElement('option');o.value=i;sel.appendChild(o);});
   ROSTER.forEach((c,i)=>{sel.options[i].textContent=c.name+' — '+c.role;});
-  if(!NET.code)sel.value=G.slots[0];
+  if(!NET.code)sel.value=G.slots[0];SFX.music(true);
   portrait(ROSTER[+sel.value],$('#onPic'));
   const ready=!!NET.room||NET.p2p;
   $('#onMsg').textContent=msg||(ready?'':'กำลังเตรียมระบบออนไลน์... รอสักครู่แล้วลองใหม่');
@@ -153,7 +153,7 @@ setInterval(()=>{
 /* ---------- match setup (host and clients build the same fighters) ---------- */
 function netBuildMatch(cfg){
   ['#onlineP','#menu','#endP','#pause','#interP','#shotP','#photoBar'].forEach(s=>$(s).classList.add('hidden'));
-  clearFighters();G.mode=cfg.mode;G.diff=G.baseDiff=clamp(cfg.diff|0,0,2);G.loc=cfg.loc==='out'?'out':'in';G.humans=1;G.roundLoc=null;G.paused=false;G.photo=false;
+  clearFighters();G.mode=cfg.mode;G.diff=G.baseDiff=clamp(cfg.diff|0,0,2);G.loc=['out','up'].includes(cfg.loc)?cfg.loc:'in';G.humans=1;G.roundLoc=null;G.paused=false;G.photo=false;
   const me=myPeerId();NET.mySlot=-1;let pn=0;
   cfg.sl.forEach((s,i)=>{const peer=s[0]||'',ci=clamp(s[1]|0,0,ROSTER.length-1),base=ROSTER[ci];
     const ch=Object.assign({},base,{name:safeStr(s[2]||base.name,18),glove:clamp(s[3]|0,0,GLOVES.length-1),photoImg:peer&&peer===me?base.photoImg:null});
@@ -185,7 +185,7 @@ function netClientClear(){
   items.slice().forEach(it=>scene.remove(it.mesh));items.length=0;WSPOTS.forEach(s=>{s.item=null;s.resp=0;});PSPOTS.forEach(s=>s.item=null);
   NPC.bikes.forEach(b=>scene.remove(b.o.g));NPC.bikes.length=0;
   if(NPC.movers){scene.remove(NPC.movers.g);NPC.movers=null;}if(NPC.customer){scene.remove(NPC.customer.p.g);NPC.customer=null;}
-  projs.slice().forEach(p=>scene.remove(p.mesh));projs.length=0;clearEffects();G.rain=0;G.watch=0;
+  projs.slice().forEach(p=>scene.remove(p.mesh));projs.length=0;clearEffects();restorePanes();G.rain=0;G.watch=0;
 }
 function toLobby(msg){
   const wasClient=NET.role==='client';
@@ -216,6 +216,7 @@ function buildSnap(){
   const s={i:++NET.seq,ph:Math.max(0,PHASES.indexOf(G.phase)),t:Math.ceil(G.timer),r:G.round,w:[0,1,2,3].map(t=>G.wins[t]||0),wt:G.matchWinner==null?-1:G.matchWinner,sh:Q(G.shake),rn:G.rain>0?Math.ceil(G.rain):0,hy:Q(hype)};
   s.f=G.f.map(f=>{const a=f.snap();const bits=(f.fx.dizzy>0?1:0)|(f.fx.slow>0?2:0)|(f.fx.buff>0?4:0)|(f.fx.immune>0?8:0)|(f.win?16:0);
     return a.slice(0,18).map(Q).concat([a[18],a[19],Math.ceil(Math.max(0,f.hp)),Math.round(f.rage),f.held?WT.indexOf(f.held.type):-1,f.held?f.held.dur:0,bits,Math.max(0,STATES.indexOf(f.state))]);});
+  s.gb=PANES.reduce((m,P,i)=>m|(P.b.broken?1<<i:0),0);
   s.it=items.map(it=>[it.id,it.kind==='w'?0:1,(it.kind==='w'?WT:PT).indexOf(it.type),Q(it.x),Q(it.y),Q(it.z)]);
   s.pj=projs.filter(p=>!p.visual).slice(0,16).map(p=>[p.id,PK.indexOf(p.kind),Q(p.x),Q(p.y),Q(p.z),Q(p.vx),Q(p.vy),Q(p.vz),p.wt?WT.indexOf(p.wt):-1]);
   const d=NPC.dog,mv=NPC.movers,cu=NPC.customer;
@@ -275,7 +276,7 @@ function netSyncItems(S,raw){
     if(!o){let mesh;if(k===0){const W=WEAPONS[WT[ti]];if(!W)continue;mesh=W.mk();const ring=new THREE.Mesh(new THREE.RingGeometry(0.45,0.55,24),new THREE.MeshBasicMaterial({color:0xffd23d,transparent:true,opacity:.6,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=0.02;mesh.add(ring);}
       else{if(!PT[ti])continue;mesh=powerMesh(PT[ti]);}
       scene.add(mesh);o={mesh,k,t:Math.random()*5,y:0};M.set(id,o);}
-    o.y=UQ(y);o.mesh.position.x=UQ(x);o.mesh.position.z=UQ(z);if(k===0)o.mesh.position.y=o.y;}
+    o.type=(k===0?WT:PT)[ti];o.y=UQ(y);o.mesh.position.x=UQ(x);o.mesh.position.z=UQ(z);if(k===0)o.mesh.position.y=o.y;}
   for(const[id,o]of M){if(!seen.has(id)){scene.remove(o.mesh);M.delete(id);continue;}
     if(o.k===1){o.t+=raw;o.mesh.position.y=o.y+0.25+Math.sin(o.t*3)*0.1;o.mesh.rotation.y+=raw*1.8;if(o.mesh.userData.ring)o.mesh.userData.ring.position.y=-0.23-Math.sin(o.t*3)*0.1;}}
 }
@@ -324,6 +325,7 @@ function netClientFrame(raw){
       f.hp=+fl[20]||0;f.rage=+fl[21]||0;f.setHeldVis(fl[22]>=0&&WT[fl[22]]?WT[fl[22]]:null);if(f.held)f.held.dur=fl[23]|0;
       const bits=fl[24]|0;f.fx.dizzy=bits&1;f.fx.slow=bits&2?1:0;f.fx.buff=bits&4?1:0;f.fx.immune=bits&8?1:0;f.win=!!(bits&16);
       f.state=STATES[fl[25]]||'idle';f.lite(raw);});
+    PANES.forEach((P,i)=>{const br=!!((S.gb|0)>>i&1);if(P.mesh.visible===br)P.mesh.visible=!br;});
     G.timer=+S.t||0;G.round=S.r|0;G.wins={};(S.w||[]).forEach((v,i)=>{if(v)G.wins[i]=v|0;});G.rain=+S.rn||0;hype=UQ(S.hy);
     netSyncItems(S,raw);netSyncProjs(S,now-B[B.length-1].t);netSyncNPC(S,raw);
     if(G.phase!=='end')updHUD(raw);
