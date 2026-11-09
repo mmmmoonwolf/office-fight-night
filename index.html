@@ -50,7 +50,14 @@ input{font-family:inherit}
 body.touch #hint{display:none}
 
 /* tags & popups */
-#tags,#pops{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+#tags,#pops,#prompts{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.kp{position:absolute;left:0;top:0;background:rgba(10,10,20,.74);border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:2px 9px 2px 3px;font-size:13px;font-weight:600;white-space:nowrap;will-change:transform;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.kp b{display:inline-block;min-width:22px;height:22px;line-height:22px;padding:0 5px;border-radius:6px;background:#fff;color:#111;text-align:center;margin:0 6px 0 0;font-weight:800;font-size:12px;box-shadow:0 2px 0 #9a9a9a}
+.kp b+b{margin-left:4px}
+.kp b.tb2{border-radius:12px;background:#8c50dc;color:#fff;box-shadow:none;font-size:11px}
+.kp b.hot{background:#ffd23d;animation:pulse .45s infinite alternate}
+.kp.item{background:rgba(30,80,40,.7);padding:1px 8px;font-size:12px}
+.kp .sep{display:inline-block;width:10px}
 .ftag{position:absolute;left:0;top:0;font-weight:800;font-size:13px;padding:1px 7px;border-radius:7px;background:var(--c);white-space:nowrap;box-shadow:0 2px 0 rgba(0,0,0,.4);will-change:transform}
 .ftag.off{font-size:15px;padding:3px 8px}
 .pop{position:absolute;left:0;top:0;font-weight:800;white-space:nowrap;will-change:transform}
@@ -175,6 +182,7 @@ body.touch.fighting #touch{display:block}
 </div>
 <div id="banner"></div>
 <div id="hint"></div>
+<div id="prompts"></div>
 <div id="pops"></div>
 <div id="center"><h1 id="cH"></h1><p id="cP"></p></div>
 <div id="flash"></div>
@@ -189,7 +197,7 @@ body.touch.fighting #touch{display:block}
     <div class="row">
       <div class="seg" id="humSeg"><span class="lab">ผู้เล่น</span><button data-h="1" class="on">1 คน</button><button data-h="2">2 คน (เครื่องเดียวกัน)</button></div>
       <div class="seg" id="diffSeg"><span class="lab">คอม</span><button data-d="0">ง่าย</button><button data-d="1" class="on">กลาง</button><button data-d="2">โหด</button></div>
-      <div class="seg" id="locSeg"><span class="lab">เริ่มที่</span><button data-l="in" class="on">ในโชว์รูม</button><button data-l="out">ริมถนนหน้าร้าน</button></div>
+      <div class="seg" id="locSeg"><span class="lab">เริ่มที่</span><button data-l="in" class="on">ในโชว์รูม</button><button data-l="out">ริมถนนหน้าร้าน</button><button data-l="up">ชั้น 2 ไวโอลิน</button></div>
     </div>
     <div class="slots" id="slots"></div>
     <div class="hint" id="menuHint"></div>
@@ -213,7 +221,7 @@ body.touch.fighting #touch{display:block}
       <div id="onPlayers" class="onplayers"></div>
       <div id="onHostBox">
         <div class="onseg seg" id="onMode"><button data-v="duel">ดวล 1v1</button><button data-v="ffa">ตะลุมบอน 4 คน</button><button data-v="team">ทีม 2v2</button></div>
-        <div class="onseg"><div class="seg" id="onDiff"><span class="lab">คอม</span><button data-v="0">ง่าย</button><button data-v="1">กลาง</button><button data-v="2">โหด</button></div><div class="seg" id="onLoc"><span class="lab">เริ่มที่</span><button data-v="in">ในโชว์รูม</button><button data-v="out">หน้าร้าน</button></div></div>
+        <div class="onseg"><div class="seg" id="onDiff"><span class="lab">คอม</span><button data-v="0">ง่าย</button><button data-v="1">กลาง</button><button data-v="2">โหด</button></div><div class="seg" id="onLoc"><span class="lab">เริ่มที่</span><button data-v="in">ในโชว์รูม</button><button data-v="out">หน้าร้าน</button><button data-v="up">ชั้น 2</button></div></div>
         <div class="onrow"><button class="btn big" id="onStart">เริ่มเกม! 🥊</button></div>
       </div>
       <p id="onWait" class="hidden">รอโฮสต์กดเริ่มเกม...</p>
