@@ -57,9 +57,10 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
 
 ## World & physics
 
-- Units are metres. 2nd floor: x ∈ [11.3, 22], z ∈ [-8, 2.85], floor y = 2.4 (`lvlOf(f)` → 'g' | 'mz' | 'f2');
+- Units are metres. 2nd floor: x ∈ [11.3, 22], z ∈ [-12, 2.85], floor y = 2.4 (`lvlOf(f)` → 'g' | 'mz' | 'f2');
   breakable panes live in `PANES` (`breakPane`, `restorePanes`; a broken pane's block is moved to y = -100).
-- Store interior x ∈ [-11, 11], z ∈ [-8, 3]; glass front at z = 3 with a door gap |x| < 2.3;
+- Store interior x ∈ [-15, 11], z ∈ [-12, 3]; glass front at z = 3 with a door gap |x| < 2.3; mezzanine x ∈ [7, 11],
+  z ∈ [-12, -8.2] (y 2.4) reached by 2.2 m-wide stairs at z ∈ [-10.6, -8.4]; doorway to floor 2 at z ∈ [-11.6, -8.6];
   sidewalk z ∈ [3.1, 7.5] (y 0.15); road z ∈ [7.5, 15]; far sidewalk + shophouses z ≥ 15; side walls x = ±22.
 - Every solid thing is an AABB in `blocks` (`solid(x0,x1,z0,z1,y0,y1,tag)`). `groundAt` returns the highest top a
   fighter can stand on (step height `STEP` = 0.42); `resolveBlocks` pushes fighters out sideways and reports
@@ -69,8 +70,11 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
 
 ## Characters, sound, prompts
 
-- Fighters are chibi: `S = ch.size × 0.84`, short legs (hip 0.72), bean torso, head group `this.head` scaled 1.2
-  (head accessories use the old head-relative coordinates inside it). `GLOVE_OFS` nudges all glove poses forward.
+- Fighters are chibi: `S = ch.size × 0.84`, short legs (hip 0.72), bean torso, head group `this.head` scaled 1.26
+  (head-relative coordinates, radius 0.5). Hair is real geometry from `buildHair()` (cap + fringe + curtains/locks for
+  long hair, bun, spikes…); fringes are skipped when a face photo is used. Arms are 2-bone IK (`updArms`, `seg`):
+  upper arm + forearm + elbow. Punches: anticipation (easeOutCubic) → strike with overshoot (`easeOutBack`, hooks and
+  uppercuts follow a Bézier arc via `bez`) → recover (easeInOutCubic); the off hand tucks to the chin.
 - `SFX` has a master bus + compressor, procedural lounge music (`music`, `musicTempo`, faster in the last 15 s),
   street ambience (`amb`), formant voices per fighter (`SFX.voice(f.vp, 'atk'|'hurt'|'ko'|'win'|'sp'|'grunt')`),
   3 randomised hit variants. Names in `SFX_LOCAL` are never broadcast online (music, footsteps, internals).
@@ -113,6 +117,9 @@ Everything goes through **presence only** (no event topics), because presence is
   `owner = null`, which must never deal damage or play sounds twice).
 - Presence is capped at 4 KiB: `netHostFrame` trims fx → projectiles → items to stay under 3.3 KB for `s`.
   Quantise with `Q()` (×100 ints). Tests assert the max size.
+- Clients send an input sequence number; the host echoes it per slot in `s.ia`. If it stops advancing for 2.5 s the
+  client shows "⚠️ ปุ่มยังไม่ถึงโฮสต์" and re-asserts its presence. Keyboard focus left in a hidden lobby input is
+  dropped when a match starts (it used to swallow every key for joiners on Safari/Firefox).
 - Leaver → CPU takes over. Host leaves / ends the match → clients go back to the lobby. No host migration yet.
 - The host's tab must stay visible (browsers throttle hidden tabs).
 - On claude.ai, viewers must be signed in with access to the shared Artifact. On GitHub Pages anyone with the link can

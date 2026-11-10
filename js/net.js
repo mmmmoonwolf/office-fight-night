@@ -8,7 +8,7 @@
    The host runs the normal offline simulation; remote fighters read netInput().
    Clients never simulate: they interpolate fighter poses from snapshots and replay fx events.
    ========================================================================== */
-Object.assign(NET,{room:null,code:'',jt:0,cfg:null,hostPeer:null,mySlot:-1,declined:null,
+Object.assign(NET,{ack:{},room:null,code:'',jt:0,cfg:null,hostPeer:null,mySlot:-1,declined:null,
   seq:0,fxSeq:0,fxBuf:[],lastFx:0,snaps:[],lastSnapI:-1,lastSendT:0,inCnt:[0,0,0,0,0],lastIn:'',lastInT:0,remote:{},lastHostSeen:0,curPhase:'',endShown:false,
   set:{mode:'ffa',diff:1,loc:'in'},cl:{items:new Map(),projs:new Map(),bikes:new Map(),movers:null,cust:null},maxSize:0});
 const PHASES=['menu','intro','fight','ko','replay','post','between','end'];
@@ -171,12 +171,12 @@ function netHostStart(){
   m.forEach((p,i)=>{if(i<n){const c=clamp(+p.presence.c|0,0,ROSTER.length-1);sl[order[i]]=[p.peer,c,safeStr(p.presence.nm||ROSTER[c].name,18),p.presence.gl|0];}});
   for(let i=0;i<n;i++)if(!sl[i]){const c=Math.floor(Math.random()*ROSTER.length);sl[i]=['',c,ROSTER[c].name,0];}
   NET.cfg={id:Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),mode,diff:NET.set.diff,loc:NET.set.loc,sl};
-  NET.role='host';NET.fxBuf=[];NET.fxSeq=0;NET.remote={};NET.seq=0;
+  NET.role='host';NET.fxBuf=[];NET.fxSeq=0;NET.remote={};NET.ack={};NET.seq=0;
   setPresence({g:NET.cfg,s:null,in:null});
   SFX.init();netBuildMatch(NET.cfg);G.wins={};G.round=1;enterFightUI();startRound();
 }
 function netAdopt(h){
-  NET.role='client';NET.hostPeer=h.peer;NET.cfg=h.presence.g;NET.snaps=[];NET.lastSnapI=-1;NET.lastFx=0;NET.curPhase='';NET.endShown=false;NET.inCnt=[0,0,0,0,0];NET.lastIn='';NET.lastHostSeen=performance.now();
+  NET.role='client';NET.inSeq=0;NET.inFirst=0;NET.ackSeen=0;NET.ackT=performance.now();NET.hostPeer=h.peer;NET.cfg=h.presence.g;NET.snaps=[];NET.lastSnapI=-1;NET.lastFx=0;NET.curPhase='';NET.endShown=false;NET.inCnt=[0,0,0,0,0];NET.lastIn='';NET.lastHostSeen=performance.now();
   SFX.init();netClientClear();netBuildMatch(NET.cfg);enterFightUI();G.phase='intro';G.wins={};
 }
 function netClientClear(){
@@ -210,12 +210,13 @@ function netInput(f){
   it.mx=clamp(+a[0]||0,-100,100)/100;it.mz=clamp(+a[1]||0,-100,100)/100;it.block=!!a[2];
   if(c[2]>L[2])it.atk='special';else if(c[1]>L[1])it.atk='hook';else if(c[0]>L[0])it.atk='jab';
   it.jump=c[3]>L[3];it.grab=c[4]>L[4];
-  NET.remote[f.slot]=c;return it;
+  NET.remote[f.slot]=c;NET.ack[f.slot]=a[8]|0;return it;
 }
 function buildSnap(){
   const s={i:++NET.seq,ph:Math.max(0,PHASES.indexOf(G.phase)),t:Math.ceil(G.timer),r:G.round,w:[0,1,2,3].map(t=>G.wins[t]||0),wt:G.matchWinner==null?-1:G.matchWinner,sh:Q(G.shake),rn:G.rain>0?Math.ceil(G.rain):0,hy:Q(hype)};
   s.f=G.f.map(f=>{const a=f.snap();const bits=(f.fx.dizzy>0?1:0)|(f.fx.slow>0?2:0)|(f.fx.buff>0?4:0)|(f.fx.immune>0?8:0)|(f.win?16:0);
     return a.slice(0,18).map(Q).concat([a[18],a[19],Math.ceil(Math.max(0,f.hp)),Math.round(f.rage),f.held?WT.indexOf(f.held.type):-1,f.held?f.held.dur:0,bits,Math.max(0,STATES.indexOf(f.state))]);});
+  s.ia=G.f.map(f=>f.net?(NET.ack[f.slot]|0):0);
   s.gb=PANES.reduce((m,P,i)=>m|(P.b.broken?1<<i:0),0);
   s.it=items.map(it=>[it.id,it.kind==='w'?0:1,(it.kind==='w'?WT:PT).indexOf(it.type),Q(it.x),Q(it.y),Q(it.z)]);
   s.pj=projs.filter(p=>!p.visual).slice(0,16).map(p=>[p.id,PK.indexOf(p.kind),Q(p.x),Q(p.y),Q(p.z),Q(p.vx),Q(p.vy),Q(p.vz),p.wt?WT.indexOf(p.wt):-1]);
@@ -249,7 +250,7 @@ function netSendInput(now){
   if(it.atk==='jab')c[0]++;else if(it.atk==='hook')c[1]++;else if(it.atk==='special')c[2]++;
   if(it.jump)c[3]++;if(it.grab)c[4]++;
   const arr=[Q(clamp(it.mx,-1,1)),Q(clamp(it.mz,-1,1)),it.block?1:0,...c],key=arr.join(',');
-  if((key!==NET.lastIn&&now-NET.lastInT>=45)||now-NET.lastInT>400){NET.lastIn=key;NET.lastInT=now;setPresence({in:arr});}
+  if((key!==NET.lastIn&&now-NET.lastInT>=45)||now-NET.lastInT>250){NET.lastIn=key;NET.lastInT=now;NET.inSeq=(NET.inSeq||0)+1;if(!NET.inFirst)NET.inFirst=now;setPresence({in:arr.concat(NET.inSeq)});}
 }
 function netPhase(s){
   const ph=PHASES[s.ph]||'fight';if(ph===NET.curPhase)return;NET.curPhase=ph;G.phase=ph;
@@ -331,6 +332,10 @@ function netClientFrame(raw){
     if(G.phase!=='end')updHUD(raw);
   }
   if(now-NET.lastHostSeen>1500||(B.length&&now-B[B.length-1].t>1500))$('#roundLab').textContent='⏳ รอโฮสต์...';
+  // input health: the host echoes the last input sequence it read from us
+  if(B.length&&NET.mySlot>=0){const ia=(B[B.length-1].s.ia||[])[NET.mySlot]|0;if(ia!==NET.ackSeen){NET.ackSeen=ia;NET.ackT=now;}
+    if(G.phase==='fight'&&NET.inSeq>3&&now-NET.ackT>2500){$('#roundLab').textContent='⚠️ ปุ่มยังไม่ถึงโฮสต์';
+      if(now-(NET.reassertT||0)>3000){NET.reassertT=now;setPresence(Object.assign(myLobbyPresence(),{in:[0,0,0,...NET.inCnt,NET.inSeq]}));}}}
   updEffects(raw);updParts(raw);
 }
 

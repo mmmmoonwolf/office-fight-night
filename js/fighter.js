@@ -124,7 +124,28 @@ const ATK={
   cast:{startup:.3,active:.05,recover:.38,dmg:0,range:0},
 };
 const armGeo=new THREE.CylinderGeometry(0.1,0.09,1,8);
-const GLOVE_OFS=V(0,-0.04,0.1);
+const GLOVE_OFS=V(0,-0.04,0.06);
+function seg(m,a,b){const d=b.clone().sub(a),l=d.length();m.position.copy(a).add(b).multiplyScalar(0.5);if(l>1e-4)m.quaternion.setFromUnitVectors(UPV,d.multiplyScalar(1/l));m.scale.y=Math.max(0.05,l);}
+/* real 3D hair (inside the head group: head radius 0.5, centre at 0) */
+function buildHair(Hd,ch,mat){
+  const hs=ch.hairStyle,photo=!!ch.photoImg,add=(m)=>{m.castShadow=true;Hd.add(m);return m;};
+  const dbl=mat.clone();dbl.side=THREE.DoubleSide;
+  const fringe=(p0,p1,t1)=>add(new THREE.Mesh(new THREE.SphereGeometry(0.56,24,8,Math.PI/2+p0,p1-p0,0.2*Math.PI,t1||0.22*Math.PI),dbl));
+  if(hs==='bald'){for(let k=-4;k<=4;k++){const a=k*0.36;add(new THREE.Mesh(new THREE.SphereGeometry(0.11,8,6),mat)).position.set(Math.sin(a)*0.47,-0.06,-Math.cos(a)*0.47);}return;}
+  const cap=add(new THREE.Mesh(new THREE.SphereGeometry(hs==='buzz'?0.512:0.548,28,16,0,Math.PI*2,0,Math.PI*0.56),dbl));cap.rotation.x=-0.42;cap.position.set(0,0.015,-0.02);
+  if(hs==='buzz')return;
+  const curtain=(H,r0,r1)=>{const c=add(new THREE.Mesh(new THREE.CylinderGeometry(r0,r1,H,22,1,true,Math.PI/2,Math.PI),dbl));c.position.set(0,0.06-H/2,-0.04);
+    const tip=add(new THREE.Mesh(new THREE.SphereGeometry(r1,22,6,Math.PI/2,Math.PI,Math.PI/2,Math.PI/2),dbl));tip.scale.y=0.25;tip.position.set(0,0.06-H,-0.04);return c;};
+  const lock=(x,H)=>{const l=add(new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.11,H,8),mat));l.position.set(x,-H/2+0.05,0.16);l.rotation.z=x>0?0.06:-0.06;return l;};
+  if(hs==='long'){curtain(1.45,0.52,0.6);lock(0.44,0.95);lock(-0.44,0.95);if(!photo)fringe(-1.15,1.15);}
+  else if(hs==='longM'){curtain(1.15,0.52,0.58);lock(0.45,0.8);lock(-0.45,0.8);if(!photo){fringe(-1.2,-0.1,0.3*Math.PI);fringe(0.1,1.2,0.3*Math.PI);}}
+  else if(hs==='bob'){const b=add(new THREE.Mesh(new THREE.SphereGeometry(0.6,24,12,Math.PI/2-0.15,Math.PI+0.3,0.25*Math.PI,0.42*Math.PI),dbl));b.position.y=0.02;if(!photo)fringe(-1.1,1.1,0.2*Math.PI);}
+  else if(hs==='bun'){add(new THREE.Mesh(new THREE.SphereGeometry(0.21,14,10),mat)).position.set(0,0.5,-0.2);add(new THREE.Mesh(new THREE.TorusGeometry(0.12,0.04,6,14),M('#ff7aa8'))).position.set(0,0.4,-0.16);lock(0.43,0.45);lock(-0.43,0.45);if(!photo)fringe(-0.95,0.95,0.17*Math.PI);}
+  else if(hs==='swept'){const top=add(new THREE.Mesh(new THREE.SphereGeometry(0.36,16,10),mat));top.scale.set(1.35,0.7,1.15);top.position.set(0,0.36,0.04);
+    if(!photo){const sw=add(new THREE.Mesh(new THREE.SphereGeometry(0.3,16,10),mat));sw.scale.set(1.5,0.5,0.55);sw.position.set(0.1,0.26,0.36);sw.rotation.z=-0.5;}}
+  else if(hs==='spiky'){for(let k=0;k<8;k++){const c=add(new THREE.Mesh(new THREE.ConeGeometry(0.1,0.34,6),mat));const a=k/8*Math.PI*2;c.position.set(Math.sin(a)*0.28,0.42,Math.cos(a)*0.22-0.05);c.rotation.set(Math.cos(a)*0.6-0.2,0,-Math.sin(a)*0.6);}if(!photo)fringe(-0.9,0.9,0.12*Math.PI);}
+  else{/* short */const v=add(new THREE.Mesh(new THREE.SphereGeometry(0.33,16,10),mat));v.scale.set(1.4,0.55,1.2);v.position.set(-0.04,0.36,0.04);if(!photo)fringe(-1.0,0.8,0.15*Math.PI);}
+}
 const UPV=V(0,1,0);
 const WALLFX={piano:['ชนเปียโน! 🎹','piano'],grand:['ชนแกรนด์! 🎹','piano'],bench:['ชนเก้าอี้!','thud'],guitar:['ชนกีตาร์! 🎸','guitar'],glass:['ชนกระจก!','glass'],counter:['ชนเคาน์เตอร์!','thud'],box:['ชนกล่องพัสดุ! 📦','thud'],shelf:['หนังสือร่วง! 📚','thud'],car:['รถร้อง! 🚨','alarm'],bike:['ชนมอไซค์!','thud'],cart:['ส้มตำหก! 🌶','thud'],pole:['ชนเสาไฟ!','thud'],planter:['ชนกระถาง!','thud'],stage:['ชนแท่น!','thud'],mezz:['ติดผนัง!','thud'],stairs:['ชนบันได!','thud'],desk:['ชนโต๊ะ!','thud'],case:['ชนตู้ไวโอลิน! 🎻','violin'],cello:['ชนเชลโล่! 🎻','cello'],glass2:['ชนกระจก!','glass'],wall:['ติดผนัง!','thud']};
 const tigerTex=canvasTex(128,64,(g,w,h)=>{g.fillStyle='#ff9a1a';g.fillRect(0,0,w,h);g.fillStyle='#111';for(let i=0;i<9;i++){g.beginPath();const x=i*15;g.moveTo(x,0);g.lineTo(x+8,0);g.lineTo(x+2,h);g.lineTo(x-5,h);g.fill();}});
@@ -160,14 +181,10 @@ class Fighter{
     const nk=cast(new THREE.Mesh(new THREE.CylinderGeometry(0.13*bulk,0.15*bulk,0.16,10),skin));nk.position.y=0.86;T.add(nk);
     this.faceCv=document.createElement('canvas');this.faceCv.width=512;this.faceCv.height=256;
     this.faceTex=new THREE.CanvasTexture(this.faceCv);
-    const Hd=this.head=new THREE.Group();Hd.position.y=1.36;Hd.scale.setScalar(1.2);T.add(Hd);
+    const Hd=this.head=new THREE.Group();Hd.position.y=1.38;Hd.scale.setScalar(1.26);T.add(Hd);
     const hm=new THREE.Mesh(new THREE.SphereGeometry(0.5,32,20),new THREE.MeshStandardMaterial({map:this.faceTex,roughness:.8}));hm.castShadow=true;Hd.add(hm);
     for(const s of[-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,6),skin);e.position.set(s*0.49,-0.02,0);e.scale.set(0.6,1,1);Hd.add(e);}
-    const hs=ch.hairStyle;
-    if(hs==='long'||hs==='longM'){const hb=cast(new THREE.Mesh(new THREE.BoxGeometry(0.86,hs==='long'?0.85:0.68,0.22),hairM));hb.position.set(0,hs==='long'?-0.28:-0.2,-0.34);Hd.add(hb);}
-    if(hs==='bob'){const hb=cast(new THREE.Mesh(new THREE.BoxGeometry(0.98,0.45,0.3),hairM));hb.position.set(0,-0.14,-0.25);Hd.add(hb);}
-    if(hs==='bun'){sph(0.19,hairM,0,0.5,-0.18,Hd,12,10);}
-    if(hs==='swept'){const sw=cast(new THREE.Mesh(new THREE.SphereGeometry(0.53,20,10,0,Math.PI*2,0,Math.PI/2.6),hairM));sw.position.set(0.02,0.04,0);sw.rotation.z=0.12;Hd.add(sw);}
+    buildHair(Hd,ch,hairM);
     const A=ch.acc,fz=0.31*sb;
     if(A.includes('tie')){vbox(0.28,0.26,0.02,M('#f4f4f4'),0,0.66,fz-0.01,T);vbox(0.11,0.42,0.03,M(ch.accent||'#c0392b'),0,0.5,fz,T);}
     if(A.includes('tag')){vbox(0.2,0.11,0.02,M('#ffffff'),0.22,0.62,fz-0.03,T);vbox(0.2,0.03,0.025,M('#c0392b'),0.22,0.66,fz-0.025,T);}
@@ -182,7 +199,8 @@ class Fighter{
     this.arms=[];this.gloves=[];this.gp=[];
     const armMat=(ch.sleeves&&!ch.tank)?shirt:skin;
     for(const h of[0,1]){
-      const arm=cast(new THREE.Mesh(armGeo,armMat));arm.scale.x=arm.scale.z=bulk;T.add(arm);this.arms.push(arm);
+      const up=cast(new THREE.Mesh(armGeo,armMat)),lo=cast(new THREE.Mesh(armGeo,armMat)),el=new THREE.Mesh(new THREE.SphereGeometry(0.1,10,8),armMat);
+      up.scale.x=up.scale.z=bulk;lo.scale.x=lo.scale.z=bulk*0.92;el.scale.setScalar(bulk);T.add(up);T.add(lo);T.add(el);this.arms.push({up,lo,el});
       const gl=cast(new THREE.Mesh(new THREE.SphereGeometry(0.24,16,12),this.gloveMat));gl.scale.set(1,0.95,1.12);T.add(gl);this.gloves.push(gl);
       this.gp.push(V(h?-0.3:0.3,1.0,0.62));
     }
@@ -416,7 +434,7 @@ class Fighter{
       else{this.y=g2;this.vy=0;this.airTop=this.y;
         if(this.moving>0.3&&this.human!=null){this.stepT=(this.stepT||0)-dt*this.moving;if(this.stepT<=0){this.stepT=0.27;SFX.step(this.pos.z>3?1:0);}}}
       resolveBlocks(this);
-      this.pos.x=clamp(this.pos.x,-21.5,21.5);this.pos.z=clamp(this.pos.z,-7.6,16.6);
+      this.pos.x=clamp(this.pos.x,-21.5,21.5);this.pos.z=clamp(this.pos.z,-11.6,16.6);
     }
     if(this.state==='idle'||this.state==='block')this.face=lerpAngle(this.face,this.faceT,1-Math.exp(-14*dt));
     this.animate(dt);
@@ -442,24 +460,29 @@ class Fighter{
     if(s==='attack'&&this.atk){
       const a=this.atk,d=a.def,tt=a.t;
       if(a.type==='cast'){const w=V(sx*0.5,1.75,0.1),k=V(sx*0.25,1.2,1.25);if(tt<d.startup)return g.lerp(w,ease(Math.min(1,tt/(d.startup*0.8))));if(tt<d.startup+d.active+0.08)return k;return k.lerp(g,ease(Math.min(1,(tt-d.startup-d.active)/d.recover)));}
-      if(a.hand===h){let w,k;
-        if(a.type==='jab'||a.type==='swingL'){w=V(sx*0.3,1.02,0.42);k=V(sx*0.1,1.12,1.5);}
-        else if(a.type==='hook'||a.type==='swingH'){w=V(sx*0.95,1.05,0.15);k=V(-sx*0.05,1.12,1.3);}
-        else{w=V(sx*0.35,0.2,0.45);k=V(sx*0.08,1.85,1.0);}
-        const s1=d.startup*0.6;
-        if(tt<s1)return g.lerp(w,ease(tt/s1));
-        if(tt<d.startup)return w.lerp(k,(tt-s1)/(d.startup-s1));
+      if(a.hand===h){let w,k,c=null;
+        if(a.type==='jab'||a.type==='swingL'){w=V(sx*0.34,0.98,0.48);k=V(sx*0.1,1.1,1.32);}
+        else if(a.type==='hook'||a.type==='swingH'){w=V(sx*0.92,1.04,0.22);c=V(sx*0.95,1.12,1.12);k=V(-sx*0.12,1.1,1.12);}
+        else{w=V(sx*0.32,0.32,0.5);c=V(sx*0.26,0.68,1.15);k=V(sx*0.1,1.82,0.95);}
+        const s1=d.startup*0.55;
+        if(tt<s1)return g.lerp(w,easeOutCubic(tt/s1));
+        if(tt<d.startup){const e=easeOutBack((tt-s1)/(d.startup-s1));return c?bez(w,c,k,e):w.lerp(k,e);}
         if(tt<d.startup+d.active)return k;
-        return k.lerp(g,ease(Math.min(1,(tt-d.startup-d.active)/d.recover)));
+        return k.lerp(g,easeInOutCubic(Math.min(1,(tt-d.startup-d.active)/d.recover)));
       }
+      return V(sx*0.2,1.12,0.6);
     }
     if(this.held&&h===0)return V(0.4,1.05,0.5);
     return g;
   }
   updArms(){
-    const b=this.bulk;
-    for(const h of[0,1]){const G2=this.gp[h],Sh=V(h?-0.55*b:0.55*b,0.78,0);this.gloves[h].position.copy(G2);const dir=G2.clone().sub(Sh),len=dir.length();
-      this.arms[h].position.copy(Sh).add(G2).multiplyScalar(0.5);this.arms[h].quaternion.setFromUnitVectors(UPV,dir.normalize());this.arms[h].scale.y=Math.max(0.1,len-0.15);}
+    // 2-bone IK: shoulder → elbow → glove, elbow bends outward/down; over-reach stretches (cartoon)
+    const b=this.bulk,L=0.42;
+    for(const h of[0,1]){const sx=h?-1:1,G2=this.gp[h],Sh=V(sx*0.52*b,0.76,0),A=this.arms[h];this.gloves[h].position.copy(G2);
+      const dv=G2.clone().sub(Sh),d=Math.max(0.05,dv.length()),dir=dv.clone().multiplyScalar(1/d);
+      let E;if(d>=2*L*0.995)E=Sh.clone().addScaledVector(dir,d/2);
+      else{const a=d/2,hh=Math.sqrt(L*L-a*a),bend=V(sx*0.7,-1,-0.35);bend.addScaledVector(dir,-bend.dot(dir));if(bend.lengthSq()<1e-4)bend.set(sx,0,0);bend.normalize();E=Sh.clone().addScaledVector(dir,a).addScaledVector(bend,hh);}
+      seg(A.up,Sh,E);seg(A.lo,E,G2);A.el.position.copy(E);}
   }
   animate(dt){
     const S=this.state,lying=S==='ko'||S==='down',t=this.t;
@@ -477,7 +500,7 @@ class Fighter{
     let lean=0,twist=0,roll=0;
     if(S==='stun')lean=-0.4;else if(S==='block')lean=0.15;else if(S==='grab')lean=0.2;else if(S==='dash')lean=0.35;
     else if(S==='attack'&&this.atk){const a=this.atk,p=a.t/a.def.startup;if(p<0.6)lean=a.type==='combo'||a.type==='cast'?-0.15:-0.05;else if(p<1.6)lean=a.type==='combo'?0.1:0.2;
-      if(a.type!=='combo'&&a.type!=='cast'&&p>0.5&&p<2.2)twist=(a.hand===0?-1:1)*(a.type==='hook'||a.type==='swingH'?0.5:0.3);}
+      if(a.type!=='combo'&&a.type!=='cast'&&p>0.5&&p<2.2)twist=(a.hand===0?-1:1)*(a.type==='hook'||a.type==='swingH'?0.7:0.4);}
     if(this.win){const e=this.ch.emote;if(e==='bow')lean=Math.max(0,Math.sin(t*2.5))*0.8;if(e==='chill')roll=Math.sin(t*1.5)*0.12;if(e==='flex')twist=Math.sin(t*12)*0.08;if(e==='guitar')lean=-0.15+Math.sin(t*8)*0.05;}
     this.torso.rotation.x=lerp(this.torso.rotation.x,lean,1-Math.exp(-14*dt));
     this.torso.rotation.y=lerp(this.torso.rotation.y,twist,1-Math.exp(-16*dt));
@@ -490,8 +513,7 @@ class Fighter{
     if(lying){this.legs[0].rotation.x=0;this.legs[1].rotation.x=0;}
     else if(air&&S!=='grabbed'){this.legs[0].rotation.x=lerp(this.legs[0].rotation.x,-0.7,0.3);this.legs[1].rotation.x=lerp(this.legs[1].rotation.x,0.3,0.3);}
     else{this.legs[0].rotation.x=sw;this.legs[1].rotation.x=-sw;}
-    const k=S==='attack'?1:1-Math.exp(-18*dt);
-    for(const h of[0,1])this.gp[h].lerp(this.glovePose(h).add(GLOVE_OFS),k);
+    for(const h of[0,1]){const act=S==='attack'&&this.atk&&(this.atk.hand===h||this.atk.type==='cast');this.gp[h].lerp(this.glovePose(h).add(GLOVE_OFS),act?1-Math.exp(-45*dt):1-Math.exp(-16*dt));}
     this.updArms();
     this.stars.visible=this.fx.dizzy>0||(S==='stun'&&this.stunT>0.5)||S==='down';
     if(this.stars.visible)this.stars.rotation.y+=dt*6;
@@ -526,9 +548,9 @@ function aiThink(f,dt){
     const mz=zoneOf(f.pos),tz=zoneOf(tg.pos);
     const ml=lvlOf(f),tl=lvlOf(tg);
     if(ml!==tl){isT=false;
-      if(ml==='g'){if(mz==='out'){gx=0;gz=Math.abs(f.pos.x)>1.5||f.pos.z>5?4.2:1.0;}else if(f.pos.z>-4.5||f.pos.x<2.8||f.pos.z<-6.1){gx=2.6;gz=-5.3;}else{gx=8.2;gz=-5.3;}}
-      else if(ml==='mz'){if(tl==='f2'){gx=12.4;gz=-6.1;}else{gx=f.pos.x>7.3?6.6:2.2;gz=-5.3;}}
-      else{const bp=PANES.find(p=>p.b.broken);if(tl==='g'&&tg.pos.z>3&&bp){gx=(bp.b.x0+bp.b.x1)/2;gz=3.9;}else{gx=10.2;gz=-6.1;}}}
+      if(ml==='g'){if(mz==='out'){gx=0;gz=Math.abs(f.pos.x)>1.5||f.pos.z>5?4.2:1.0;}else if(f.pos.z>-8.4||f.pos.x<2.8||f.pos.z<-10.6){gx=2.6;gz=-9.5;}else{gx=8.2;gz=-9.5;}}
+      else if(ml==='mz'){if(tl==='f2'){gx=12.4;gz=-10.1;}else{gx=f.pos.x>7.3?6.6:2.2;gz=-9.5;}}
+      else{const bp=PANES.find(p=>p.b.broken);if(tl==='g'&&tg.pos.z>3&&bp){gx=(bp.b.x0+bp.b.x1)/2;gz=3.9;}else{gx=10.2;gz=-10.1;}}}
     else if(mz!==tz){isT=false;if(mz==='in'){if(Math.abs(f.pos.x)>1.5||f.pos.z<1.0){gx=0;gz=2.0;}else{gx=0;gz=4.8;}}else{if(Math.abs(f.pos.x)>1.5||f.pos.z>5.0){gx=0;gz=4.2;}else{gx=0;gz=1.0;}}}
     if(isT&&!watch){
       if(f.hp/f.maxHp<0.55){const p=nearestPower(f,9,true);if(p&&Math.abs(p.y-f.y)<1.5){gx=p.x;gz=p.z;isT=false;}}

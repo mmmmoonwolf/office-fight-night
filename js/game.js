@@ -16,7 +16,7 @@ function slotInfo(i){
 
 /* ================= SPAWNS ================= */
 function spawnList(n,loc){
-  const IN=[[-2.6,0,-1.4],[2.6,0,-1.4],[-2.6,0,1.4],[2.6,0,1.4]],OUT=[[-3,0.15,5.2],[3,0.15,5.2],[-3,0,10.4],[3,0,10.4]],UP=[[13.2,2.4,1.4],[19.4,2.4,-5.6],[13.2,2.4,-5.6],[19.4,2.4,1.6]],BOSS=[[2.0,0,-2.4],[9.4,2.4,-5.8]];
+  const IN=[[-3.2,0,-2.4],[3.2,0,-2.4],[-3.2,0,1.2],[3.2,0,1.2]],OUT=[[-3,0.15,5.2],[3,0.15,5.2],[-3,0,10.4],[3,0,10.4]],UP=[[13.2,2.4,1.4],[19.4,2.4,-9.6],[13.2,2.4,-9.6],[19.4,2.4,1.6]],BOSS=[[2.0,0,-4.4],[9.4,2.4,-9.8]];
   const L=(loc==='boss'?BOSS:loc==='out'?OUT:loc==='up'?UP:IN).slice(0,n);
   return L.map(([x,y,z],i)=>{let cx=0,cz=0;L.forEach((q,j)=>{if(j!==i){cx+=q[0];cz+=q[2];}});cx/=Math.max(1,L.length-1);cz/=Math.max(1,L.length-1);return[x,y,z,Math.atan2(cx-x,cz-z)];});
 }
@@ -148,6 +148,7 @@ function startMatch(){
   enterFightUI();startRound();
 }
 function enterFightUI(){
+  try{if(document.activeElement&&document.activeElement!==document.body)document.activeElement.blur();}catch(_){}
   $('#menu').classList.add('hidden');$('#endP').classList.add('hidden');$('#interP').classList.add('hidden');$('#pause').classList.add('hidden');
   $('#hud').classList.add('on');document.body.classList.add('fighting');buildHUD();
   $('#hint').textContent=G.humans===1?'Q/E หมุนกล้อง · ลากเมาส์หมุน · ล้อเมาส์ซูม · P ถ่ายรูป · Esc พัก':'ลากเมาส์หมุนกล้อง · Esc พัก';
