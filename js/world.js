@@ -28,7 +28,7 @@ function resolveBlocks(f){
   if(hit)f.onWallHit(hit);
 }
 const zoneOf=p=>p.z<2.95?'in':'out';
-const onMezz=f=>f.pos.x>7&&f.pos.z<-4.2&&f.y>2;
+const onMezz=f=>f.pos.x>7&&f.pos.z<-8.2&&f.y>2;
 const lvlOf=f=>f.y<1.9?'g':(f.pos.x>11.15?'f2':'mz');
 
 /* fade walls */
@@ -40,7 +40,7 @@ function updFades(dt,focus){for(const f of fades){const want=f.cond(camera.posit
 const woodTex=canvasTex(512,512,(g,w,h)=>{
   for(let i=0;i<8;i++){const y=i*64;for(let j=0;j<5;j++){const off=(i%2)*64;const x=j*128+off;g.fillStyle=`hsl(28,45%,${36+Math.random()*10}%)`;g.fillRect(x-128,y,128,64);}g.fillStyle='rgba(0,0,0,.25)';g.fillRect(0,y,w,2);}
   for(let i=0;i<14;i++){g.fillStyle='rgba(0,0,0,.22)';g.fillRect(Math.random()*w,Math.random()*h,2,64);}
-});woodTex.wrapS=woodTex.wrapT=THREE.RepeatWrapping;woodTex.repeat.set(6,3);
+});woodTex.wrapS=woodTex.wrapT=THREE.RepeatWrapping;woodTex.repeat.set(7,4);
 const tileTex=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#b9b2a6';g.fillRect(0,0,w,h);for(let i=0;i<4;i++)for(let j=0;j<4;j++){g.fillStyle=`hsl(35,8%,${62+Math.random()*10}%)`;g.fillRect(i*64+2,j*64+2,60,60);}});
 tileTex.wrapS=tileTex.wrapT=THREE.RepeatWrapping;tileTex.repeat.set(22,2.2);
 const roadTex=canvasTex(1024,256,(g,w,h)=>{g.fillStyle='#3d3f44';g.fillRect(0,0,w,h);for(let i=0;i<900;i++){g.fillStyle=`rgba(${Math.random()<.5?255:0},${Math.random()<.5?255:0},255,.04)`;g.fillRect(Math.random()*w,Math.random()*h,3,3);}
@@ -100,61 +100,63 @@ const hemiRef=scene.children.find(c=>c.isHemisphereLight);
 
 (function buildGround(){
   const g=new THREE.Mesh(new THREE.PlaneGeometry(120,80),M('#8e8a82',{roughness:.95}));g.rotation.x=-Math.PI/2;g.position.set(0,-0.01,6);g.receiveShadow=true;scene.add(g);
-  const fl=new THREE.Mesh(new THREE.PlaneGeometry(22.3,11.3),M('#fff',{map:woodTex,roughness:.45}));fl.rotation.x=-Math.PI/2;fl.position.set(0,0.003,-2.5);fl.receiveShadow=true;scene.add(fl);
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(26.3,15.3),M('#fff',{map:woodTex,roughness:.45}));fl.rotation.x=-Math.PI/2;fl.position.set(-2,0.003,-4.5);fl.receiveShadow=true;scene.add(fl);
   const rugTex=canvasTex(1024,700,(g2,w,h)=>{g2.fillStyle='#7b1d27';g2.fillRect(0,0,w,h);g2.strokeStyle='#e9c46a';g2.lineWidth=14;g2.strokeRect(30,30,w-60,h-60);g2.lineWidth=4;g2.strokeRect(56,56,w-112,h-112);g2.fillStyle='rgba(233,196,106,.16)';g2.beginPath();g2.ellipse(w/2,h/2,300,210,0,0,Math.PI*2);g2.fill();g2.textAlign='center';g2.textBaseline='middle';g2.fillStyle='#f4dfa0';g2.font='800 110px Kanit, sans-serif';g2.fillText('ศึกออฟฟิศ',w/2,h/2-30);g2.font='600 44px Kanit, sans-serif';g2.fillText('PETERSON SUKHUMVIT26',w/2,h/2+70);});
   const rug=new THREE.Mesh(new THREE.PlaneGeometry(7.6,5.2),M('#fff',{map:rugTex,roughness:.95}));rug.rotation.x=-Math.PI/2;rug.position.set(0,0.008,-0.9);rug.receiveShadow=true;scene.add(rug);
 })();
 
 (function buildStore(){
   const wallMat=M('#e8dcc8',{roughness:.9}),sideMat=M('#ddd0ba',{roughness:.9});
-  const back=sbox(-11.3,11.3,0,3.4,-8.3,-8.0,wallMat,'wall');
-  const wains=vbox(22.4,0.9,0.1,M('#5c3a24'),0,0.45,-7.95);
-  fadeGroup([back,wains],(c)=>c.z<-8.0);
-  const lw=sbox(-11.3,-11.0,0,3.4,-8.3,3.0,sideMat,'wall');fadeGroup([lw],c=>c.x<-11);
-  // right wall has a doorway at mezzanine level (z -7.6..-4.6) leading to the 2nd-floor violin & book shop
-  const rw1=sbox(11.0,11.3,0,3.4,-8.3,-7.6,sideMat,'wall'),rw2=sbox(11.0,11.3,0,2.4,-7.6,-4.6,sideMat,'wall'),rw3=sbox(11.0,11.3,0,3.4,-4.6,3.0,sideMat,'wall');fadeGroup([rw1,rw2,rw3],c=>c.x>11&&c.z<3);
+  const back=sbox(-15.3,11.3,0,3.4,-12.3,-12.0,wallMat,'wall');
+  const wains=vbox(26.4,0.9,0.1,M('#5c3a24'),-2,0.45,-11.95);
+  fadeGroup([back,wains],(c)=>c.z<-12.0);
+  const lw=sbox(-15.3,-15.0,0,3.4,-12.3,3.0,sideMat,'wall');fadeGroup([lw],c=>c.x<-15);
+  // right wall has a doorway at mezzanine level (z -11.6..-8.6) leading to the 2nd-floor violin & book shop
+  const rw1=sbox(11.0,11.3,0,3.4,-12.3,-11.6,sideMat,'wall'),rw2=sbox(11.0,11.3,0,2.4,-11.6,-8.6,sideMat,'wall'),rw3=sbox(11.0,11.3,0,3.4,-8.6,3.0,sideMat,'wall');fadeGroup([rw1,rw2,rw3],c=>c.x>11&&c.z<3);
   // slatwall + guitars
-  const slat=vbox(6.4,1.9,0.1,M('#4a2f22',{roughness:.8}),-1.5,2.5,-7.93);
+  const slat=vbox(6.4,1.9,0.1,M('#4a2f22',{roughness:.8}),-1.5,2.5,-11.93);
   const gcols=[['#d9a35a','#5a3010'],['#e8c88e','#4a2810'],['#b8732e','#2a1408'],['#efd29a','#6a3a18'],['#a9622a','#2a1408'],['#d4a060','#3a2010'],['#c58a4a','#3a2010']];
-  for(let i=0;i<7;i++){const gg=guitar(...gcols[i]);gg.scale.setScalar(0.78);gg.position.set(-4.3+i*0.93,2.1,-7.85);scene.add(gg);}
+  for(let i=0;i<7;i++){const gg=guitar(...gcols[i]);gg.scale.setScalar(0.78);gg.position.set(-4.3+i*0.93,2.1,-11.85);scene.add(gg);}
   // sign inside
   const signTex=canvasTex(1024,200,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#1d1d24');gr.addColorStop(1,'#0e0e12');g.fillStyle=gr;g.fillRect(0,0,w,h);g.textAlign='center';g.textBaseline='middle';g.fillStyle='#e9c46a';g.font='800 92px Kanit, serif';g.fillText('PETERSON',w/2,h/2-18);g.font='600 36px Kanit, sans-serif';g.fillStyle='#fff';g.fillText('PIANOS · GUITARS · SUKHUMVIT 26',w/2,h/2+58);});
-  const s1=new THREE.Mesh(new THREE.PlaneGeometry(4.6,0.9),new THREE.MeshBasicMaterial({map:signTex}));s1.position.set(-7.9,2.75,-7.94);scene.add(s1);
-  fadeGroup([slat,s1],c=>c.z<-8.0);
+  const s1=new THREE.Mesh(new THREE.PlaneGeometry(4.6,0.9),new THREE.MeshBasicMaterial({map:signTex}));s1.position.set(-11.9,2.75,-11.94);scene.add(s1);
+  fadeGroup([slat,s1],c=>c.z<-12.0);
   // uprights + benches (back wall)
   [[-3.6,pianoBlack],[-1.5,M('#4a2414',{roughness:.3,metalness:.15})],[0.6,M('#f2f0ec',{roughness:.25})]].forEach(([x,m])=>{
-    upright(x,-7.6,0,m);solid(x-0.8,x+0.8,-8,-7.05,0,1.45,'piano');
-    sbox(x-0.4,x+0.4,0,0.52,-6.65,-6.3,m,'bench');
+    upright(x,-11.6,0,m);solid(x-0.8,x+0.8,-12,-11.05,0,1.45,'piano');
+    sbox(x-0.4,x+0.4,0,0.52,-10.65,-10.3,m,'bench');
   });
   // podium + grand
-  sbox(-10.6,-5.6,0,0.45,-7.6,-3.4,M('#5b1620',{roughness:.9}),'stage');
-  vbox(5.04,0.04,4.24,M('#c9a24a',{metalness:.5,roughness:.3}),-8.1,0.43,-5.5);
-  const gp=mkGrand();gp.position.set(-8.1,0.45,-5.2);gp.rotation.y=Math.PI+0.25;scene.add(gp);
-  solid(-9.2,-7.0,-7.1,-4.1,0.45,1.5,'grand');
-  sbox(-8.6,-7.6,0.45,0.95,-3.95,-3.6,pianoBlack,'bench');
+  sbox(-14.6,-9.6,0,0.45,-11.6,-7.4,M('#5b1620',{roughness:.9}),'stage');
+  vbox(5.04,0.04,4.24,M('#c9a24a',{metalness:.5,roughness:.3}),-12.1,0.43,-9.5);
+  const gp=mkGrand();gp.position.set(-12.1,0.45,-9.2);gp.rotation.y=Math.PI+0.25;scene.add(gp);
+  solid(-13.2,-11.0,-11.1,-8.1,0.45,1.5,'grand');
+  sbox(-12.6,-11.6,0.45,0.95,-7.95,-7.6,pianoBlack,'bench');
   // bookshelf (left wall) – TeeMee's book corner
-  const sh=sbox(-11.0,-10.35,0,2.2,-2.8,2.4,M('#5a3a24'),'shelf');
-  const bk=new THREE.Mesh(new THREE.PlaneGeometry(5.2,2.2),M('#fff',{map:bookTex}));bk.rotation.y=Math.PI/2;bk.position.set(-10.34,1.1,-0.2);scene.add(bk);
+  const sh=sbox(-15.0,-14.35,0,2.2,-2.8,2.4,M('#5a3a24'),'shelf');
+  const bk=new THREE.Mesh(new THREE.PlaneGeometry(5.2,2.2),M('#fff',{map:bookTex}));bk.rotation.y=Math.PI/2;bk.position.set(-14.34,1.1,-0.2);scene.add(bk);
   const bsTex=canvasTex(256,64,(g,w,h)=>{g.fillStyle='#ffd23d';g.fillRect(0,0,w,h);g.fillStyle='#222';g.font='800 34px Kanit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('แผนกหนังสือ',w/2,h/2);});
-  const bs=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.4),new THREE.MeshBasicMaterial({map:bsTex}));bs.rotation.y=Math.PI/2;bs.position.set(-10.33,2.45,-0.2);scene.add(bs);
-  fadeGroup([sh,bk,bs],c=>c.x<-11);
+  const bs=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.4),new THREE.MeshBasicMaterial({map:bsTex}));bs.rotation.y=Math.PI/2;bs.position.set(-14.33,2.45,-0.2);scene.add(bs);
+  fadeGroup([sh,bk,bs],c=>c.x<-15);
   // guitar stands (center-left)
-  for(const[x,z,r]of[[-6.6,0.2,0.4],[-7.4,1.2,0.6],[-5.8,1.4,0.2]]){const gg=guitar('#d9a35a');gg.position.set(x,0.42,z);gg.rotation.set(-0.25,r,0);scene.add(gg);vbox(0.32,0.06,0.32,M('#111'),x,0.03,z+0.1);solid(x-0.28,x+0.28,z-0.25,z+0.3,0,1.2,'guitar');}
+  for(const[x,z,r]of[[-8.6,0.2,0.4],[-9.4,1.2,0.6],[-7.8,1.4,0.2]]){const gg=guitar('#d9a35a');gg.position.set(x,0.42,z);gg.rotation.set(-0.25,r,0);scene.add(gg);vbox(0.32,0.06,0.32,M('#111'),x,0.03,z+0.1);solid(x-0.28,x+0.28,z-0.25,z+0.3,0,1.2,'guitar');}
   // digital pianos row near front-left window
-  for(const x of[-9.2,-7.2]){const dp=upright(x,1.9,Math.PI,M('#2b2420',{roughness:.35}));dp.scale.set(0.95,0.85,0.7);solid(x-0.78,x+0.78,1.55,2.45,0,1.25,'piano');}
+  for(const x of[-13.2,-11.2]){const dp=upright(x,1.9,Math.PI,M('#2b2420',{roughness:.35}));dp.scale.set(0.95,0.85,0.7);solid(x-0.78,x+0.78,1.55,2.45,0,1.25,'piano');}
   // mezzanine (boss office) + stairs
-  const mz=sbox(7,11,0,2.4,-8,-4.2,M('#cfc3ad',{roughness:.85}),'mezz');
+  const mz=sbox(7,11,0,2.4,-12,-8.2,M('#cfc3ad',{roughness:.85}),'mezz');
   const offTex=canvasTex(512,300,(g,w,h)=>{g.fillStyle='#cfc3ad';g.fillRect(0,0,w,h);g.fillStyle='#6b5a46';g.fillRect(0,h-30,w,30);g.fillStyle='#8fb8d8';g.fillRect(40,40,190,150);g.fillRect(280,40,190,150);g.strokeStyle='#4a3a2a';g.lineWidth=8;g.strokeRect(40,40,190,150);g.strokeRect(280,40,190,150);g.fillStyle='#222';g.font='800 40px Kanit, sans-serif';g.textAlign='center';g.fillText('คลังสินค้า',w/2,250);});
-  const mzf=new THREE.Mesh(new THREE.PlaneGeometry(4,2.4),M('#fff',{map:offTex}));mzf.position.set(9,1.2,-4.19);scene.add(mzf);
-  vbox(4.02,0.06,3.82,M('#8a6d4a'),9,2.43,-6.1);
-  for(let i=0;i<8;i++){const x0=3+0.5*i;solid(x0,7,-6.0,-4.6,0,0.3*(i+1),'stairs');vbox(0.5,0.3*(i+1),1.4,M(i%2?'#7a5a3a':'#86643f'),x0+0.25,0.15*(i+1),-5.3);}
+  const mzf=new THREE.Mesh(new THREE.PlaneGeometry(4,2.4),M('#fff',{map:offTex}));mzf.position.set(9,1.2,-8.19);scene.add(mzf);
+  vbox(4.02,0.06,3.82,M('#8a6d4a'),9,2.43,-10.1);
+  // wide staircase (2.2 m) up to the mezzanine
+  for(let i=0;i<8;i++){const x0=3+0.5*i;solid(x0,7,-10.6,-8.4,0,0.3*(i+1),'stairs');vbox(0.5,0.3*(i+1),2.2,M(i%2?'#7a5a3a':'#86643f'),x0+0.25,0.15*(i+1),-9.5);}
+  for(const z of[-10.65,-8.35])vbox(4.4,0.08,0.08,M('#2b2b2b',{metalness:.5}),5,2.15,z).rotation.z=Math.atan2(2.4,4);
   // boss desk upstairs
-  sbox(7.3,9.1,2.4,3.2,-7.8,-6.9,M('#3a2418',{roughness:.4}),'desk');
-  vbox(0.7,0.45,0.05,M('#111'),8.2,3.5,-7.45);
+  sbox(7.3,9.1,2.4,3.2,-11.8,-10.9,M('#3a2418',{roughness:.4}),'desk');
+  vbox(0.7,0.45,0.05,M('#111'),8.2,3.5,-11.45);
   const bossTex=canvasTex(320,90,(g,w,h)=>{g.fillStyle='#c0392b';g.fillRect(0,0,w,h);g.fillStyle='#fff';g.font='800 46px Kanit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('ห้องหัวหน้า',w/2,h/2);});
-  const bt=new THREE.Mesh(new THREE.PlaneGeometry(1.8,0.5),new THREE.MeshBasicMaterial({map:bossTex}));bt.position.set(8.2,3.05,-7.93);scene.add(bt);
+  const bt=new THREE.Mesh(new THREE.PlaneGeometry(1.8,0.5),new THREE.MeshBasicMaterial({map:bossTex}));bt.position.set(8.2,3.05,-11.93);scene.add(bt);
   // chair
-  vbox(0.6,0.1,0.6,M('#111'),8.2,2.85,-8.05);
+  vbox(0.6,0.1,0.6,M('#111'),8.2,2.85,-11.95);
   // counter + computer + parcels
   sbox(7.4,8.4,0,1.1,-2.6,1.6,M('#f3efe8',{roughness:.4}),'counter');
   vbox(1.15,0.06,4.35,M('#3a2418',{roughness:.35}),7.9,1.13,-0.5);
@@ -164,11 +166,11 @@ const hemiRef=scene.children.find(c=>c.isHemisphereLight);
   const parcel=M('#c89b62',{roughness:.9});
   sbox(9.0,10.4,0,0.6,1.0,2.6,parcel,'box');sbox(9.3,10.1,0.6,1.1,1.3,2.3,parcel,'box');
   // plant
-  const pl=new THREE.Group();pl.position.set(-10.2,0,-7.2);scene.add(pl);cyl(0.3,0.24,0.55,M('#e0d6c8'),0,0.27,0,pl,16);for(let i=0;i<9;i++){const l=sph(0.28,M('#2f7d3a'),rand(-.3,.3),0.8+rand(0,.9),rand(-.3,.3),pl,8,6);l.scale.set(1,1.5,0.6);}
-  solid(-10.55,-9.85,-7.55,-6.85,0,1.6,'wall');
+  const pl=new THREE.Group();pl.position.set(-14.2,0,-11.2);scene.add(pl);cyl(0.3,0.24,0.55,M('#e0d6c8'),0,0.27,0,pl,16);for(let i=0;i<9;i++){const l=sph(0.28,M('#2f7d3a'),rand(-.3,.3),0.8+rand(0,.9),rand(-.3,.3),pl,8,6);l.scale.set(1,1.5,0.6);}
+  solid(-14.55,-13.85,-11.55,-10.85,0,1.6,'wall');
   // FRONT: glass + door
   const glass=new THREE.MeshStandardMaterial({color:0xbfe3ff,transparent:true,opacity:0.18,roughness:0.05,metalness:0.2,depthWrite:false});
-  for(const[a,b]of[[-11.3,-2.3],[2.3,11.3]]){
+  for(const[a,b]of[[-15.3,-2.3],[2.3,11.3]]){
     solid(a,b,2.85,3.1,0,3.4,'glass');
     const p=new THREE.Mesh(new THREE.PlaneGeometry(b-a,2.4),glass);p.position.set((a+b)/2,1.5,2.98);scene.add(p);
     vbox(b-a,0.3,0.25,M('#2b2b2b'),(a+b)/2,0.15,2.98);
@@ -178,8 +180,8 @@ const hemiRef=scene.children.find(c=>c.isHemisphereLight);
   vbox(0.12,2.7,0.3,M('#2b2b2b'),-2.3,1.35,2.98);vbox(0.12,2.7,0.3,M('#2b2b2b'),2.3,1.35,2.98);
   for(const s of[-1,1]){const dp=new THREE.Mesh(new THREE.PlaneGeometry(1.5,2.4),glass);dp.position.set(s*3.0,1.5,3.12);scene.add(dp);}
   const bandTex=canvasTex(2048,128,(g,w,h)=>{g.fillStyle='#141418';g.fillRect(0,0,w,h);g.textAlign='center';g.textBaseline='middle';g.fillStyle='#e9c46a';g.font='800 92px Kanit, serif';g.fillText('PETERSON',w/2,h/2+4);g.font='600 40px Kanit, sans-serif';g.fillStyle='#fff';g.fillText('PIANO & GUITAR GALLERY',w*0.18,h/2);g.fillText('SUKHUMVIT 26',w*0.82,h/2);});
-  const band=vbox(22.6,0.7,0.3,M('#141418'),0,3.05,2.98);
-  const bandF=new THREE.Mesh(new THREE.PlaneGeometry(22.6,0.7),new THREE.MeshBasicMaterial({map:bandTex}));bandF.position.set(0,3.05,3.14);scene.add(bandF);
+  const band=vbox(26.6,0.7,0.3,M('#141418'),-2,3.05,2.98);
+  const bandF=new THREE.Mesh(new THREE.PlaneGeometry(26.6,0.7),new THREE.MeshBasicMaterial({map:bandTex}));bandF.position.set(-2,3.05,3.14);scene.add(bandF);
   fadeGroup([band,bandF],(c,f)=>c.z<3&&f&&f.z>3);
   // door mat
   const mat=new THREE.Mesh(new THREE.PlaneGeometry(3,1.2),M('#3a3a3a',{roughness:1}));mat.rotation.x=-Math.PI/2;mat.position.set(0,0.01,2.2);scene.add(mat);
@@ -194,7 +196,7 @@ const hemiRef=scene.children.find(c=>c.isHemisphereLight);
   const road=new THREE.Mesh(new THREE.PlaneGeometry(44,7.5),M('#fff',{map:roadTex,roughness:.95}));road.rotation.x=-Math.PI/2;road.position.set(0,0.004,11.25);road.receiveShadow=true;scene.add(road);
   // neighbour shopfronts with shutters
   const shutTex=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#9aa0a6';g.fillRect(0,0,w,h);for(let y=0;y<h;y+=10){g.fillStyle='rgba(0,0,0,.18)';g.fillRect(0,y,w,3);}g.fillStyle='rgba(40,120,200,.8)';g.font='800 40px Kanit, sans-serif';g.fillText('ให้เช่า',60,140);});
-  for(const[a,b]of[[-22,-11.3]]){
+  for(const[a,b]of[[-22,-15.3]]){
     const f=sbox(a,b,0,3.4,2.6,3.0,M('#fff',{map:shutTex}),'wall');
     const up=vbox(b-a,3.6,0.4,M(a<0?'#d7c39b':'#c4d1c9'),(a+b)/2,5.2,2.8);
     for(let x=a+1;x<b-1;x+=2.6)vbox(1.4,1.1,0.05,M('#6f8fa8',{roughness:.2}),x+0.7,5.1,3.02);
@@ -269,35 +271,35 @@ function restorePanes(){PANES.forEach(P=>{P.b.broken=false;P.b.y0=P.b.oy0;P.b.y1
 (function buildFloor2(){
   const X0=11.3,X1=22,Y=2.4;
   // ground-floor storeroom (solid, never walked in) + its shutter facing the street
-  sbox(X0,X1,0,Y,-8.3,2.6,M('#b9ad98'),'wall');
+  sbox(X0,X1,0,Y,-12.3,2.6,M('#b9ad98'),'wall');
   const stTex=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#8f969c';g.fillRect(0,0,w,h);for(let y=0;y<h;y+=10){g.fillStyle='rgba(0,0,0,.18)';g.fillRect(0,y,w,3);}g.fillStyle='rgba(255,255,255,.85)';g.font='800 34px Kanit, sans-serif';g.fillText('ห้องเก็บของ',40,140);});
   const sh=sbox(X0,X1,0,Y,2.6,3.0,M('#fff',{map:stTex}),'wall');
   fadeGroup([sh],(c,fo)=>c.z<2.6&&fo&&fo.z>3);
   // floor
   const carpetTex=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#5b2333';g.fillRect(0,0,w,h);g.strokeStyle='rgba(233,196,106,.35)';g.lineWidth=3;for(let i=0;i<4;i++)for(let j=0;j<4;j++){g.beginPath();g.arc(32+i*64,32+j*64,18,0,Math.PI*2);g.stroke();}});
   carpetTex.wrapS=carpetTex.wrapT=THREE.RepeatWrapping;carpetTex.repeat.set(5,5);
-  const fl=new THREE.Mesh(new THREE.PlaneGeometry(X1-X0,11.3),M('#fff',{map:carpetTex,roughness:.95}));fl.rotation.x=-Math.PI/2;fl.position.set((X0+X1)/2,Y+0.006,-2.65);fl.receiveShadow=true;scene.add(fl);
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(X1-X0,15.3),M('#fff',{map:carpetTex,roughness:.95}));fl.rotation.x=-Math.PI/2;fl.position.set((X0+X1)/2,Y+0.006,-4.65);fl.receiveShadow=true;scene.add(fl);
   vbox(X1-X0,0.22,0.3,M('#3a3a3a'),(X0+X1)/2,Y-0.1,3.05);
   // walls
   const wm=M('#efe3cf',{roughness:.9});
-  const bw=sbox(X0,X1+0.3,Y,Y+3.2,-8.3,-8.0,wm,'wall');
-  const rwall=sbox(X1,X1+0.3,0,Y+3.2,-8.3,3.0,M('#e2d6c0'),'wall');
+  const bw=sbox(X0,X1+0.3,Y,Y+3.2,-12.3,-12.0,wm,'wall');
+  const rwall=sbox(X1,X1+0.3,0,Y+3.2,-12.3,3.0,M('#e2d6c0'),'wall');
   // violin wall
-  const slat=vbox(6.6,1.9,0.1,M('#4a2f22',{roughness:.8}),15.4,Y+2.0,-7.93);
+  const slat=vbox(6.6,1.9,0.1,M('#4a2f22',{roughness:.8}),15.4,Y+2.0,-11.93);
   const vcols=['#b5541c','#8e3b12','#c46a2a','#a14a18','#7a3410','#c0602a'];
-  const vls=[];for(let i=0;i<6;i++){const v=mkViolin(vcols[i]);v.position.set(12.7+i*1.05,Y+1.75,-7.82);v.rotation.z=(i%2?-1:1)*0.08;scene.add(v);vls.push(v);}
+  const vls=[];for(let i=0;i<6;i++){const v=mkViolin(vcols[i]);v.position.set(12.7+i*1.05,Y+1.75,-11.82);v.rotation.z=(i%2?-1:1)*0.08;scene.add(v);vls.push(v);}
   const vTex=canvasTex(1024,160,(g,w,h)=>{g.fillStyle='#2a1a12';g.fillRect(0,0,w,h);g.fillStyle='#e9c46a';g.font='800 70px Kanit, serif';g.textAlign='center';g.textBaseline='middle';g.fillText('ชั้น 2 · ไวโอลิน & หนังสือ',w/2,h/2);});
-  const vs=new THREE.Mesh(new THREE.PlaneGeometry(5.6,0.88),new THREE.MeshBasicMaterial({map:vTex}));vs.position.set(15.4,Y+2.75,-7.92);scene.add(vs);
-  fadeGroup([bw,slat,vs],c=>c.z<-8.0);
+  const vs=new THREE.Mesh(new THREE.PlaneGeometry(5.6,0.88),new THREE.MeshBasicMaterial({map:vTex}));vs.position.set(15.4,Y+2.75,-11.92);scene.add(vs);
+  fadeGroup([bw,slat,vs],c=>c.z<-12.0);
   // books along the right wall
-  const shelf=sbox(21.3,X1,Y,Y+2.3,-6.2,2.2,M('#5a3a24'),'shelf');
-  const bk=new THREE.Mesh(new THREE.PlaneGeometry(8.4,2.3),M('#fff',{map:bookTex}));bk.rotation.y=-Math.PI/2;bk.position.set(21.29,Y+1.15,-2);scene.add(bk);
+  const shelf=sbox(21.3,X1,Y,Y+2.3,-10.2,2.2,M('#5a3a24'),'shelf');
+  const bk=new THREE.Mesh(new THREE.PlaneGeometry(12.4,2.3),M('#fff',{map:bookTex}));bk.rotation.y=-Math.PI/2;bk.position.set(21.29,Y+1.15,-4);scene.add(bk);
   fadeGroup([rwall,shelf,bk],c=>c.x>22);
   // cello on its stand
-  const ce=mkViolin('#7a3410');ce.scale.setScalar(2.5);ce.position.set(20.6,Y+0.55,-7.3);ce.rotation.x=-0.12;scene.add(ce);solid(20.2,21,-7.7,-6.9,Y,Y+2.2,'cello');
+  const ce=mkViolin('#7a3410');ce.scale.setScalar(2.5);ce.position.set(20.6,Y+0.55,-11.3);ce.rotation.x=-0.12;scene.add(ce);solid(20.2,21,-11.7,-10.9,Y,Y+2.2,'cello');
   // reading table with book stacks
-  sbox(15.3,17.7,Y,Y+0.75,-4.3,-2.9,M('#6b4426',{roughness:.45}),'desk');
-  for(let i=0;i<5;i++)vbox(0.32,0.06+Math.random()*0.15,0.44,M(pick(['#c0392b','#2980b9','#27ae60','#f39c12','#8e44ad'])),15.6+i*0.48,Y+0.82,-3.6+rand(-0.3,0.3));
+  sbox(15.3,17.7,Y,Y+0.75,-6.3,-4.9,M('#6b4426',{roughness:.45}),'desk');
+  for(let i=0;i<5;i++)vbox(0.32,0.06+Math.random()*0.15,0.44,M(pick(['#c0392b','#2980b9','#27ae60','#f39c12','#8e44ad'])),15.6+i*0.48,Y+0.82,-5.6+rand(-0.3,0.3));
   // violin display case
   sbox(12.2,14.2,Y,Y+0.85,-1.3,-0.5,M('#4a2f22'),'case');
   const glassM=new THREE.MeshStandardMaterial({color:0xbfe3ff,transparent:true,opacity:0.22,roughness:0.05,depthWrite:false});
@@ -305,10 +307,10 @@ function restorePanes(){PANES.forEach(P=>{P.b.broken=false;P.b.y0=P.b.oy0;P.b.y1
   for(let i=0;i<3;i++){const v=mkViolin(vcols[i+2]);v.rotation.x=-Math.PI/2;v.position.set(12.6+i*0.6,Y+0.9,-0.75);v.scale.setScalar(0.75);scene.add(v);}
   // counter + music stands
   sbox(18.5,20.5,Y,Y+1.0,-1.6,-0.8,M('#f3efe8',{roughness:.4}),'counter');
-  for(const[x,z]of[[13.2,-4.6],[19.6,-3.6]]){cyl(0.02,0.02,1.2,M('#222'),x,Y+0.6,z,null,6);vbox(0.5,0.35,0.03,M('#222'),x,Y+1.25,z).rotation.x=-0.4;}
+  for(const[x,z]of[[13.2,-8.6],[19.6,-7.6]]){cyl(0.02,0.02,1.2,M('#222'),x,Y+0.6,z,null,6);vbox(0.5,0.35,0.03,M('#222'),x,Y+1.25,z).rotation.x=-0.4;}
   // hanging sign at the mezzanine doorway
   const dTex=canvasTex(512,128,(g,w,h)=>{g.fillStyle='#ffd23d';g.fillRect(0,0,w,h);g.fillStyle='#2a1600';g.font='800 48px Kanit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('→ ชั้น 2 ไวโอลิน',w/2,h/2);});
-  const ds=new THREE.Mesh(new THREE.PlaneGeometry(1.9,0.48),new THREE.MeshBasicMaterial({map:dTex,side:THREE.DoubleSide}));ds.position.set(10.95,3.35,-6.1);ds.rotation.y=Math.PI/2;scene.add(ds);
+  const ds=new THREE.Mesh(new THREE.PlaneGeometry(1.9,0.48),new THREE.MeshBasicMaterial({map:dTex,side:THREE.DoubleSide}));ds.position.set(10.95,3.35,-10.1);ds.rotation.y=Math.PI/2;scene.add(ds);
   // breakable front glass (4 panes) — knock someone through and they drop onto the sidewalk
   const n=4,w=(X1-X0)/n;
   const paneMat=new THREE.MeshStandardMaterial({color:0xbfe3ff,transparent:true,opacity:0.26,roughness:0.05,metalness:0.2,depthWrite:false,side:THREE.DoubleSide});
@@ -372,7 +374,7 @@ function updNPC(dt){
   if(mv){mv.x+=mv.dir*2.4*dt;mv.g.position.set(mv.x,0,mv.z);mv.p.forEach((p,i)=>animPerson(p,G.clock+i,1,0));
     for(const f of G.f){if(f.state==='ko'||f.invT>0)continue;if(Math.abs(f.pos.x-mv.x)<1.25+f.r&&Math.abs(f.pos.z-mv.z)<0.55+f.r&&f.y<1.5&&(mv.cd.get(f)||0)<G.clock){mv.cd.set(f,G.clock+1);
       f.takeHit(null,{dmg:8,knock:7,stun:.6,launch:3,kd:1,unblockable:1,dir:{x:mv.dir*0.5,z:f.pos.z>mv.z?0.85:-0.85}});popup('ระวังเปียโน! 🎹',f.headPos().add(V(0,0.5,0)),'crit',1.1);SFX.piano();}}
-    if(Math.abs(mv.x)>13){scene.remove(mv.g);NPC.movers=null;}}
+    if((mv.dir>0&&mv.x>10.6)||(mv.dir<0&&mv.x<-14.4)){scene.remove(mv.g);NPC.movers=null;}}
   // customer
   const c=NPC.customer;
   if(c){
@@ -395,7 +397,7 @@ function mkMovers(){const g=new THREE.Group();const up=upright(0,0,Math.PI/2);sc
   const ps=[];for(const s of[-1,1]){const p=makePerson('#e67e22',null,'#111');p.g.position.x=s*1.15;p.g.rotation.y=Math.PI/2;g.add(p.g);p.arms.forEach(a=>a.rotation.x=-1.1);ps.push(p);}return{g,ps};}
 function startMovers(){
   const {g,ps}=mkMovers();
-  const dir=Math.random()<.5?1:-1;NPC.movers={g,p:ps,x:-dir*12.5,z:pick([-2.6,-0.4,1.0]),dir,cd:new Map()};scene.add(g);
+  const dir=Math.random()<.5?1:-1;NPC.movers={g,p:ps,x:dir>0?-14:10.4,z:pick([-4.5,-2.6,-0.4,1.0]),dir,cd:new Map()};scene.add(g);
   banner('🎹 ทีมย้ายเปียโนกำลังเข็นผ่าน! หลบด้วย!',3.5);
 }
 const mkCustomer=()=>makePerson('#54a0ff',null,'#3a2a1a');
@@ -455,10 +457,10 @@ const POWER={
   yadom:{name:'ยาดม 🌿',txt:'ยาดม สดชื่น! 🌿',fn:f=>{f.heal(10);f.fx.dizzy=0;f.fx.immune=6;},snd:'drink'},
   somtam:{name:'ส้มตำ 🌶',txt:'ส้มตำ +35 เผ็ดดด 🌶',fn:f=>{f.heal(35);f.fx.dizzy=Math.max(f.fx.dizzy,0.8);},snd:'drink'},
 };
-const WSPOTS=[{x:-3.6,y:0,z:-5.8,t:'chair'},{x:0.6,y:0,z:-5.8,t:'chair'},{x:-8.1,y:0.45,z:-3.75,t:'chair'},{x:-4.8,y:0,z:0.2,t:'stand'},{x:-5.2,y:0,z:2.2,t:'guitar'},{x:6.6,y:0,z:2.2,t:'box'},{x:8.8,y:0,z:0.2,t:'box'},{x:9.6,y:2.4,z:-5,t:'box'},{x:4,y:0,z:-3.4,t:'guitar'},
+const WSPOTS=[{x:-3.6,y:0,z:-9.8,t:'chair'},{x:0.6,y:0,z:-9.8,t:'chair'},{x:-12.1,y:0.45,z:-7.75,t:'chair'},{x:-6,y:0,z:-5,t:'chair'},{x:2,y:0,z:-6.5,t:'stand'},{x:-4.8,y:0,z:0.2,t:'stand'},{x:-5.2,y:0,z:2.2,t:'guitar'},{x:6.6,y:0,z:2.2,t:'box'},{x:8.8,y:0,z:0.2,t:'box'},{x:9.6,y:2.4,z:-9,t:'box'},{x:4,y:0,z:-5.4,t:'guitar'},
   {x:-9.5,y:0.15,z:4.2,t:'cone'},{x:5,y:0.15,z:6.9,t:'cone'},{x:-12,y:0,z:10.9,t:'cone'},{x:13,y:0.15,z:6.6,t:'box'},{x:-1.5,y:0.15,z:4.1,t:'stand'},{x:-16,y:1.05,z:9,t:'box'},
-  {x:14,y:2.4,z:-6.6,t:'violin'},{x:18,y:2.4,z:1.9,t:'violin'},{x:20.4,y:2.4,z:-5.4,t:'cello'},{x:16.5,y:3.15,z:-3.6,t:'box'},{x:12.4,y:2.4,z:1.9,t:'stand'}];
-const PSPOTS=[{x:16.5,y:2.4,z:-1.6},{x:13,y:2.4,z:-3},{x:20,y:2.4,z:1.6},{x:0,y:0,z:-2},{x:-4,y:0,z:0.4},{x:4.4,y:0,z:0},{x:9.6,y:2.4,z:-6.2},{x:-8.6,y:0.45,z:-6.6},{x:5,y:0,z:-6.8},
+  {x:14,y:2.4,z:-10.6,t:'violin'},{x:18,y:2.4,z:1.9,t:'violin'},{x:20.4,y:2.4,z:-9.4,t:'cello'},{x:16.5,y:3.15,z:-5.6,t:'box'},{x:12.4,y:2.4,z:1.9,t:'stand'}];
+const PSPOTS=[{x:16.5,y:2.4,z:-1.6},{x:13,y:2.4,z:-6},{x:-6,y:0,z:-7.5},{x:20,y:2.4,z:1.6},{x:0,y:0,z:-2},{x:-4,y:0,z:0.4},{x:4.4,y:0,z:0},{x:9.6,y:2.4,z:-10.2},{x:-12.6,y:0.45,z:-10.6},{x:5,y:0,z:-10.8},
   {x:-6,y:0.15,z:4.4,o:1},{x:6,y:0.15,z:4.4,o:1},{x:0,y:0,z:11,o:1},{x:-14.6,y:1.05,z:9,o:1},{x:16,y:0.15,z:5.5,o:1},{x:9.5,y:1.1,z:5.6,o:1,somtam:1}];
 const items=[];let powerT=5,ITSEQ=0;
 function spawnWeapon(spot){const W=WEAPONS[spot.t];const mesh=W.mk();mesh.position.set(spot.x,spot.y,spot.z);scene.add(mesh);

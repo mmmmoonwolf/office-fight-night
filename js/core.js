@@ -7,6 +7,10 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const lerp=(a,b,t)=>a+(b-a)*t;
 const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const easeOutCubic=t=>1-Math.pow(1-t,3);
+const easeInOutCubic=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const easeOutBack=t=>{const c1=1.9,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2);};
+function bez(a,c,b,t){const u=1-t;return new THREE.Vector3(u*u*a.x+2*u*t*c.x+t*t*b.x,u*u*a.y+2*u*t*c.y+t*t*b.y,u*u*a.z+2*u*t*c.z+t*t*b.z);}
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 function lerpAngle(a,b,t){let d=((b-a+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;return a+d*t;}
 function angDiff(a,b){return Math.abs(((b-a+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI);}
@@ -128,7 +132,7 @@ function drawFace(cv,ch,expr){
     if(expr==='win'){g.fillStyle='#ffe14d';for(const[x,y]of[[cx-70,cy-60],[cx+72,cy-40]]){g.beginPath();for(let i=0;i<8;i++){const r=i%2?5:14,a=i*Math.PI/4;g.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);}g.fill();}}
     return;
   }
-  const ex=30,ey=cy-6,small=ch.eyes==='small';
+  const ex=31,ey=cy-1,small=ch.eyes==='small';
   g.fillStyle='rgba(255,95,110,.42)';for(const s of[-1,1]){g.beginPath();g.ellipse(cx+s*50,cy+20,17,10,0,0,Math.PI*2);g.fill();}
   g.strokeStyle=ink;g.fillStyle=ink;g.lineCap='round';g.lineJoin='round';
   for(const s of[-1,1]){
@@ -137,10 +141,10 @@ function drawFace(cv,ch,expr){
     else if(expr==='ko'){g.lineWidth=5;g.beginPath();g.moveTo(x-9,y-9);g.lineTo(x+9,y+9);g.moveTo(x+9,y-9);g.lineTo(x-9,y+9);g.stroke();}
     else if(expr==='win'){g.lineWidth=5;g.beginPath();g.arc(x,y+5,10,Math.PI*1.15,Math.PI*1.85);g.stroke();}
     else{
-      const ry=small?(expr==='attack'?6:9):(expr==='attack'?10:16),rx=small?12:13;
+      const ry=small?(expr==='attack'?6:10):(expr==='attack'?11:18),rx=small?13:14.5;
       g.fillStyle='#fff';g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.fill();
       g.lineWidth=2.5;g.stroke();
-      g.fillStyle=ink;g.beginPath();g.ellipse(x-s,y+2,small?6:8.5,small?6:Math.min(ry-2,11),0,0,Math.PI*2);g.fill();
+      g.fillStyle=ink;g.beginPath();g.ellipse(x-s,y+2,small?6.5:10,small?6.5:Math.min(ry-2,13),0,0,Math.PI*2);g.fill();g.fillStyle='rgba(120,70,40,.55)';g.beginPath();g.ellipse(x-s,y+6,small?4:6,small?3:6,0,0,Math.PI*2);g.fill();g.fillStyle=ink;
       g.fillStyle='#fff';g.beginPath();g.arc(x+3,y-3,small?2.5:3.5,0,Math.PI*2);g.fill();g.beginPath();g.arc(x-3,y+5,1.6,0,Math.PI*2);g.fill();
       if(ch.fem){g.lineWidth=3;g.beginPath();g.moveTo(x+s*9,y-ry+2);g.lineTo(x+s*16,y-ry-4);g.moveTo(x+s*4,y-ry);g.lineTo(x+s*8,y-ry-7);g.stroke();}
     }
@@ -151,9 +155,9 @@ function drawFace(cv,ch,expr){
     g.stroke();
   }
   if(ch.acc.includes('glasses')){g.strokeStyle='#111';g.lineWidth=4;for(const s of[-1,1]){g.beginPath();g.arc(cx+s*ex,ey,18,0,Math.PI*2);g.stroke();}g.beginPath();g.moveTo(cx-12,ey);g.lineTo(cx+12,ey);g.moveTo(cx-48,ey-2);g.lineTo(cx-78,ey-6);g.moveTo(cx+48,ey-2);g.lineTo(cx+78,ey-6);g.stroke();}
-  g.strokeStyle='rgba(120,60,30,.55)';g.lineWidth=4;g.beginPath();g.arc(cx,cy+10,6,0.1*Math.PI,0.9*Math.PI);g.stroke();
+  g.fillStyle='rgba(150,80,50,.35)';g.beginPath();g.ellipse(cx,cy+14,3,2,0,0,Math.PI*2);g.fill();
   if(ch.mustache){g.fillStyle='#3a3a3a';for(const s of[-1,1]){g.beginPath();g.ellipse(cx+s*12,cy+21,14,5,s*0.2,0,Math.PI*2);g.fill();}}
-  g.strokeStyle=ink;g.fillStyle='#4a1010';g.lineWidth=4;const my=cy+34;
+  g.strokeStyle=ink;g.fillStyle='#4a1010';g.lineWidth=4;const my=cy+31;
   if(expr==='attack'){g.beginPath();g.ellipse(cx,my,16,12,0,0,Math.PI*2);g.fill();g.stroke();g.fillStyle='#fff';g.fillRect(cx-11,my-10,22,5);}
   else if(expr==='hurt'){g.beginPath();g.ellipse(cx,my+2,9,11,0,0,Math.PI*2);g.fill();g.stroke();}
   else if(expr==='ko'){g.beginPath();g.ellipse(cx,my,14,10,0,0,Math.PI*2);g.fill();g.stroke();g.fillStyle='#ff7b9a';g.beginPath();g.ellipse(cx+4,my+8,7,8,0,0,Math.PI*2);g.fill();}
@@ -289,7 +293,7 @@ function flashScreen(){const f=$('#flash');f.style.transition='none';f.style.opa
 const held=new Set(),pressed=new Set();const touch={x:0,y:0};
 const GAMEKEYS=new Set(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','ShiftLeft','ShiftRight','Semicolon','Slash','Enter','Tab']);
 addEventListener('keydown',e=>{
-  if(e.target&&e.target.tagName==='INPUT')return;
+  const tg=e.target;if(tg&&/^(INPUT|SELECT|TEXTAREA)$/.test(tg.tagName)){if(tg.offsetParent!==null&&!document.body.classList.contains('fighting'))return;try{tg.blur();}catch(_){}}
   if(!e.repeat)pressed.add(e.code);held.add(e.code);
   if(typeof G!=='undefined'&&G.phase!=='menu'&&GAMEKEYS.has(e.code))e.preventDefault();
   if(window.onGlobalKey)onGlobalKey(e);

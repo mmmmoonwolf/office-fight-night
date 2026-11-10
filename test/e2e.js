@@ -31,12 +31,12 @@ async function offline(browser) {
   }
   await sleep(1200);
   ok(await ev('G.f[1].hp < G.f[1].maxHp'), 'specials deal damage');
-  await ev("G.f[0].pos.x=2.6;G.f[0].pos.z=-5.3;G.f[0].y=0;CAM.yaw=-Math.PI/2");
+  await ev("G.f[0].pos.x=2.6;G.f[0].pos.z=-9.5;G.f[0].y=0;CAM.yaw=-Math.PI/2");
   await pg.keyboard.down('KeyW'); await sleep(1800); await pg.keyboard.up('KeyW');
   ok(await ev('onMezz(G.f[0])'), 'stairs lead up to the mezzanine');
   await pg.keyboard.down('KeyW'); await sleep(1500); await pg.keyboard.up('KeyW');
   ok(await ev("lvlOf(G.f[0])") === 'f2', 'mezzanine doorway leads into the 2nd-floor violin shop');
-  await ev("G.f[0].state='idle';G.f[0].pos.x=14.6;G.f[0].pos.z=-6.6;G.f[0].y=2.4;G.f[0].vel.x=0;G.f[0].vel.z=0");
+  await ev("G.f[0].state='idle';G.f[0].pos.x=14.6;G.f[0].pos.z=-10.6;G.f[0].y=2.4;G.f[0].vel.x=0;G.f[0].vel.z=0");
   await sleep(200);
   ok((await ev("document.querySelector('#prompts').textContent")).includes('หยิบ'), 'button prompt shows next to a weapon');
   await ev("G.f[1].state='idle';G.f[1].invT=0;G.f[1].hp=G.f[1].maxHp;G.f[1].pos.x=16.6;G.f[1].pos.z=1.8;G.f[1].y=2.4;G.f[1].vy=0;G.f[1].vel.z=0");
@@ -74,7 +74,7 @@ async function online(browser, page, label) {
   await host.click('#onlineBtn'); await host.selectOption('#onChar', '0'); await host.click('#onCreate'); await sleep(500);
   const code = await H('NET.code');
   ok(/^[a-z0-9]{4}$/.test(code), 'room created: ' + code);
-  await c1.click('#onlineBtn'); await c1.selectOption('#onChar', '4'); await c1.fill('#onCode', code); await c1.click('#onEnter'); await sleep(1500);
+  await c1.click('#onlineBtn'); await c1.selectOption('#onChar', '4'); await c1.fill('#onCode', code); await c1.press('#onCode', 'Enter'); await sleep(1500);
   ok(await H('members().length') === 2 && await C1('members().length') === 2, 'both tabs see 2 members');
   ok(await H('amLobbyHost()') && !(await C1('amLobbyHost()')), 'creator is host');
   await host.click('#onMode button[data-v="duel"]'); await host.click('#onStart'); await sleep(1500);
