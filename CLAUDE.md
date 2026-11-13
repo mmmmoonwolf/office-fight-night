@@ -11,14 +11,29 @@ street (motorbike-taxi stand, som-tam cart, pickup truck, poles with tangled cab
 into the 2nd-floor violin & book shop (built above the right-hand neighbour) whose 4 front glass panes break when
 someone is knocked into them — they drop onto the sidewalk and take fall damage. GetAmped-style chase camera.
 
-- 14 characters (`ROSTER` in `js/core.js`), each with a unique special (`SPECIALS` in `js/fighter.js`)
+- 8 characters (`ROSTER` in `js/core.js`: Bomb, Oat, March, Dear, KunJae, Eye, TeeMee, Sing). **Everyone has the same
+  stats** (normalised right after `ROSTER`); they only differ in looks. หัวหน้า lives on as `BOSS_CH`, the arcade's final
+  boss only (arcade list index `-1`, resolved by `chOf`).
+- **Loadout** = fighting style + special, picked after the character on the `#loadP` screen (`openLoadout` in game.js;
+  online: `#onStyle`/`#onSp` → presence `lo`, slot tuple `[peer,char,name,glove,style,special]`). Humans' last picks are
+  saved in `STATS.lo[0|1]`; CPUs get `randLoadout()`. A fighter keeps it in `f.lo` and `f.style`.
+- `STYLES` (fighter.js) map the jab / hook / jab-jab-hook buttons to `ATK` moves and add a small trait
+  (`spd`, `grabR`, `throwMul`, `rageMul`, `dodge`). Selectable specials are `SP_LIST` (icons `SP_ICON`, melee set
+  `SP_MELEE`, text `SP_DESC`); a special with `atk:` is simply a big `ATK` move started with `startAtk`.
+- `ATK` move fields: `pose` (arm/leg/body animation in `glovePose`/`animate`), `lunge {sp,a,b}`, `sweep` (hits whatever it
+  touches while active, stops on hit), `multi {n,iv,last}`, `jumpV`(+`jumpAt`), `onLand` (hits on landing → `landQuake`),
+  `arc` (360°), `unblockable`, `dizzy`, `bigGlove`, `noCrit`, `call` (popup text for combos).
+- Hit feel: 12 % crits (`CRIT`, `critFx`), combo damage bonus + escalating `comboPop`, KO = the loser is launched
+  tumbling (`koFly`) and bursts into dust + a ghost when it hits a wall/floor or after 1.6 s (`koPoof` → `koDust`;
+  `dusted` shrinks the body to scale 0, which travels in `snap()` so clients and the KO replay see it too).
+- Smoke/wind: `puff` (soft spheres), `windFx` (streaks), ghosts — updated by `updSmoke` every frame (also in replays and
+  on clients); `puff`/`windFx`/`koDust` are broadcast by net.js (`pf`/`wd`/`kd`, wind rate-limited).
 - Modes: duel 1v1, FFA 4, team 2v2, arcade ladder (5 + boss) — offline 1–2 players on one keyboard
 - Training room (`G.mode==='train'`, offline only): no timer, no random events, nobody can be KO'd, HP refills after
   2 s without being hit, human rage refills by itself; `T` cycles the dummy (`TR.dummy`: stand / always block / fight
   back via `aiThink`); the dummy's HUD line shows the current combo's hits + damage (`trainHit`, called from `takeHit`)
 - Move list overlay (`#movesP`, `buildMoves` in game.js) from the menu and the pause panel: basic moves with the
-  current key scheme, items, and every special with its one-line Thai description from `SP_DESC` (fighter.js) — add an
-  entry there whenever a new special is added
+  current key scheme, items, all styles and all selectable specials (the player's own picks highlighted).
 - Online up to 4 players on separate devices (`js/net.js`), over one of two transports:
   the claude.ai Artifact `room` capability, or peer-to-peer WebRTC via PeerJS when served from GitHub Pages / any static host
 - Weapons to pick up/throw, power-ups, combos (jab-jab-hook), grabs/throws, stage hazards, random events

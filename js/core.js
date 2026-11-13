@@ -19,9 +19,6 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 /* ================= ROSTER ================= */
 // sp = key in SPECIALS (fighter.js). emote = victory pose.
 const ROSTER=[
- {id:'boss',name:'หัวหน้า',role:'ผู้จัดการร้าน',skin:'#e9b98f',hair:'#2a2a2a',hairStyle:'bald',shirt:'#2d3240',shorts:'#1b1e26',sleeves:true,acc:['tie','glasses'],mustache:true,
-  hp:125,pow:1.2,spd:0.86,aspd:0.92,size:1.1,sp:'files',emote:'point',
-  quotes:['งานนี้ต้องเสร็จวันนี้!','เข้าประชุมด่วน!','ใครทำรายงานผิด!?','ยอดเดือนนี้ไปไหน!?','OT คืนนี้นะ!','ส่งรายงานยัง!?']},
  {id:'bomb',name:'Bomb',role:'ซีเนียร์ รับจบทุกงาน',skin:'#dcae88',hair:'#151515',hairStyle:'short',shirt:'#1f1f22',shorts:'#2a2a30',sleeves:true,acc:['hood'],
   hp:115,pow:1.12,spd:1.0,aspd:1.0,size:1.03,sp:'finisher',emote:'chill',
   quotes:['เดี๋ยวพี่รับจบ!','งานนี้ง่าย!','ส่งมาเลย!','จบในยกเดียว!','ซีเนียร์มาเอง!']},
@@ -46,22 +43,13 @@ const ROSTER=[
  {id:'sing',name:'Sing',role:'มือตัดต่อวิดีโอ นักกล้าม',skin:'#d29a72',hair:'#111',hairStyle:'buzz',shirt:'#c0392b',shorts:'#1d1d22',tank:true,acc:['headphones'],bulk:1.35,
   hp:122,pow:1.18,spd:0.95,aspd:0.95,size:1.1,sp:'buff',emote:'flex',
   quotes:['ขาเดย์วันนี้!','เวย์ยังไม่กิน!','ตัดต่อเสร็จแล้ว!','อีกเซ็ต!','กล้ามมาแล้ว!']},
- {id:'sales',name:'พี่เซลส์',role:'ฝ่ายขายหน้าร้าน',skin:'#f1c6a0',hair:'#3b2416',hairStyle:'short',shirt:'#d63a3a',shorts:'#24324a',acc:['tag'],
-  hp:100,pow:1.0,spd:1.06,aspd:1.05,size:1.0,sp:'trap',emote:'bow',
-  quotes:['ลดให้อีก 5% ครับ!','ลูกค้ารอหน้าร้าน!','ปิดยอดเดือนนี้!','ตัวนี้เสียงดีมากครับ!','ผ่อน 0% ได้นะ!']},
- {id:'tuner',name:'ช่างจูนเปียโน',role:'ช่างเทคนิค',skin:'#d9a27a',hair:'#111111',hairStyle:'spiky',shirt:'#2f6db5',shorts:'#2f3b52',acc:['headband'],
-  hp:110,pow:1.12,spd:0.94,aspd:0.95,size:1.03,sp:'fork',emote:'jump',
-  quotes:['A440 เป๊ะ!','สายขาดอีกแล้ว!','ตึ๊งงง!','เสียงเพี้ยนนะ!','ค้อนจูนมาแล้ว!']},
- {id:'admin',name:'แอดมินออนไลน์',role:'ตอบแชท/ร้านออนไลน์',skin:'#f3cfae',hair:'#5a2d1a',hairStyle:'long',fem:true,shirt:'#2e9e6a',shorts:'#1f3d33',acc:['headset'],
-  hp:92,pow:0.92,spd:1.16,aspd:1.22,size:0.95,sp:'chat',emote:'dance',
-  quotes:['แชทเด้ง 99+!','สนใจทักแชทค่ะ!','Shopee เด้งแล้ว!','ส่งของรอบบ่าย!','รีวิว 5 ดาวนะ!']},
- {id:'mover',name:'ทีมยกเปียโน',role:'ขนย้าย/คลังสินค้า',skin:'#c98c63',hair:'#1a1a1a',hairStyle:'short',shirt:'#e67e22',shorts:'#3a2a1a',acc:['cap'],accent:'#f1c40f',bulk:1.15,
-  hp:138,pow:1.16,spd:0.8,aspd:0.85,size:1.16,sp:'drop',emote:'flex',
-  quotes:['ฮึบ! หนักมาก!','แกรนด์ 300 โล!','ขึ้นชั้น 3 ไม่มีลิฟต์!','ระวังขาเปียโน!','ยกพร้อมกัน 1-2-3!']},
- {id:'acc',name:'ฝ่ายบัญชี',role:'บัญชี/การเงิน',skin:'#f0c4a4',hair:'#1e1e1e',hairStyle:'bob',fem:true,shirt:'#7d4fb0',shorts:'#2c2340',acc:['glasses'],
-  hp:98,pow:1.05,spd:1.0,aspd:1.0,size:0.98,sp:'audit',emote:'bow',
-  quotes:['บิลไม่ตรง!','ใบกำกับภาษีล่ะ?','ยอดไม่บาลานซ์!','เบิกไม่ได้นะ!','ส่งใบเสร็จมาด้วย!']},
 ];
+// everyone is equal: characters only differ in looks — fighting style + special are picked separately (LOADOUT)
+ROSTER.forEach(c=>Object.assign(c,{hp:100,pow:1,spd:1,aspd:1,size:1}));
+// the arcade's final boss — not selectable
+const BOSS_CH={id:'boss',name:'หัวหน้า',role:'ผู้จัดการร้าน',skin:'#e9b98f',hair:'#2a2a2a',hairStyle:'bald',shirt:'#2d3240',shorts:'#1b1e26',sleeves:true,acc:['tie','glasses'],mustache:true,
+  hp:125,pow:1.2,spd:0.86,aspd:0.92,size:1.1,sp:'files',emote:'point',
+  quotes:['งานนี้ต้องเสร็จวันนี้!','เข้าประชุมด่วน!','ใครทำรายงานผิด!?','ยอดเดือนนี้ไปไหน!?','OT คืนนี้นะ!','ส่งรายงานยัง!?']};
 const HURT=['โอ๊ย!','เจ็บนะ!','ขอลาป่วย!','จะฟ้อง HR!','ขอเบิกค่ารักษา!','ยังไม่ได้กินข้าวเลย!','พักเที่ยงก่อน!','ขอลาพักร้อน!','ประกันสังคมช่วยด้วย!'];
 const GLOVES=[
  {name:'สีทีม',need:0},
@@ -75,11 +63,11 @@ function titleOf(w){let t=TITLES[0][1];for(const[n,s]of TITLES)if(w>=n)t=s;retur
 
 /* ================= SAVE ================= */
 const SAVE_KEY='officeFight.v2';
-const STATS={wins:{}};
+const STATS={wins:{},lo:[null,null]}; // lo = last fighting style + special picked by P1 / P2
 function loadSave(){
   try{
     const s=JSON.parse(localStorage.getItem(SAVE_KEY)||localStorage.getItem('officeFight.v1')||'{}');
-    if(s.wins)STATS.wins=s.wins;
+    if(s.wins)STATS.wins=s.wins;if(Array.isArray(s.lo))STATS.lo=[s.lo[0]||null,s.lo[1]||null];
     ROSTER.forEach(c=>{
       if(s.names&&s.names[c.id])c.name=s.names[c.id];
       c.glove=(s.gloves&&s.gloves[c.id])||0;
@@ -88,7 +76,7 @@ function loadSave(){
   }catch(e){ROSTER.forEach(c=>c.glove=c.glove||0);}
 }
 function saveAll(){
-  try{const s={names:{},photos:{},gloves:{},wins:STATS.wins};ROSTER.forEach(c=>{s.names[c.id]=c.name;s.gloves[c.id]=c.glove||0;if(c.photoData)s.photos[c.id]=c.photoData;});localStorage.setItem(SAVE_KEY,JSON.stringify(s));}catch(e){}
+  try{const s={names:{},photos:{},gloves:{},wins:STATS.wins,lo:STATS.lo};ROSTER.forEach(c=>{s.names[c.id]=c.name;s.gloves[c.id]=c.glove||0;if(c.photoData)s.photos[c.id]=c.photoData;});localStorage.setItem(SAVE_KEY,JSON.stringify(s));}catch(e){}
 }
 const winsOf=c=>STATS.wins[c.id]||0;
 
