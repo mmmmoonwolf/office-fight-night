@@ -146,6 +146,16 @@ kbd{background:#fff;color:#222;border-radius:5px;padding:0 5px;font-family:inher
 .panel .pics canvas{width:130px;height:130px;border-radius:14px;background:#3b2b45}
 .panel .btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
 .panel p{opacity:.92}
+.panel.moves{max-width:780px;text-align:left}
+.panel.moves h2{text-align:center}
+.panel.moves h3{color:#ffd23d;font-size:17px;margin:16px 0 6px}
+.mvb{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;align-items:baseline}
+.mvb b{white-space:nowrap}
+.mvs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.mv{display:flex;gap:10px;align-items:flex-start;background:rgba(255,255,255,.06);border-radius:12px;padding:8px;border:2px solid transparent}
+.mv.me{border-color:#ffd23d;background:rgba(255,210,61,.12)}
+.mv canvas{width:54px;height:54px;border-radius:10px;background:#3b2b45;flex:none}
+.mv .nm{font-weight:800}.mv .sp{color:#ffd23d;font-size:13px;font-weight:700}.mv .ds{font-size:12.5px;opacity:.9;line-height:1.45}
 #sickNote{width:100%;max-width:380px;margin:12px auto 0;display:block;border-radius:6px}
 .vsrow{display:flex;align-items:center;justify-content:center;gap:12px;margin:14px 0}
 .vsrow canvas{width:140px;height:140px;border-radius:14px}
@@ -193,7 +203,7 @@ body.touch.fighting #touch{display:block}
   <div class="wrap">
     <div class="title"><h1>ศึกออฟฟิศ 🥊</h1><div class="sub2">OFFICE FIGHT NIGHT · ตะลุมบอนกันทั้งในโชว์รูมและริมถนนหน้าร้าน</div></div>
     <div class="row">
-      <div class="seg" id="modeSeg"><button data-m="duel" class="on">ดวล 1v1</button><button data-m="ffa">ตะลุมบอน 4 คน</button><button data-m="team">ทีม 2v2</button><button data-m="arcade">ไต่บันได 🏆</button></div>
+      <div class="seg" id="modeSeg"><button data-m="duel" class="on">ดวล 1v1</button><button data-m="ffa">ตะลุมบอน 4 คน</button><button data-m="team">ทีม 2v2</button><button data-m="train">ห้องซ้อม 🥋</button><button data-m="arcade">ไต่บันได 🏆</button></div>
     </div>
     <div class="row">
       <div class="seg" id="humSeg"><span class="lab">ผู้เล่น</span><button data-h="1" class="on">1 คน</button><button data-h="2">2 คน (เครื่องเดียวกัน)</button></div>
@@ -205,6 +215,7 @@ body.touch.fighting #touch{display:block}
     <div class="grid" id="grid"></div>
     <div class="startRow"><button id="startBtn" class="btn big">เริ่มชก! 🥊</button> <button id="onlineBtn" class="btn big blue">🌐 เล่นออนไลน์กับเพื่อน</button></div>
     <div class="ctrl" id="ctrlHelp"></div>
+    <div class="startRow"><button class="btn ghost" id="movesBtn">📖 ดูท่าทั้งหมด</button></div>
   </div>
 </div>
 
@@ -238,7 +249,15 @@ body.touch.fighting #touch{display:block}
   <div class="panel">
     <h2>พักเบรก ☕</h2>
     <div class="ctrl" id="ctrlHelp2"></div>
-    <div class="btns"><button class="btn" id="resumeBtn">ชกต่อ</button><button class="btn ghost" id="photoBtn">📸 โหมดถ่ายรูป</button><button class="btn ghost" id="quitBtn">กลับเมนู</button></div>
+    <div class="btns"><button class="btn" id="resumeBtn">ชกต่อ</button><button class="btn ghost" id="movesBtn2">📖 ดูท่า</button><button class="btn ghost" id="photoBtn">📸 โหมดถ่ายรูป</button><button class="btn ghost" id="quitBtn">กลับเมนู</button></div>
+  </div>
+</div>
+
+<div id="movesP" class="overlay hidden">
+  <div class="panel moves">
+    <h2>ท่าทั้งหมด 📖</h2>
+    <div id="movesBody"></div>
+    <div class="btns"><button class="btn" id="movesClose">ปิด</button></div>
   </div>
 </div>
 
