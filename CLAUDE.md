@@ -80,16 +80,32 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
 
 - Units are metres. 2nd floor: x ∈ [11.3, 22], z ∈ [-12, 2.85], floor y = 2.4 (`lvlOf(f)` → 'g' | 'mz' | 'f2');
   breakable panes live in `PANES` (`breakPane`, `restorePanes`; a broken pane's block is moved to y = -100).
-- Store interior x ∈ [-15, 11], z ∈ [-12, 3]; glass front at z = 3 with a door gap |x| < 2.3; mezzanine x ∈ [7, 11],
-  z ∈ [-12, -8.2] (y 2.4) reached by 2.2 m-wide stairs at z ∈ [-10.6, -8.4]; doorway to floor 2 at z ∈ [-11.6, -8.6];
-  sidewalk z ∈ [3.1, 7.5] (y 0.15); road z ∈ [7.5, 15]; far sidewalk + shophouses z ≥ 15; side walls x = ±22.
+- Store interior (`STORE`) x ∈ [-23.3, 11], z ∈ [-12, 2.95]: the main showroom plus the **drums & amps wing**
+  (x < -15.3, the bookshelf is a free-standing divider). Doors: front |x| < 2.3, back door x ∈ [-9, -7] at z = -12.3,
+  side door z ∈ [-5, -3] at x = -23.6 (`DOORS`). Mezzanine x ∈ [7, 11], z ∈ [-12, -8.2] (y 2.4) reached by 2.2 m-wide
+  stairs at z ∈ [-10.6, -8.4]; doorway to floor 2 at z ∈ [-11.6, -8.6].
+- The building block (`BLOCK`, store + violin building) is ringed by 2 m sidewalks (y 0.15) and a 7 m road loop:
+  front road z ∈ [7.5, 15], back road z ∈ [-21.3, -14.3], left road x ∈ [-32.6, -25.6], right road x ∈ [24.3, 31.3],
+  then outer sidewalks and buildings. Fighters are clamped to `WORLD`. Start spots: in / out / wing / back / up.
+- **Breakables** (`BRK`, world.js): a collision block with `.brk` — ground-floor glass panes (break on hard impact and
+  let the fighter fly through), wall panels (3 hits → hole + rubble), pianos (become low rubble), bookshelf, guitar
+  stands, drum kits, amps, keyboard. Damage comes from wall impacts (`onWallHit`, KO'd flyers hit hardest), thrown
+  weapons, `quake` landings and falling grands (`smashArea`). Costs add to `BILL` / `G.matchBill` (shown on the end
+  screen). `restoreBreakables()` runs in `resetWorld`; online, the host sends `s.bk` ('0'/'1' per breakable) and
+  clients call `brkVisual`. Broken panels/panes with `exit` become extra ways in and out for the AI.
 - Every solid thing is an AABB in `blocks` (`solid(x0,x1,z0,z1,y0,y1,tag)`). `groundAt` returns the highest top a
   fighter can stand on (step height `STEP` = 0.42); `resolveBlocks` pushes fighters out sideways and reports
   high-speed impacts to `Fighter.onWallHit` (tag → sound/popup in `WALLFX`).
 - Walls that would hide the action fade via `fadeGroup(meshes, cond)`.
 - Long hair (`long`/`longM`) hanging behind the body uses its own material and fades to 30 % while the camera
   looks at the fighter's back (`Fighter.hairFade`, run every frame after `updCamera`; off in photo mode).
-- `zoneOf` ('in'/'out') and `onMezz` drive AI path-finding (door waypoint, stair waypoint).
+- `zoneOf` ('in'/'out'), `lvlOf` and `onMezz` drive AI path-finding: `exitWp` picks the cheapest door or smashed hole
+  between store and street, `outdoorWp` walks around the block via its corners (`BCORN`, `segHitsRect`).
+- Events (`updEvents`, host only; `G.forceEvent` forces the next one): customer, piano movers, rain, **flood**
+  (`FLOOD`: water rises to 0.5 m, `inWater` → 62 % speed + splashes, floating junk, a live cable shocks anyone in the
+  water near one pole), **blackout** (`EV.blackout`: lights down, gloves glow), **storm** (`EV.storm`: gusts push
+  everyone outdoors, thunder flashes), **delivery van** (`NPC.van`, one lap of the loop on `VANPATH`), motorbikes on
+  every road (`dir` ±1 along x, ±2 along z). Flood level, blackout and van travel in the snapshot (`s.ev`).
 
 ## Characters, sound, prompts
 

@@ -38,6 +38,7 @@ function updProjs(dt){
         e.takeHit(p.owner,{dmg:p.dmg,knock:p.knock,stun:p.stun,launch:p.launch,kd:p.kd,dir:{x:p.vx/v,z:p.vz/v},heavy:p.dmg>=10});dead=true;break;}}
     const b=!dead&&pointInSolid(p.x,p.y,p.z);
     if(b&&b.tag==='glass2'){breakPane(b,null);}
+    else if(b&&b.brk&&(p.wt||p.dmg>=10))hitBreakable(b,p.dmg>=14?2:1,p.owner);
     if(dead||(b&&b.tag!=='curb')||p.y<groundAt(p.x,p.z,p.y)-0.05){killProj(i,true);}
   }
 }
@@ -83,7 +84,7 @@ function updEffects(dt){
     if(used||c.t>8||c.gone){if(c.owner)couponGone(c);scene.remove(c.mesh);coupons.splice(i,1);}}
   for(let i=drops.length-1;i>=0;i--){const d=drops[i];d.t+=dt;d.warn.material.opacity=0.25+0.25*Math.sin(d.t*20);
     if(d.t>d.delay&&!d.done){const k=Math.min(1,(d.t-d.delay)/0.3);d.piano.position.y=d.y+d.H*(1-k*k);
-      if(k>=1){d.done=true;const sofa=d.kind==='sofa';if(d.owner){if(sofa)SFX.sofa();else SFX.crash();G.shake=Math.max(G.shake,0.7);burst(V(d.x,d.y+0.5,d.z),sofa?0x3aa59a:0x222222,18,5);ringFx(d.x,d.y,d.z,2.4,0xffffff);}
+      if(k>=1){d.done=true;const sofa=d.kind==='sofa';if(d.owner){smashArea(d.x,d.z,2.2,3,d.y);if(sofa)SFX.sofa();else SFX.crash();G.shake=Math.max(G.shake,0.7);burst(V(d.x,d.y+0.5,d.z),sofa?0x3aa59a:0x222222,18,5);ringFx(d.x,d.y,d.z,2.4,0xffffff);}
         if(d.owner)for(const e of enemiesOf(d.owner)){if(Math.hypot(e.pos.x-d.x,e.pos.z-d.z)<2.1&&e.y<d.y+2.5){e.takeHit(d.owner,{dmg:(sofa?22:26)*d.owner.ch.pow,knock:6,stun:1,launch:6,kd:1,unblockable:1,heavy:1});popup(sofa?'โดนโซฟาทับ! 🛋️':'โดนแกรนด์ทับ! 🎹',e.headPos().add(V(0,0.8,0)),'crit',1.3);}}}}
     if(d.done){d.warn.material.opacity=Math.max(0,0.5-(d.t-d.delay-0.3));if(d.t>2.4)d.piano.position.y-=dt*1.5;}
     if(d.t>3.2){scene.remove(d.warn);scene.remove(d.piano);drops.splice(i,1);}}
@@ -114,7 +115,7 @@ function comboPop(att){const n=att.comboN,hp=att.headPos().add(V(0,1.1,0));
 function landQuake(f,d){const big=!!d.quake,R=big?3.8:2.2;
   ringFx(f.pos.x,f.y,f.pos.z,R,0xd8cbb0,0.5);ringFx(f.pos.x,f.y+0.4,f.pos.z,R*0.8,0xffffff,0.4);
   for(let i=0;i<(big?14:9);i++){const a=i/(big?14:9)*Math.PI*2;puff(f.pos.x+Math.sin(a)*R*0.55,f.y+0.15,f.pos.z+Math.cos(a)*R*0.55,0xd8cbb0,1,big?0.9:0.6,2.6);}
-  G.shake=Math.max(G.shake,big?0.85:0.5);if(big)SFX.crash();else SFX.thud();}
+  G.shake=Math.max(G.shake,big?0.85:0.5);if(big){SFX.crash();smashArea(f.pos.x,f.pos.z,R,2,f.y);}else SFX.thud();}
 function updSmoke(dt){
   for(let i=puffs.length-1;i>=0;i--){const p=puffs[i];p.t+=dt;const k=Math.min(1,p.t/p.life),dr=Math.exp(-3*dt);p.vx*=dr;p.vz*=dr;
     p.m.position.x+=p.vx*dt;p.m.position.y+=p.vy*dt;p.m.position.z+=p.vz*dt;p.m.scale.setScalar(p.s0*(0.4+0.9*Math.sqrt(k)));p.m.material.opacity=0.7*(1-k);
@@ -476,6 +477,7 @@ class Fighter{
     return true;
   }
   onWallHit(b){
+    if(b.brk)hitBreakable(b,this.state==='ko'?3:(this.impact>8?2:1),this);
     if(this.state==='ko'){if(this.koFly&&!this.dusted)this.koPoof('แปะ!! 💥');return;}
     if(this.wallCd>0||(G.phase!=='fight'&&G.phase!=='ko'))return;
     this.wallCd=0.45;const fx=WALLFX[b.tag]||WALLFX.wall;
@@ -494,6 +496,7 @@ class Fighter{
     const v=this.vy;this.vy=0;const fell=(this.airTop||this.y)-this.y;this.airTop=this.y;
     if(fell>1.6&&this.state!=='ko'&&G.phase==='fight'){const d=Math.round(4+fell*2.5);this.hp=Math.max(1,this.hp-d);popup('ตกตึก!! -'+d+' 🏢',this.headPos().add(V(0,0.6,0)),'crit',1.3);SFX.voice(this.vp,'hurt');G.shake=Math.max(G.shake,0.35);this.knockdown=true;}
     if(v<-7)SFX.land();
+    if(inWater(this)&&v<-4){puff(this.pos.x,FLOOD.lvl+0.1,this.pos.z,0xe8f6ff,10,0.7,3);SFX.splash();if(this.knockdown)popup('ตูม! 💦',this.headPos(),'info',0.8);}
     if(this.knockdown){this.knockdown=false;if(this.state!=='ko'){this.state='down';this.downT=0.85;this.stunT=0;}SFX.thud();G.shake=Math.max(G.shake,0.12);puff(this.pos.x,this.y+0.15,this.pos.z,0xd8cbb0,7,0.55,2.2);}
     else if(v<-10){SFX.thud();}
   }
@@ -591,11 +594,12 @@ class Fighter{
     // movement
     const m=Math.hypot(wx,wz);
     if(this.style.dodge&&m>0.12&&this.state==="idle"){wx+=Math.sin(this.t*2.7)*0.35;wz+=Math.cos(this.t*2.1)*0.35;}
-    const sp=4.6*ch.spd*(this.style.spd||1)*(this.fx.slow>0?.55:1)*(this.fx.buff>0?1.12:1)*(this.fx.dizzy>0?.55:1);
+    const wet=inWater(this);if(wet&&m>0.3&&onG&&Math.random()<0.25)puff(this.pos.x,FLOOD.lvl+0.05,this.pos.z,0xe8f6ff,1,0.35,1.4);
+    const sp=4.6*ch.spd*(this.style.spd||1)*(wet?0.62:1)*(this.fx.slow>0?.55:1)*(this.fx.buff>0?1.12:1)*(this.fx.dizzy>0?.55:1);
     let tx=0,tz=0;
     if(m>0.12&&this.state==='idle'){const k=Math.min(1,m)/m;tx=wx*k*sp;tz=wz*k*sp;this.faceT=Math.atan2(wx,wz);}
     this.moving=(m>0.12&&this.state==='idle')?Math.min(1,m):0;
-    const slick=G.rain>0&&this.pos.z>3;
+    const slick=G.rain>0&&zoneOf(this.pos)==='out'&&this.y<1;
     const rate=slick?2.2:(onG?16:5);
     if(this.state!=='grabbed'){
       const k=1-Math.exp(-rate*dt);this.mv.x+=(tx-this.mv.x)*k;this.mv.z+=(tz-this.mv.z)*k;
@@ -606,7 +610,7 @@ class Fighter{
       else{this.y=g2;this.vy=0;this.airTop=this.y;
         if(this.moving>0.3&&this.human!=null){this.stepT=(this.stepT||0)-dt*this.moving;if(this.stepT<=0){this.stepT=0.27;SFX.step(this.pos.z>3?1:0);}}}
       resolveBlocks(this);
-      this.pos.x=clamp(this.pos.x,-21.5,21.5);this.pos.z=clamp(this.pos.z,-11.6,16.6);
+      this.pos.x=clamp(this.pos.x,WORLD.x0,WORLD.x1);this.pos.z=clamp(this.pos.z,WORLD.z0,WORLD.z1);
     }
     if(this.state==='idle'||this.state==='block')this.face=lerpAngle(this.face,this.faceT,1-Math.exp(-14*dt));
     this.animate(dt);
@@ -718,7 +722,7 @@ class Fighter{
     this.stars.visible=this.fx.dizzy>0||(S==='stun'&&this.stunT>0.5)||S==='down';
     if(this.stars.visible)this.stars.rotation.y+=dt*6;
     if(this.rainbow)this.gloveMat.color.setHSL((t*0.3)%1,0.9,0.55);
-    this.gloveMat.emissiveIntensity=this.rage>=100?0.45+0.45*Math.sin(t*12):this.baseEm;
+    this.gloveMat.emissiveIntensity=Math.max(EV.dark*0.9,this.rage>=100?0.45+0.45*Math.sin(t*12):this.baseEm);
   }
   /* long hair hides the whole body from the chase camera → fade it when the camera looks at the fighter's back */
   hairFade(dt){
@@ -759,10 +763,11 @@ function aiThink(f,dt){
     const mz=zoneOf(f.pos),tz=zoneOf(tg.pos);
     const ml=lvlOf(f),tl=lvlOf(tg);
     if(ml!==tl){isT=false;
-      if(ml==='g'){if(mz==='out'){gx=0;gz=Math.abs(f.pos.x)>1.5||f.pos.z>5?4.2:1.0;}else if(f.pos.z>-8.4||f.pos.x<2.8||f.pos.z<-10.6){gx=2.6;gz=-9.5;}else{gx=8.2;gz=-9.5;}}
+      if(ml==='g'){if(mz==='out'){const w=exitWp(f,{x:2.6,z:-9.5},false);gx=w.x;gz=w.z;}else if(f.pos.z>-8.4||f.pos.x<2.8||f.pos.z<-10.6){gx=2.6;gz=-9.5;}else{gx=8.2;gz=-9.5;}}
       else if(ml==='mz'){if(tl==='f2'){gx=12.4;gz=-10.1;}else{gx=f.pos.x>7.3?6.6:2.2;gz=-9.5;}}
       else{const bp=PANES.find(p=>p.b.broken);if(tl==='g'&&tg.pos.z>3&&bp){gx=(bp.b.x0+bp.b.x1)/2;gz=3.9;}else{gx=10.2;gz=-10.1;}}}
-    else if(mz!==tz){isT=false;if(mz==='in'){if(Math.abs(f.pos.x)>1.5||f.pos.z<1.0){gx=0;gz=2.0;}else{gx=0;gz=4.8;}}else{if(Math.abs(f.pos.x)>1.5||f.pos.z>5.0){gx=0;gz=4.2;}else{gx=0;gz=1.0;}}}
+    else if(mz!==tz){isT=false;const w=exitWp(f,{x:tg.pos.x,z:tg.pos.z},mz==='in');gx=w.x;gz=w.z;}
+    else if(mz==='out'&&ml==='g'){const w=outdoorWp({x:f.pos.x,z:f.pos.z},{x:tg.pos.x,z:tg.pos.z});if(w.x!==tg.pos.x||w.z!==tg.pos.z){isT=false;gx=w.x;gz=w.z;}}
     if(isT&&!watch){
       if(f.hp/f.maxHp<0.55){const p=nearestPower(f,9,true);if(p&&Math.abs(p.y-f.y)<1.5){gx=p.x;gz=p.z;isT=false;}}
       if(isT&&!f.held&&d>3.2){const w=nearestWeapon(f,5.5);if(w){gx=w.x;gz=w.z;isT=false;if(Math.hypot(w.x-f.pos.x,w.z-f.pos.z)<1.1)A.grab=true;}}
