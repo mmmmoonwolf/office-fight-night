@@ -53,6 +53,16 @@ async function offline(browser) {
   }
   await sleep(1800);
   ok(await ev("!document.querySelector('#endP').classList.contains('hidden')"), 'end panel after 2 round wins');
+  await ev('toMenu()'); await pg.click('#movesBtn'); await sleep(100);
+  ok(await ev("document.querySelectorAll('#mvList .mv').length") === 14 && await ev("[...document.querySelectorAll('#mvList .ds')].every(d=>d.textContent.length>5)"), 'move list shows every special with a description');
+  await pg.keyboard.press('Escape'); ok(await ev("$('#movesP').classList.contains('hidden')"), 'Esc closes the move list');
+  await pg.click('#modeSeg button[data-m="train"]'); await pg.click('#startBtn'); await sleep(1700);
+  ok(await ev("G.phase==='fight' && $('#timer').textContent==='∞'"), 'training room: fight with no timer');
+  await ev("G.f[1].pos.x=G.f[0].pos.x+1.2;G.f[1].pos.z=G.f[0].pos.z;G.f[1].hp=3;G.f[1].invT=0;G.f[1].state='idle';G.f[1].takeHit(G.f[0],{dmg:20,knock:1,stun:.3})");
+  ok(await ev("G.f[1].state!=='ko' && G.f[1].hp>=1"), 'training dummy cannot be KO\'d');
+  await sleep(2600);
+  ok(await ev("G.f[1].hp===G.f[1].maxHp && G.f[0].rage===100 && G.phase==='fight'"), 'dummy heals and special gauge refills');
+  await pg.keyboard.press('KeyT'); ok(await ev('TR.dummy') === 1, 'T cycles the dummy behaviour');
   await ev('toMenu()'); await pg.click('#modeSeg button[data-m="arcade"]'); await pg.click('#startBtn'); await sleep(300);
   for (let st = 0; st < 6; st++) {
     await pg.click('#interGo'); await sleep(1600);

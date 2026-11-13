@@ -13,6 +13,12 @@ someone is knocked into them — they drop onto the sidewalk and take fall damag
 
 - 14 characters (`ROSTER` in `js/core.js`), each with a unique special (`SPECIALS` in `js/fighter.js`)
 - Modes: duel 1v1, FFA 4, team 2v2, arcade ladder (5 + boss) — offline 1–2 players on one keyboard
+- Training room (`G.mode==='train'`, offline only): no timer, no random events, nobody can be KO'd, HP refills after
+  2 s without being hit, human rage refills by itself; `T` cycles the dummy (`TR.dummy`: stand / always block / fight
+  back via `aiThink`); the dummy's HUD line shows the current combo's hits + damage (`trainHit`, called from `takeHit`)
+- Move list overlay (`#movesP`, `buildMoves` in game.js) from the menu and the pause panel: basic moves with the
+  current key scheme, items, and every special with its one-line Thai description from `SP_DESC` (fighter.js) — add an
+  entry there whenever a new special is added
 - Online up to 4 players on separate devices (`js/net.js`), over one of two transports:
   the claude.ai Artifact `room` capability, or peer-to-peer WebRTC via PeerJS when served from GitHub Pages / any static host
 - Weapons to pick up/throw, power-ups, combos (jab-jab-hook), grabs/throws, stage hazards, random events
@@ -66,6 +72,8 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
   fighter can stand on (step height `STEP` = 0.42); `resolveBlocks` pushes fighters out sideways and reports
   high-speed impacts to `Fighter.onWallHit` (tag → sound/popup in `WALLFX`).
 - Walls that would hide the action fade via `fadeGroup(meshes, cond)`.
+- Long hair (`long`/`longM`) hanging behind the body uses its own material and fades to 30 % while the camera
+  looks at the fighter's back (`Fighter.hairFade`, run every frame after `updCamera`; off in photo mode).
 - `zoneOf` ('in'/'out') and `onMezz` drive AI path-finding (door waypoint, stair waypoint).
 
 ## Characters, sound, prompts
