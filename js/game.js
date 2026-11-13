@@ -42,8 +42,9 @@ function cycleDummy(){TR.dummy=(TR.dummy+1)%DUMMY_MODES.length;banner('หุ่
 
 /* ================= SPAWNS ================= */
 function spawnList(n,loc){
+  const BACK=[[-6,0,-16.4],[2,0,-16.4],[-6,0,-19.6],[2,0,-19.6]],WING=[[-21,0,-3],[-17,0,-3],[-21,0,-6.5],[-17,0,-6.5]];
   const IN=[[-3.2,0,-2.4],[3.2,0,-2.4],[-3.2,0,1.2],[3.2,0,1.2]],OUT=[[-3,0.15,5.2],[3,0.15,5.2],[-3,0,10.4],[3,0,10.4]],UP=[[13.2,2.4,1.4],[19.4,2.4,-9.6],[13.2,2.4,-9.6],[19.4,2.4,1.6]],BOSS=[[2.0,0,-4.4],[9.4,2.4,-9.8]];
-  const L=(loc==='boss'?BOSS:loc==='out'?OUT:loc==='up'?UP:IN).slice(0,n);
+  const L=(loc==='boss'?BOSS:loc==='out'?OUT:loc==='up'?UP:loc==='back'?BACK:loc==='wing'?WING:IN).slice(0,n);
   return L.map(([x,y,z],i)=>{let cx=0,cz=0;L.forEach((q,j)=>{if(j!==i){cx+=q[0];cz+=q[2];}});cx/=Math.max(1,L.length-1);cz/=Math.max(1,L.length-1);return[x,y,z,Math.atan2(cx-x,cz-z)];});
 }
 
@@ -174,7 +175,7 @@ window.onGlobalKey=e=>{
 function startMatch(){
   SFX.init();SFX.music(true);
   if(G.mode==='arcade'){startArcade();return;}
-  buildFromSlots();G.wins={};G.round=1;
+  buildFromSlots();G.wins={};G.round=1;G.matchBill=0;
   enterFightUI();startRound();
 }
 function enterFightUI(){
@@ -223,7 +224,7 @@ function endRound(){
   if(champ!==undefined||G.round>=5){let t=champ!==undefined?+champ:+Object.keys(G.wins).sort((a,b)=>G.wins[b]-G.wins[a])[0];if(isNaN(t))t=0;endMatch(t);}
   else{G.round++;startRound();}
 }
-function locName(f){if(lvlOf(f)==='f2')return'ร้านไวโอลินชั้น 2';if(onMezz(f))return'ห้องหัวหน้า';return f.pos.z<2.95?'กลางโชว์รูม':'ริมถนนหน้าร้าน';}
+function locName(f){if(lvlOf(f)==='f2')return'ร้านไวโอลินชั้น 2';if(onMezz(f))return'ห้องหัวหน้า';if(zoneOf(f.pos)==='in')return f.pos.x<-15.3?'โซนกลอง & แอมป์':'กลางโชว์รูม';if(f.pos.z>3)return'ริมถนนหน้าร้าน';if(f.pos.z<-12.3)return'ถนนหลังร้าน';return'ซอยข้างร้าน';}
 function endMatch(team){
   G.matchWinner=team;G.phase='end';G.phaseT=0;hideCenter();SFX.crowd();hype=1;
   const winners=G.f.filter(f=>f.team===team),losers=G.f.filter(f=>f.team!==team);
@@ -236,6 +237,7 @@ function endMatch(team){
     $('#endTitle').textContent=G.mode==='team'?((team===0?'ทีมแดง':'ทีมฟ้า')+' ชนะ! 🏆'):(hw?(G.humans===2?hw.label+' ชนะ! 🏆':'คุณชนะ! 🏆'):(winners[0].ch.name+' ชนะ... 😵'));
     const pics=$('#endPics');pics.innerHTML='';winners.forEach(f=>{const c=document.createElement('canvas');c.width=c.height=260;portrait(f.ch,c,'win');pics.appendChild(c);});
     const w0=winners[0];$('#endSub').innerHTML='';const q=document.createElement('div');q.textContent=w0.ch.name+' : "'+pick(w0.ch.quotes)+'" · '+titleOf(winsOf(w0.ch));$('#endSub').appendChild(q);
+    if(G.matchBill>0){const d=document.createElement('div');d.style.color='#ff8a8a';d.style.fontWeight='800';d.textContent='💸 ร้านเสียหายรวม '+baht(G.matchBill)+' — หักเงินเดือนทุกคน!';$('#endSub').appendChild(d);}
     unlocks.forEach(u=>{const d=document.createElement('div');d.style.color='#ffd23d';d.style.fontWeight='800';d.textContent='🎉 '+u;$('#endSub').appendChild(d);});
     drawSickNote(losers,w0);
     if(NET.role==='host')setEndBtns([['เล่นอีกตา','btn',()=>netHostStart()],['📸 ถ่ายรูป','btn ghost',()=>enterPhoto()],['กลับห้อง','btn ghost',()=>netQuitMatch()]]);
@@ -263,12 +265,12 @@ function startArcade(){
   G.arc={stage:0,list:[...pool,-1],me};G.wins={};
   showInter();
 }
-function arcadeLoc(stage,list){return stage===list.length-1?'boss':['in','out','up'][stage%3];}
+function arcadeLoc(stage,list){return stage===list.length-1?'boss':['in','out','wing','back','up'][stage%5];}
 function showInter(){
   G.phase='between';$('#hud').classList.remove('on');document.body.classList.remove('fighting');$('#menu').classList.add('hidden');$('#endP').classList.add('hidden');
   const A=G.arc,opp=chOf(A.list[A.stage]),me=ROSTER[A.me],loc=arcadeLoc(A.stage,A.list),final=A.stage===A.list.length-1;
   $('#interT').textContent=final?'ด่านสุดท้าย: บอสใหญ่! 👑':'ด่าน '+(A.stage+1)+' / '+A.list.length;
-  $('#interLoc').textContent='สถานที่: '+({in:'กลางโชว์รูม',out:'ริมถนนหน้าร้าน',up:'ร้านไวโอลินชั้น 2',boss:'ห้องหัวหน้า (ชั้นลอย)'}[loc])+' · คู่ต่อสู้: '+opp.name+' — '+opp.role;
+  $('#interLoc').textContent='สถานที่: '+({in:'กลางโชว์รูม',out:'ริมถนนหน้าร้าน',up:'ร้านไวโอลินชั้น 2',back:'ถนนหลังร้าน',wing:'โซนกลอง & แอมป์',boss:'ห้องหัวหน้า (ชั้นลอย)'}[loc])+' · คู่ต่อสู้: '+opp.name+' — '+opp.role;
   portrait(me,$('#interA'));portrait(opp,$('#interB'),'attack');
   $('#interQ').textContent='"'+pick(opp.quotes)+'"';
   $('#interP').classList.remove('hidden');

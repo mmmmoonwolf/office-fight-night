@@ -219,6 +219,11 @@ const SFX={ac:null,nb:null,out:null,musOut:null,ambOut:null,muted:false,mus:null
   tornado(){this.noise(1.0,'bandpass',350,1,0.35,1800,0.1);this.tone('sine',300,900,0.9,0.06);},
   flex(){this.voice(0.7,'grunt');this.tone('sawtooth',70,150,0.55,0.15);this.noise(0.5,'lowpass',400,1,0.6,1500,0.05);},
   zap(){this.tone('sawtooth',900,200,0.25,0.12);},
+  splash(){this.noise(0.4,'bandpass',900,0.6,0.5,280);this.noise(0.18,'highpass',2600,0.7,0.25,1500,0.005,0.04);},
+  thunder(){this.noise(1.8,'lowpass',320,0.5,0.95,70,0.02);this.noise(0.3,'highpass',1800,0.5,0.35,900);},
+  gust(){this.noise(1.1,'bandpass',450,0.5,0.3,1300,0.25);},
+  shock(){this.tone('square',130,70,0.32,0.22);this.noise(0.28,'highpass',4200,1,0.3);this.tone('sawtooth',1800,600,0.12,0.06);},
+  powerDown(){this.tone('sine',520,45,0.9,0.28);},
   swish(){this.noise(0.25,'bandpass',900,2,0.15,3000);},
   /* procedural lounge music: Cmaj7-Am7-Dm7-G7 arpeggios + bass + hats */
   music(on){if(!this.ac)return;if(on&&!this.mus){this.mus={next:this.ac.currentTime+0.15,step:0,tempo:96};this.mus.timer=setInterval(()=>this._musTick(),90);}else if(!on&&this.mus){clearInterval(this.mus.timer);this.mus=null;}},

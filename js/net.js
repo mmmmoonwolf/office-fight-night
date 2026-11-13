@@ -167,7 +167,7 @@ setInterval(()=>{
 /* ---------- match setup (host and clients build the same fighters) ---------- */
 function netBuildMatch(cfg){
   ['#onlineP','#menu','#endP','#pause','#interP','#shotP','#photoBar'].forEach(s=>$(s).classList.add('hidden'));
-  clearFighters();G.mode=cfg.mode;G.diff=G.baseDiff=clamp(cfg.diff|0,0,2);G.loc=['out','up'].includes(cfg.loc)?cfg.loc:'in';G.humans=1;G.roundLoc=null;G.paused=false;G.photo=false;
+  clearFighters();G.mode=cfg.mode;G.diff=G.baseDiff=clamp(cfg.diff|0,0,2);G.loc=['out','up','back','wing'].includes(cfg.loc)?cfg.loc:'in';G.humans=1;G.roundLoc=null;G.paused=false;G.photo=false;
   const me=myPeerId();NET.mySlot=-1;let pn=0;
   cfg.sl.forEach((s,i)=>{const peer=s[0]||'',ci=clamp(s[1]|0,0,ROSTER.length-1),base=ROSTER[ci];
     const ch=Object.assign({},base,{name:safeStr(s[2]||base.name,18),glove:clamp(s[3]|0,0,GLOVES.length-1),photoImg:peer&&peer===me?base.photoImg:null});
@@ -187,7 +187,7 @@ function netHostStart(){
   NET.cfg={id:Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),mode,diff:NET.set.diff,loc:NET.set.loc,sl};
   NET.role='host';NET.fxBuf=[];NET.fxSeq=0;NET.remote={};NET.ack={};NET.seq=0;
   setPresence({g:NET.cfg,s:null,in:null});
-  SFX.init();netBuildMatch(NET.cfg);G.wins={};G.round=1;enterFightUI();startRound();
+  SFX.init();netBuildMatch(NET.cfg);G.wins={};G.round=1;G.matchBill=0;enterFightUI();startRound();
 }
 function netAdopt(h){
   NET.role='client';NET.inSeq=0;NET.inFirst=0;NET.ackSeen=0;NET.ackT=performance.now();NET.hostPeer=h.peer;NET.cfg=h.presence.g;NET.snaps=[];NET.lastSnapI=-1;NET.lastFx=0;NET.curPhase='';NET.endShown=false;NET.inCnt=[0,0,0,0,0];NET.lastIn='';NET.lastHostSeen=performance.now();
@@ -195,11 +195,11 @@ function netAdopt(h){
 }
 function netClientClear(){
   const C=NET.cl;for(const m of[C.items,C.projs,C.bikes]){for(const o of m.values())scene.remove(o.mesh||o.g);m.clear();}
-  if(C.movers){scene.remove(C.movers.g);C.movers=null;}if(C.cust){scene.remove(C.cust.g);C.cust=null;}
+  if(C.movers){scene.remove(C.movers.g);C.movers=null;}if(C.cust){scene.remove(C.cust.g);C.cust=null;}if(C.van){scene.remove(C.van);C.van=null;}resetEvents();
   items.slice().forEach(it=>scene.remove(it.mesh));items.length=0;WSPOTS.forEach(s=>{s.item=null;s.resp=0;});PSPOTS.forEach(s=>s.item=null);
   NPC.bikes.forEach(b=>scene.remove(b.o.g));NPC.bikes.length=0;
   if(NPC.movers){scene.remove(NPC.movers.g);NPC.movers=null;}if(NPC.customer){scene.remove(NPC.customer.p.g);NPC.customer=null;}
-  projs.slice().forEach(p=>scene.remove(p.mesh));projs.length=0;clearEffects();restorePanes();G.rain=0;G.watch=0;
+  projs.slice().forEach(p=>scene.remove(p.mesh));projs.length=0;clearEffects();restorePanes();BRK.forEach(b=>{if(b.brk.broken)brkVisual(b,false);});G.rain=0;G.watch=0;
 }
 function toLobby(msg){
   const wasClient=NET.role==='client';
@@ -232,6 +232,7 @@ function buildSnap(){
     return a.slice(0,18).map(Q).concat([a[18],a[19],Math.ceil(Math.max(0,f.hp)),Math.round(f.rage),f.held?WT.indexOf(f.held.type):-1,f.held?f.held.dur:0,bits,Math.max(0,STATES.indexOf(f.state))]);});
   s.ia=G.f.map(f=>f.net?(NET.ack[f.slot]|0):0);
   s.gb=PANES.reduce((m,P,i)=>m|(P.b.broken?1<<i:0),0);
+  s.bk=BRK.map(b=>b.brk.broken?1:0).join('');s.ev=[Q(FLOOD.lvl),EV.blackout>0?1:0,NPC.van?Q(NPC.van.x):0,NPC.van?Q(NPC.van.z):0,NPC.van?Q(NPC.van.rot):0,NPC.van?1:0];
   s.it=items.map(it=>[it.id,it.kind==='w'?0:1,(it.kind==='w'?WT:PT).indexOf(it.type),Q(it.x),Q(it.y),Q(it.z)]);
   s.pj=projs.filter(p=>!p.visual).slice(0,16).map(p=>[p.id,PK.indexOf(p.kind),Q(p.x),Q(p.y),Q(p.z),Q(p.vx),Q(p.vy),Q(p.vz),p.wt?WT.indexOf(p.wt):-1]);
   const d=NPC.dog,mv=NPC.movers,cu=NPC.customer;
@@ -304,7 +305,7 @@ function netSyncProjs(S,age){
 }
 function netSyncNPC(S,raw){
   const np=S.np||{},C=NET.cl,seen=new Set();
-  for(const r of np.b||[]){const[id,x,z,dir]=r;seen.add(id);let o=C.bikes.get(id);if(!o){o=mkBike(pick(['#c0392b','#2980b9','#27ae60','#8e44ad']),true);o.g.rotation.y=dir>0?Math.PI/2:-Math.PI/2;scene.add(o.g);C.bikes.set(id,o);}o.g.position.set(UQ(x),0,UQ(z));}
+  for(const r of np.b||[]){const[id,x,z,dir]=r;seen.add(id);let o=C.bikes.get(id);if(!o){o=mkBike(pick(['#c0392b','#2980b9','#27ae60','#8e44ad']),true);o.g.rotation.y=bikeRot(dir);scene.add(o.g);C.bikes.set(id,o);}o.g.position.set(UQ(x),0,UQ(z));}
   for(const[id,o]of C.bikes)if(!seen.has(id)){scene.remove(o.g);C.bikes.delete(id);}
   if(np.d){const d=NPC.dog,[x,y,z,r]=np.d,nx=UQ(x),nz=UQ(z),mv=Math.hypot(nx-d.g.position.x,nz-d.g.position.z)>0.005;d.g.position.set(nx,UQ(y),nz);d.g.rotation.y=UQ(r);
     const s=mv?Math.sin(G.clock*16)*0.6:0;d.legs[0].rotation.x=s;d.legs[3].rotation.x=s;d.legs[1].rotation.x=-s;d.legs[2].rotation.x=-s;d.tail.rotation.y=Math.sin(G.clock*14)*0.6;}
@@ -341,6 +342,10 @@ function netClientFrame(raw){
       const bits=fl[24]|0;f.fx.dizzy=bits&1;f.fx.slow=bits&2?1:0;f.fx.buff=bits&4?1:0;f.fx.immune=bits&8?1:0;f.win=!!(bits&16);
       f.state=STATES[fl[25]]||'idle';f.lite(raw);});
     PANES.forEach((P,i)=>{const br=!!((S.gb|0)>>i&1);if(P.mesh.visible===br)P.mesh.visible=!br;});
+    if(Array.isArray(S.ev)){FLOOD.lvl=clamp(UQ(S.ev[0]),0,1);EV.blackout=S.ev[1]?1:0;
+      if(S.ev[5]){if(!NET.cl.van){NET.cl.van=mkVan();scene.add(NET.cl.van);}NET.cl.van.position.set(UQ(S.ev[2]),0,UQ(S.ev[3]));NET.cl.van.rotation.y=UQ(S.ev[4]);}
+      else if(NET.cl.van){scene.remove(NET.cl.van);NET.cl.van=null;}}
+    if(typeof S.bk==='string')BRK.forEach((b,i)=>{const br=S.bk[i]==='1';if(b.brk.broken!==br)brkVisual(b,br);});
     G.timer=+S.t||0;G.round=S.r|0;G.wins={};(S.w||[]).forEach((v,i)=>{if(v)G.wins[i]=v|0;});G.rain=+S.rn||0;hype=UQ(S.hy);
     netSyncItems(S,raw);netSyncProjs(S,now-B[B.length-1].t);netSyncNPC(S,raw);
     if(G.phase!=='end')updHUD(raw);
