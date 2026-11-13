@@ -115,6 +115,24 @@ const SPECIALS={
 };
 
 /* ================= FIGHTER ================= */
+/* one-line Thai explanations for the move list (📖 ท่าทั้งหมด) */
+const SP_DESC={
+  files:'ปาแฟ้มงาน 5 แผ่นกระจายเป็นรูปพัด ยิงได้ไกล',
+  chat:'ยิงข้อความแชท 9 ลูกรัวๆ ไปข้างหน้า',
+  books:'ปาหนังสือ 6 เล่มกระจายไปข้างหน้า',
+  trap:'โปรยคูปอง 8 ใบลงพื้นข้างหน้า ใครเหยียบลื่นล้ม (ทะลุการ์ด)',
+  fork:'เคาะส้อมเสียงรอบตัวระยะใกล้ ทะลุการ์ด คนโดนมึนงง 2 วินาที',
+  chord:'คลื่นเสียง 3 ระลอกด้านหน้า ระลอกสุดท้ายแรงสุด ทะลุการ์ดแล้วปลิวล้ม',
+  drop:'แกรนด์เปียโนตกใส่คนที่อยู่ใกล้สุด มีวงแดงเตือนให้วิ่งหนี',
+  audit:'หักเลือดคนที่ใกล้สุด 14 ทะลุการ์ด แล้วเอามาเติมเลือดตัวเอง',
+  flash:'แฟลชรอบตัว ทะลุการ์ด คนโดนตาพร่า แล้วกดชัตเตอร์ซ้ำอีก 3 ที',
+  dash:'หมุนทอร์นาโดพุ่งไปข้างหน้าราว 1 วินาที ตีโดนต่อเนื่อง',
+  pull:'ขึงตลับเมตรดึงทุกคนในระยะเข้ามาหา มึนงง แล้วทิ้งโซฟาทับ',
+  cloud:'ปล่อยควันเขียวรอบตัว 5 วินาที ใครอยู่ในควันจะมึน ช้า และเลือดลด',
+  buff:'ระเบิดกล้ามรอบตัว ทะลุการ์ด ปลิวล้ม แล้วตัวใหญ่ขึ้น 8 วินาที ฮุกมีแรงกระแทก',
+  finisher:'พุ่งชนไล่ทีละคน สูงสุด 3 คนที่อยู่ใกล้ที่สุด',
+  random:'สุ่มใช้ไม้ตายของคนอื่น 1 ท่า ลุ้นเอาเอง',
+};
 const ATK={
   jab:{startup:.11,active:.08,recover:.15,dmg:5,range:1.6,knock:1.8,stun:.26,rage:7},
   hook:{startup:.24,active:.1,recover:.3,dmg:10,range:1.6,knock:4.2,stun:.42,rage:11},
@@ -130,12 +148,15 @@ function seg(m,a,b){const d=b.clone().sub(a),l=d.length();m.position.copy(a).add
 function buildHair(Hd,ch,mat){
   const hs=ch.hairStyle,photo=!!ch.photoImg,add=(m)=>{m.castShadow=true;Hd.add(m);return m;};
   const dbl=mat.clone();dbl.side=THREE.DoubleSide;
+  // hair that hangs behind the body gets its own material so it can fade when the chase camera is behind (hairFade)
+  const back=mat.clone();back.side=THREE.DoubleSide;back.transparent=true;
+  const backMat=hs==='long'||hs==='longM'?back:null;
   const fringe=(p0,p1,t1)=>add(new THREE.Mesh(new THREE.SphereGeometry(0.56,24,8,Math.PI/2+p0,p1-p0,0.2*Math.PI,t1||0.22*Math.PI),dbl));
-  if(hs==='bald'){for(let k=-4;k<=4;k++){const a=k*0.36;add(new THREE.Mesh(new THREE.SphereGeometry(0.11,8,6),mat)).position.set(Math.sin(a)*0.47,-0.06,-Math.cos(a)*0.47);}return;}
+  if(hs==='bald'){for(let k=-4;k<=4;k++){const a=k*0.36;add(new THREE.Mesh(new THREE.SphereGeometry(0.11,8,6),mat)).position.set(Math.sin(a)*0.47,-0.06,-Math.cos(a)*0.47);}return null;}
   const cap=add(new THREE.Mesh(new THREE.SphereGeometry(hs==='buzz'?0.512:0.548,28,16,0,Math.PI*2,0,Math.PI*0.56),dbl));cap.rotation.x=-0.42;cap.position.set(0,0.015,-0.02);
-  if(hs==='buzz')return;
-  const curtain=(H,r0,r1)=>{const c=add(new THREE.Mesh(new THREE.CylinderGeometry(r0,r1,H,22,1,true,Math.PI/2,Math.PI),dbl));c.position.set(0,0.06-H/2,-0.04);
-    const tip=add(new THREE.Mesh(new THREE.SphereGeometry(r1,22,6,Math.PI/2,Math.PI,Math.PI/2,Math.PI/2),dbl));tip.scale.y=0.25;tip.position.set(0,0.06-H,-0.04);return c;};
+  if(hs==='buzz')return null;
+  const curtain=(H,r0,r1)=>{const c=add(new THREE.Mesh(new THREE.CylinderGeometry(r0,r1,H,22,1,true,Math.PI/2,Math.PI),back));c.position.set(0,0.06-H/2,-0.04);
+    const tip=add(new THREE.Mesh(new THREE.SphereGeometry(r1,22,6,Math.PI/2,Math.PI,Math.PI/2,Math.PI/2),back));tip.scale.y=0.25;tip.position.set(0,0.06-H,-0.04);return c;};
   const lock=(x,H)=>{const l=add(new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.11,H,8),mat));l.position.set(x,-H/2+0.05,0.16);l.rotation.z=x>0?0.06:-0.06;return l;};
   if(hs==='long'){curtain(1.45,0.52,0.6);lock(0.44,0.95);lock(-0.44,0.95);if(!photo)fringe(-1.15,1.15);}
   else if(hs==='longM'){curtain(1.15,0.52,0.58);lock(0.45,0.8);lock(-0.45,0.8);if(!photo){fringe(-1.2,-0.1,0.3*Math.PI);fringe(0.1,1.2,0.3*Math.PI);}}
@@ -145,6 +166,7 @@ function buildHair(Hd,ch,mat){
     if(!photo){const sw=add(new THREE.Mesh(new THREE.SphereGeometry(0.3,16,10),mat));sw.scale.set(1.5,0.5,0.55);sw.position.set(0.1,0.26,0.36);sw.rotation.z=-0.5;}}
   else if(hs==='spiky'){for(let k=0;k<8;k++){const c=add(new THREE.Mesh(new THREE.ConeGeometry(0.1,0.34,6),mat));const a=k/8*Math.PI*2;c.position.set(Math.sin(a)*0.28,0.42,Math.cos(a)*0.22-0.05);c.rotation.set(Math.cos(a)*0.6-0.2,0,-Math.sin(a)*0.6);}if(!photo)fringe(-0.9,0.9,0.12*Math.PI);}
   else{/* short */const v=add(new THREE.Mesh(new THREE.SphereGeometry(0.33,16,10),mat));v.scale.set(1.4,0.55,1.2);v.position.set(-0.04,0.36,0.04);if(!photo)fringe(-1.0,0.8,0.15*Math.PI);}
+  return backMat;
 }
 const UPV=V(0,1,0);
 const WALLFX={piano:['ชนเปียโน! 🎹','piano'],grand:['ชนแกรนด์! 🎹','piano'],bench:['ชนเก้าอี้!','thud'],guitar:['ชนกีตาร์! 🎸','guitar'],glass:['ชนกระจก!','glass'],counter:['ชนเคาน์เตอร์!','thud'],box:['ชนกล่องพัสดุ! 📦','thud'],shelf:['หนังสือร่วง! 📚','thud'],car:['รถร้อง! 🚨','alarm'],bike:['ชนมอไซค์!','thud'],cart:['ส้มตำหก! 🌶','thud'],pole:['ชนเสาไฟ!','thud'],planter:['ชนกระถาง!','thud'],stage:['ชนแท่น!','thud'],mezz:['ติดผนัง!','thud'],stairs:['ชนบันได!','thud'],desk:['ชนโต๊ะ!','thud'],case:['ชนตู้ไวโอลิน! 🎻','violin'],cello:['ชนเชลโล่! 🎻','cello'],glass2:['ชนกระจก!','glass'],wall:['ติดผนัง!','thud']};
@@ -184,7 +206,7 @@ class Fighter{
     const Hd=this.head=new THREE.Group();Hd.position.y=1.38;Hd.scale.setScalar(1.26);T.add(Hd);
     const hm=new THREE.Mesh(new THREE.SphereGeometry(0.5,32,20),new THREE.MeshStandardMaterial({map:this.faceTex,roughness:.8}));hm.castShadow=true;Hd.add(hm);
     for(const s of[-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,6),skin);e.position.set(s*0.49,-0.02,0);e.scale.set(0.6,1,1);Hd.add(e);}
-    buildHair(Hd,ch,hairM);
+    this.hairBack=buildHair(Hd,ch,hairM);this.hairO=1;
     const A=ch.acc,fz=0.31*sb;
     if(A.includes('tie')){vbox(0.28,0.26,0.02,M('#f4f4f4'),0,0.66,fz-0.01,T);vbox(0.11,0.42,0.03,M(ch.accent||'#c0392b'),0,0.5,fz,T);}
     if(A.includes('tag')){vbox(0.2,0.11,0.02,M('#ffffff'),0.22,0.62,fz-0.03,T);vbox(0.2,0.03,0.025,M('#c0392b'),0.22,0.66,fz-0.025,T);}
@@ -306,6 +328,7 @@ class Fighter{
     if(att&&this.state==='attack'&&this.atk&&this.atk.t<this.atk.def.startup){dmg*=1.3;crit=true;popup('COUNTER!',hp.clone().add(V(0,0.6,0)),'crit',1);}
     const armor=this.fx.buff>0;if(armor)dmg*=0.7;
     this.hp-=dmg;
+    if(G.mode==='train'){if(this.hp<1)this.hp=1;trainHit(this,att,dmg);}
     if(this.state==='grab'&&this.victim){this.victim.state='idle';this.victim.grabbedBy=null;this.victim=null;}
     if(this.held&&(h.launch||h.knock>=6))this.dropHeld();
     if(!armor||h.launch>=6||h.thrown){
@@ -519,6 +542,16 @@ class Fighter{
     if(this.stars.visible)this.stars.rotation.y+=dt*6;
     if(this.rainbow)this.gloveMat.color.setHSL((t*0.3)%1,0.9,0.55);
     this.gloveMat.emissiveIntensity=this.rage>=100?0.45+0.45*Math.sin(t*12):this.baseEm;
+  }
+  /* long hair hides the whole body from the chase camera → fade it when the camera looks at the fighter's back */
+  hairFade(dt){
+    const m=this.hairBack;if(!m)return;
+    const dx=camera.position.x-this.pos.x,dz=camera.position.z-this.pos.z,d=Math.hypot(dx,dz)||1;
+    const a=this.root.rotation.y,facing=(Math.sin(a)*dx+Math.cos(a)*dz)/d;
+    const lying=this.state==='ko'||this.state==='down';
+    const want=!lying&&!G.photo&&facing<-0.25?0.3:1;
+    this.hairO=lerp(this.hairO,want,1-Math.exp(-10*dt));
+    m.opacity=this.hairO;m.depthWrite=this.hairO>0.97;
   }
   lite(dt){this.t+=dt;if(this.rainbow)this.gloveMat.color.setHSL((this.t*0.3)%1,0.9,0.55);this.gloveMat.emissiveIntensity=this.rage>=100?0.45+0.45*Math.sin(this.t*12):this.baseEm;if(this.stars.visible)this.stars.rotation.y+=dt*6;}
   setHeldVis(type){const cur=this.held?this.held.type:null;if(cur===type)return;this.removeHeld();if(type){const W=WEAPONS[type];const mesh=W.mk();mesh.position.set(...W.hold.p);mesh.rotation.set(...W.hold.r);mesh.scale.multiplyScalar(1/this.S);this.gloves[0].add(mesh);this.held={type,dur:0,mesh};}}

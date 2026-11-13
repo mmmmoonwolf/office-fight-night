@@ -14,6 +14,30 @@ function slotInfo(i){
   return{human,team,color,label};
 }
 
+/* ================= TRAINING ROOM ================= */
+const TR={dummy:0,last:-9,hits:0,dmg:0,best:0};
+const DUMMY_MODES=['ยืนเฉย','กันตลอด','สู้กลับ'];
+function dummyThink(f,dt){
+  if(TR.dummy===2)return aiThink(f,dt);
+  const e=nearestEnemy(f,99);
+  if(e&&(f.state==='idle'||f.state==='block'))f.faceT=Math.atan2(e.pos.x-f.pos.x,e.pos.z-f.pos.z);
+  return{mx:0,mz:0,atk:null,block:TR.dummy===1,jump:false,grab:false};
+}
+function trainHit(f,att,dmg){
+  f.trHurt=G.clock;
+  if(f.human!=null||!att||att.human==null)return;
+  if(G.clock-TR.last<1.2){TR.hits++;TR.dmg+=dmg;}else{TR.hits=1;TR.dmg=dmg;}
+  TR.last=G.clock;TR.best=Math.max(TR.best,Math.round(TR.dmg));
+}
+function trainTick(dt){
+  for(const f of G.f){
+    if(f.human!=null)f.rage=Math.min(100,f.rage+40*dt);
+    if(G.clock-(f.trHurt||-9)>2&&f.hp<f.maxHp&&f.state!=='down'&&f.state!=='ko')f.hp=f.maxHp;
+  }
+  $('#roundLab').textContent='ห้องซ้อม · หุ่น: '+DUMMY_MODES[TR.dummy]+' [T]';
+}
+function cycleDummy(){TR.dummy=(TR.dummy+1)%DUMMY_MODES.length;banner('หุ่นซ้อม: '+DUMMY_MODES[TR.dummy],1.5);}
+
 /* ================= SPAWNS ================= */
 function spawnList(n,loc){
   const IN=[[-3.2,0,-2.4],[3.2,0,-2.4],[-3.2,0,1.2],[3.2,0,1.2]],OUT=[[-3,0.15,5.2],[3,0.15,5.2],[-3,0,10.4],[3,0,10.4]],UP=[[13.2,2.4,1.4],[19.4,2.4,-9.6],[13.2,2.4,-9.6],[19.4,2.4,1.6]],BOSS=[[2.0,0,-4.4],[9.4,2.4,-9.8]];
@@ -63,12 +87,13 @@ function updHUD(dt){
     h.hp.style.transform=`scaleX(${f.hp/f.maxHp})`;h.hp.classList.toggle('low',f.hp/f.maxHp<0.3);
     h.lag.style.transform=`scaleX(${f.lagHp/f.maxHp})`;h.rg.style.transform=`scaleX(${f.rage/100})`;
     const full=f.rage>=100;h.rgw.classList.toggle('full',full);h.el.classList.toggle('dead',f.state==='ko');
-    const w=G.mode==='arcade'?'':('🥊'.repeat(Math.min(2,G.wins[f.team]||0))+'⚪'.repeat(Math.max(0,2-(G.wins[f.team]||0))));
+    const w=G.mode==='arcade'||G.mode==='train'?'':('🥊'.repeat(Math.min(2,G.wins[f.team]||0))+'⚪'.repeat(Math.max(0,2-(G.wins[f.team]||0))));
     let st=[];if(full)st.push('<b>ไม้ตายพร้อม'+(spKeyOf(f)?' ['+spKeyOf(f)+']':'')+'</b>');if(f.held)st.push('ถือ'+WEAPONS[f.held.type].name+' ('+f.held.dur+')');
+    if(G.mode==='train'&&f.human==null&&TR.hits)st.push('<b>'+TR.hits+' hit · '+Math.round(TR.dmg)+' ดาเมจ</b> (สูงสุด '+TR.best+')');
     if(f.fx.dizzy>0)st.push('💫');if(f.fx.slow>0)st.push('🐌OT');if(f.fx.buff>0)st.push('💪');if(f.fx.immune>0)st.push('🌿');
     const html=w+' '+st.join(' · ');if(h._s!==html){h.sub.innerHTML=html;h._s=html;}
   }
-  const t=Math.max(0,Math.ceil(G.timer));$('#timer').textContent=t;$('#timer').classList.toggle('hurry',t<=10&&G.phase==='fight');
+  const t=Math.max(0,Math.ceil(G.timer));$('#timer').textContent=G.mode==='train'?'∞':t;$('#timer').classList.toggle('hurry',t<=10&&G.phase==='fight');
 }
 
 /* ================= CAMERA ================= */
@@ -136,7 +161,9 @@ function readPlayer(h){
 window.onGlobalKey=e=>{
   if(G.phase==='replay'){skipReplay();return;}
   if(!$('#interP').classList.contains('hidden')&&(e.code==='Enter'||e.code==='Space'||e.code==='KeyJ')){$('#interGo').click();return;}
+  if(e.code==='Escape'&&!$('#movesP').classList.contains('hidden')){showMoves(false);return;}
   if(e.code==='Escape'){if(G.photo){exitPhoto();return;}if(['fight','intro','ko','post'].includes(G.phase))togglePause();return;}
+  if(e.code==='KeyT'&&G.mode==='train'&&G.phase==='fight'&&!G.paused&&!e.repeat){cycleDummy();return;}
   if(e.code==='KeyP'&&G.humans===1&&G.phase!=='menu'&&G.phase!=='lobby'&&!e.repeat){if(G.photo)exitPhoto();else enterPhoto();}
 };
 
@@ -151,7 +178,7 @@ function enterFightUI(){
   try{if(document.activeElement&&document.activeElement!==document.body)document.activeElement.blur();}catch(_){}
   $('#menu').classList.add('hidden');$('#endP').classList.add('hidden');$('#interP').classList.add('hidden');$('#pause').classList.add('hidden');
   $('#hud').classList.add('on');document.body.classList.add('fighting');buildHUD();
-  $('#hint').textContent=G.humans===1?'Q/E หมุนกล้อง · ลากเมาส์หมุน · ล้อเมาส์ซูม · P ถ่ายรูป · Esc พัก':'ลากเมาส์หมุนกล้อง · Esc พัก';
+  $('#hint').textContent=G.mode==='train'?'T เปลี่ยนหุ่น (ยืนเฉย/กันตลอด/สู้กลับ) · Esc พัก/ดูท่า/ออก':G.humans===1?'Q/E หมุนกล้อง · ลากเมาส์หมุน · ล้อเมาส์ซูม · P ถ่ายรูป · Esc พัก':'ลากเมาส์หมุนกล้อง · Esc พัก';
 }
 function startRound(loc){
   G.matchWinner=-1;
@@ -160,7 +187,8 @@ function startRound(loc){
   G.timer=99;G.phase='intro';G.phaseT=0;G.roundWinner=-1;G.replayPending=false;G.lastKO=null;REC.length=0;hype=0;G.paused=false;G.timeScale=1;G.slowT=0;
   const p=G.f.find(f=>f.human===0)||G.f[0];CAM.yaw=(loc||G.roundLoc||G.loc)==='boss'?0.5:0;CAM.focus.set(p.pos.x,p.y,p.pos.z);
   const vs=G.f.length===2?G.f[0].ch.name+' VS '+G.f[1].ch.name:(G.mode==='team'?'ทีมแดง VS ทีมฟ้า':'ตะลุมบอน 4 คน!');
-  $('#roundLab').textContent=G.mode==='arcade'?('ด่าน '+(G.arc.stage+1)+'/'+G.arc.list.length):('ROUND '+G.round);
+  $('#roundLab').textContent=G.mode==='arcade'?('ด่าน '+(G.arc.stage+1)+'/'+G.arc.list.length):G.mode==='train'?'ห้องซ้อม · หุ่น: '+DUMMY_MODES[TR.dummy]+' [T]':('ROUND '+G.round);
+  if(G.mode==='train'){Object.assign(TR,{last:-9,hits:0,dmg:0});showCenter('ห้องซ้อม 🥋','ไม่จำกัดเวลา · เกจไม้ตายเติมเอง · กด T เปลี่ยนหุ่น',1.6);return;}
   showCenter(G.mode==='arcade'?('ด่าน '+(G.arc.stage+1)):(G.round>=3?'ยกตัดสิน!':'ROUND '+G.round),G.round===1||G.mode==='arcade'?vs:'',1.3);
 }
 function aliveTeams(){const s=new Set();G.f.forEach(f=>{if(f.state!=='ko')s.add(f.team);});return[...s];}
@@ -333,6 +361,35 @@ $('#photoBtn').addEventListener('click',enterPhoto);
 function togglePause(force){if(NET.role!=='off'){const show=force!==undefined?force:$('#pause').classList.contains('hidden');$('#pause').classList.toggle('hidden',!show);$('#ctrlHelp2').innerHTML=ctrlHTML();$('#quitBtn').textContent='ออกจากแมตช์';return;}
   $('#quitBtn').textContent='กลับเมนู';const p=force!==undefined?force:!G.paused;G.paused=p;$('#pause').classList.toggle('hidden',!p);$('#ctrlHelp2').innerHTML=ctrlHTML();held.clear();}
 $('#resumeBtn').addEventListener('click',()=>togglePause(false));
+/* ================= MOVE LIST ================= */
+function keyName(c){return c==='Space'?'Space':c.startsWith('Shift')?'Shift':c.replace(/^Key|^Digit/,'');}
+function keysOf(list){return list.filter(k=>!/^(T[A-Z]|Numpad|Arrow|Enter)/.test(k)).map(k=>'<kbd>'+keyName(k)+'</kbd>').join(' ')||'—';}
+function buildMoves(){
+  const S=G.humans===2?SCH.p1:SCH.solo,me=G.f.find(f=>f.human===0),meId=me?me.ch.id:null;
+  const rows=[
+    [keysOf(S.jab),'จ็อบ','ต่อยเร็ว ดาเมจน้อย เอาไว้ขัดจังหวะ'],
+    [keysOf(S.hook),'ฮุก','ช้ากว่าแต่แรงกว่า กระเด็นไกลกว่า'],
+    [keysOf(S.jab)+' '+keysOf(S.jab)+' '+keysOf(S.hook),'คอมโบ','จ็อบ จ็อบ แล้วฮุกให้ทัน (ไม่เกิน 0.45 วิ) → ปลิวลอยแล้วล้ม'],
+    [keysOf(S.blk),'กัน','กันด้านหน้า โดนแค่ 15% · กันโดนจับทุ่มไม่ได้'],
+    [keysOf(S.grab),'จับ / หยิบ / ขว้าง','ใกล้คน = จับทุ่ม (ทะลุการ์ด) · ใกล้ของ = หยิบ · ถือของอยู่ = ขว้าง'],
+    [keysOf(S.jump),'โดด','หลบของที่ปามา ขึ้นที่สูง'],
+    [keysOf(S.sp),'ไม้ตาย','ใช้ได้เมื่อเกจม่วงใต้หลอดเลือดเต็ม (เกจขึ้นทั้งตอนตีโดนและตอนโดนตี)'],
+    ['','COUNTER','ต่อยเข้าตอนอีกฝ่ายกำลังง้างหมัด'],
+  ];
+  let h='<h3>ท่าพื้นฐาน'+(G.humans===2?' (ปุ่มของ P1)':'')+'</h3><div class="mvb">'+rows.map(r=>'<b>'+r[1]+(r[0]?' '+r[0]:'')+'</b><span>'+r[2]+'</span>').join('')+'</div>';
+  h+='<h3>ของในร้าน</h3><div style="font-size:14px;line-height:1.7">ฟาดได้: '+Object.values(WEAPONS).map(w=>w.name).join(' · ')+' (ฟาดไม่กี่ทีก็พัง ขว้างใส่หน้าได้)<br>ของกิน/ซอง: '+Object.values(POWER).map(p=>p.bad?p.name+' (ลุ้นเอาเอง)':p.txt).join(' · ')+'</div>';
+  h+='<h3>ไม้ตายแต่ละคน</h3><div class="mvs" id="mvList"></div>';
+  $('#movesBody').innerHTML=h;
+  const list=$('#mvList'),order=ROSTER.map((c,i)=>i).sort((a,b)=>(ROSTER[b].id===meId)-(ROSTER[a].id===meId));
+  for(const i of order){const c=ROSTER[i],el=document.createElement('div');el.className='mv'+(c.id===meId?' me':'');
+    el.innerHTML='<canvas width="108" height="108"></canvas><div><div class="nm"></div><div class="sp"></div><div class="ds"></div></div>';
+    portrait(c,el.querySelector('canvas'));el.querySelector('.nm').textContent=c.name+(c.id===meId?' (คุณ)':'');
+    el.querySelector('.sp').textContent=SPECIALS[c.sp].name;el.querySelector('.ds').textContent=SP_DESC[c.sp]||'';list.appendChild(el);}
+}
+function showMoves(on){if(on)buildMoves();$('#movesP').classList.toggle('hidden',!on);}
+$('#movesBtn').addEventListener('click',()=>showMoves(true));
+$('#movesBtn2').addEventListener('click',()=>showMoves(true));
+$('#movesClose').addEventListener('click',()=>showMoves(false));
 $('#quitBtn').addEventListener('click',()=>{if(NET.role!=='off')netQuitMatch();else toMenu();});
 $('#pauseBtn').addEventListener('click',()=>{if(['fight','intro','ko','post'].includes(G.phase))togglePause();});
 $('#muteBtn').addEventListener('click',()=>{SFX.setMuted(!SFX.muted);$('#muteBtn').textContent=SFX.muted?'🔇':'🔊';});
@@ -351,7 +408,7 @@ function buildSlots(){
     if(n===2&&i===0){const v=document.createElement('div');v.className='vs';v.textContent='VS';box.appendChild(v);}
     if(G.mode==='team'&&i===1){const v=document.createElement('div');v.className='vs';v.textContent='VS';box.appendChild(v);}}
   if(G.mode!=='arcade'){const r=document.createElement('button');r.className='btn ghost';r.textContent='🎲 สุ่มคอม';r.addEventListener('click',()=>{for(let i=0;i<slotCount();i++)if(slotInfo(i).human==null)G.slots[i]=Math.floor(Math.random()*ROSTER.length);buildSlots();updateCards();buildFromSlots();});box.appendChild(r);}
-  const hints={duel:'ดวลตัวต่อตัว ชนะ 2 ยกก่อนชนะ',ffa:'4 คนตะลุมบอน ใครยืนคนสุดท้ายชนะยก',team:'2 ต่อ 2 · ทีมเดียวกันต่อยกันไม่เข้า'+(G.humans===2?' · P1+P2 อยู่ทีมเดียวกัน':''),arcade:'เลือกตัวเอง แล้วไต่บันได 5 คน + บอสใหญ่ที่ห้องหัวหน้า (โหมดนี้เล่นคนเดียว)'};
+  const hints={duel:'ดวลตัวต่อตัว ชนะ 2 ยกก่อนชนะ',ffa:'4 คนตะลุมบอน ใครยืนคนสุดท้ายชนะยก',team:'2 ต่อ 2 · ทีมเดียวกันต่อยกันไม่เข้า'+(G.humans===2?' · P1+P2 อยู่ทีมเดียวกัน':''),train:'ห้องซ้อม: ลองท่ากับหุ่นได้ไม่จำกัดเวลา เลือดเต็มเองเมื่อไม่โดนตี 2 วินาที',arcade:'เลือกตัวเอง แล้วไต่บันได 5 คน + บอสใหญ่ที่ห้องหัวหน้า (โหมดนี้เล่นคนเดียว)'};
   $('#menuHint').textContent=hints[G.mode]+' · กดช่องด้านบนเพื่อเลือกว่ากำลังเลือกตัวให้ใคร แล้วกดการ์ด · แก้ชื่อ/ใส่รูปหน้าเพื่อนได้';
   $('#humSeg').style.display=G.mode==='arcade'?'none':'';$('#locSeg').style.display=G.mode==='arcade'?'none':'';
 }
@@ -469,20 +526,21 @@ function loop(now){
     G.phaseT+=raw;G.clock+=dt;
     if(G.f.length){
       const fighting=G.phase==='fight';
-      for(const f of G.f){let it=null;if(fighting)it=f.human!=null?readPlayer(f.human):(f.net?netInput(f):aiThink(f,dt));f.update(dt,it);}
+      for(const f of G.f){let it=null;if(fighting)it=f.human!=null?readPlayer(f.human):(f.net?netInput(f):G.mode==='train'?dummyThink(f,dt):aiThink(f,dt));f.update(dt,it);}
       separateAll();
-      if(fighting){G.timer-=raw;if(G.timer<=0){G.timer=0;timeUp();}}
+      if(fighting&&G.mode==='train')trainTick(dt);
+      else if(fighting){G.timer-=raw;if(G.timer<=0){G.timer=0;timeUp();}}
       if(G.phase==='intro'&&G.phaseT>1.4){G.phase='fight';showCenter('ชก!!','',0.8);SFX.bell();}
       else if(G.phase==='ko'){if(G.replayPending&&G.phaseT>1.5){G.replayPending=false;startReplay();}else if(!G.replayPending&&G.phaseT>3.0)endRound();}
       else if(G.phase==='post'&&G.phaseT>0.7)endRound();
       if(G.phase==='fight'||G.phase==='ko')record();
       if(G.phase!=='menu')updHUD(raw);
     }
-    updProjs(dt);updEffects(dt);updParts(dt);updItems(dt);updNPC(dt);updEvents(dt);
+    updProjs(dt);updEffects(dt);updParts(dt);updItems(dt);updNPC(dt);if(G.mode!=='train')updEvents(dt);
     hype=Math.max(0,hype-raw*0.35);
   }
   if(NET.role==='host')netHostFrame(raw);
-  updRain(raw,CAM.focus);updCamera(raw);updFades(raw,CAM.focus);updTags();updPops(raw);updPrompts();
+  updRain(raw,CAM.focus);updCamera(raw);updFades(raw,CAM.focus);for(const f of G.f)f.hairFade(raw);updTags();updPops(raw);updPrompts();
   SFX.amb(G.phase==='menu'?0.4:(CAM.focus.z>3?1:CAM.focus.y>2?0.15:0.35));SFX.musicTempo(G.phase==='fight'&&G.timer<=15?132:G.phase==='end'?108:96);
   renderer.render(scene,camera);
   pressed.clear();
