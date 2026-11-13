@@ -2,7 +2,7 @@
 /* ==========================================================================
    ONLINE PLAY — claude.ai `room` capability, host-authoritative.
    Everything travels in presence (allowed for every viewer, no topic rights):
-     lobby   : {rc,jt,nm,c,gl,v,st}            (room code, join time, nickname, char, glove, visible, host settings)
+     lobby   : {rc,jt,nm,c,gl,lo,v,st}         (room code, join time, nickname, char, glove, [style,special], visible, host settings)
      host    : + {g: match config, s: snapshot}  (~20 Hz, kept < 3.4 KB)
      client  : + {in: [mx,mz,block, jab#,hook#,special#,jump#,grab#]}  (press counters, not edges)
    The host runs the normal offline simulation; remote fighters read netInput().
@@ -35,7 +35,13 @@ couponAt=function(id,sx,sy,sz,x,y,z,o){const c=RAWF.couponAt(id,sx,sy,sz,x,y,z,o
 couponGone=function(c){if(isHost())netFx('cx',c.id);};
 addTape=function(a,b){RAWF.addTape(a,b);if(isHost())netFx('tp',G.f.indexOf(a),G.f.indexOf(b));};
 flashFor=function(f){RAWF.flashFor(f);if(isHost())netFx('fl',G.f.indexOf(f));};
+const RAWF2={puff,windFx,koDust};
+puff=function(x,y,z,c,n,sz,sp){RAWF2.puff(x,y,z,c,n,sz,sp);if(isHost()&&n>=4)netFx('pf',Q(x),Q(y),Q(z),c,n,sz,sp);};
+let windNetT=0;windFx=function(x,y,z,a,l){RAWF2.windFx(x,y,z,a,l);const now=performance.now();if(isHost()&&now-windNetT>120){windNetT=now;netFx('wd',Q(x),Q(y),Q(z),Q(a),l);}};
+koDust=function(p,t){RAWF2.koDust(p,t);if(isHost())netFx('kd',Q(p.x),Q(p.y),Q(p.z),safeStr(t,20));};
+RAWF0.popup=RAWF.popup;RAWF0.burst=RAWF.burst;
 const RAWS={};let sfxDepth=0;
+SFX_RAW=k=>{const fn=RAWS[k]||SFX[k];if(typeof fn==='function')fn.call(SFX);};
 Object.keys(SFX).forEach(k=>{const fn=SFX[k];if(typeof fn!=='function')return;RAWS[k]=fn;if(SFX_LOCAL.has(k))return;
   SFX[k]=function(...a){const top=sfxDepth===0;sfxDepth++;try{return fn.apply(SFX,a);}finally{sfxDepth--;if(top&&isHost())netFx('s',k,...a);}};});
 function playFx(e){
@@ -52,6 +58,9 @@ function playFx(e){
   else if(t==='cp')RAWF.couponAt(e[2],UQ(e[3]),UQ(e[4]),UQ(e[5]),UQ(e[6]),UQ(e[7]),UQ(e[8]),null);
   else if(t==='cx'){const c=coupons.find(c=>c.id===e[2]);if(c)c.gone=true;}
   else if(t==='tp'){const a=G.f[e[2]],b=G.f[e[3]];if(a&&b)RAWF.addTape(a,b);}
+  else if(t==='pf')RAWF2.puff(UQ(e[2]),UQ(e[3]),UQ(e[4]),e[5]|0,Math.min(30,e[6]|0),clamp(+e[7]||0.5,0.1,3),clamp(+e[8]||1,0,8));
+  else if(t==='wd'){for(let i=0;i<3;i++)RAWF2.windFx(UQ(e[2])+rand(-.4,.4),UQ(e[3])+rand(-.6,.6),UQ(e[4])+rand(-.4,.4),UQ(e[5])+rand(-.3,.3),clamp(+e[6]||2,0.5,6));}
+  else if(t==='kd')koDustFx(V(UQ(e[2]),UQ(e[3]),UQ(e[4])),safeStr(e[5],20));
   else if(t==='fl'){if(e[2]===NET.mySlot&&NET.mySlot>=0)flashScreen();}
 }
 
@@ -65,7 +74,8 @@ function myPeerId(){if(!NET.room)return null;const p=NET.room.peers().find(p=>p.
 function lobbyHost(){const m=members();if(NET.room&&NET.room.p2p)return m.find(p=>p.peer===P2P_PREFIX+NET.code)||null;return m.find(p=>p.presence.v!==0)||m[0]||null;}
 function amLobbyHost(){const h=lobbyHost();return!!(h&&h.sameTab);}
 function setPresence(patch){if(!NET.room)return;NET.room.presence(patch).then(()=>{},err=>{if(err&&err.code==='invalid_argument')console.warn('presence',err.message);});}
-function myLobbyPresence(){const c=+$('#onChar').value||0;const ch=ROSTER[c]||ROSTER[0];return{rc:NET.code,jt:NET.jt,nm:safeStr(ch.name,18),c,gl:ch.glove|0,v:document.hidden?0:1};}
+function myLobbyPresence(){const c=+$('#onChar').value||0;const ch=ROSTER[c]||ROSTER[0];return{rc:NET.code,jt:NET.jt,nm:safeStr(ch.name,18),c,gl:ch.glove|0,lo:[$('#onStyle').value||'box',$('#onSp').value||ch.sp],v:document.hidden?0:1};}
+const cleanLo=a=>({st:a&&STYLES[a[0]]?a[0]:'box',sp:a&&SP_LIST.includes(a[1])?a[1]:'rush'});
 document.addEventListener('visibilitychange',()=>{if(NET.code)setPresence({v:document.hidden?0:1});});
 
 /* ---------- lobby UI ---------- */
@@ -74,6 +84,9 @@ function showOnline(msg){
   $('#menu').classList.add('hidden');$('#onlineP').classList.remove('hidden');
   const sel=$('#onChar');if(!sel.options.length)ROSTER.forEach((c,i)=>{const o=document.createElement('option');o.value=i;sel.appendChild(o);});
   ROSTER.forEach((c,i)=>{sel.options[i].textContent=c.name+' — '+c.role;});
+  const ss=$('#onStyle'),sp=$('#onSp'),lo=STATS.lo[0]||{st:'box',sp:'rush'};
+  if(!ss.options.length){STYLE_KEYS.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=STYLES[k].icon+' '+STYLES[k].name;ss.appendChild(o);});ss.value=lo.st;
+    SP_LIST.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=(SP_ICON[k]||'')+' '+SPECIALS[k].name;sp.appendChild(o);});sp.value=SPECIALS[lo.sp]?lo.sp:'rush';}
   if(!NET.code)sel.value=G.slots[0];SFX.music(true);
   portrait(ROSTER[+sel.value],$('#onPic'));
   const ready=!!NET.room||NET.p2p;
@@ -136,6 +149,7 @@ $('#onCreate').addEventListener('click',()=>enterRoom(newCode(),true));
 $('#onEnter').addEventListener('click',()=>enterRoom($('#onCode').value));
 $('#onCode').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')enterRoom($('#onCode').value);});
 $('#onLeave').addEventListener('click',leaveRoom);
+['#onStyle','#onSp'].forEach(q=>$(q).addEventListener('change',()=>{STATS.lo[0]={st:$('#onStyle').value,sp:$('#onSp').value};saveAll();if(NET.code)setPresence(myLobbyPresence());}));
 $('#onChar').addEventListener('change',()=>{portrait(ROSTER[+$('#onChar').value],$('#onPic'));if(NET.code)setPresence(myLobbyPresence());renderLobby();});
 $('#onCopy').addEventListener('click',()=>{try{navigator.clipboard.writeText(NET.code).then(()=>$('#onCopy').textContent='คัดลอกแล้ว ✓',()=>{});}catch(e){}});
 $('#onRejoin').addEventListener('click',()=>{NET.declined=null;});
@@ -159,7 +173,7 @@ function netBuildMatch(cfg){
     const ch=Object.assign({},base,{name:safeStr(s[2]||base.name,18),glove:clamp(s[3]|0,0,GLOVES.length-1),photoImg:peer&&peer===me?base.photoImg:null});
     const team=cfg.mode==='team'?(i<2?0:1):i,color=cfg.mode==='team'?TEAMCOL[team][i%2]:SLOTCOL[i];
     const isMe=!!peer&&peer===me;if(isMe)NET.mySlot=i;
-    const f=new Fighter(ch,i,{human:isMe?0:null,team,color,label:peer?'P'+(++pn):'คอม'});
+    const f=new Fighter(ch,i,{human:isMe?0:null,team,color,label:peer?'P'+(++pn):'คอม',lo:cleanLo([s[4],s[5]])});
     f.player=!!peer;f.net=(NET.role==='host'&&peer&&!isMe)?peer:null;
     G.f.push(f);});
   placeFighters(G.loc);buildTags();
@@ -168,8 +182,8 @@ function netHostStart(){
   const m=members().slice(0,4);
   let mode=NET.set.mode;if(mode==='duel'&&m.length>2)mode='ffa';
   const n=mode==='duel'?2:4,order=mode==='team'?[0,2,1,3]:[0,1,2,3],sl=new Array(n).fill(null);
-  m.forEach((p,i)=>{if(i<n){const c=clamp(+p.presence.c|0,0,ROSTER.length-1);sl[order[i]]=[p.peer,c,safeStr(p.presence.nm||ROSTER[c].name,18),p.presence.gl|0];}});
-  for(let i=0;i<n;i++)if(!sl[i]){const c=Math.floor(Math.random()*ROSTER.length);sl[i]=['',c,ROSTER[c].name,0];}
+  m.forEach((p,i)=>{if(i<n){const c=clamp(+p.presence.c|0,0,ROSTER.length-1);const l=cleanLo(p.presence.lo);sl[order[i]]=[p.peer,c,safeStr(p.presence.nm||ROSTER[c].name,18),p.presence.gl|0,l.st,l.sp];}});
+  for(let i=0;i<n;i++)if(!sl[i]){const c=Math.floor(Math.random()*ROSTER.length),l=randLoadout();sl[i]=['',c,ROSTER[c].name,0,l.st,l.sp];}
   NET.cfg={id:Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),mode,diff:NET.set.diff,loc:NET.set.loc,sl};
   NET.role='host';NET.fxBuf=[];NET.fxSeq=0;NET.remote={};NET.ack={};NET.seq=0;
   setPresence({g:NET.cfg,s:null,in:null});

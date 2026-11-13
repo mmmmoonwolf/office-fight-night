@@ -20,17 +20,28 @@ async function openPage(ctx, errs, url = BASE + '/test.html') {
 async function offline(browser) {
   console.log('\n[offline] duel vs CPU, specials, items, rounds, arcade');
   const errs = []; const ctx = await browser.newContext(); const pg = await openPage(ctx, errs); const ev = s => pg.evaluate(s);
-  ok(await ev("document.querySelectorAll('.card').length") === 14, '14 character cards');
+  ok(await ev("document.querySelectorAll('.card').length") === 8, '8 character cards');
+  ok(await ev("ROSTER.every(c=>c.hp===100&&c.pow===1&&c.spd===1&&c.aspd===1&&c.size===1)"), 'every character has the same stats');
   await pg.click('.card[data-i="2"]'); await pg.click('.card[data-i="0"]');
-  await pg.click('#startBtn'); await sleep(1700);
+  await pg.click('#startBtn'); await sleep(150);
+  ok(await ev("!$('#loadP').classList.contains('hidden') && document.querySelectorAll('#stlGrid .opt').length===Object.keys(STYLES).length && document.querySelectorAll('#spGrid .opt').length>=20"), 'start opens the style + special picker');
+  await pg.click('#stlGrid .opt[data-k="kick"]'); await pg.click('#spGrid .opt[data-k="superKick"]');
+  await pg.click('#loadGo'); await sleep(1700);
+  ok(await ev("G.f[0].lo.st==='kick' && G.f[0].lo.sp==='superKick' && STATS.lo[0].st==='kick'"), 'picked style + special are used and remembered');
   ok(await ev('G.phase') === 'fight', 'duel reaches fight phase');
   for (let i = 0; i < 20; i++) { await pg.keyboard.down('KeyD'); await pg.keyboard.press('KeyJ'); await pg.keyboard.press('KeyK'); await pg.keyboard.up('KeyD'); await pg.keyboard.press('Space'); await sleep(80); }
-  for (const sp of ['files', 'chat', 'books', 'trap', 'fork', 'chord', 'drop', 'audit', 'flash', 'dash', 'pull', 'cloud', 'buff', 'finisher', 'random']) {
-    await ev(`G.f[0].ch.sp='${sp}';G.f[0].rage=100;G.f[0].state='idle';G.f[1].pos.x=G.f[0].pos.x+1.5;G.f[1].pos.z=G.f[0].pos.z;G.f[1].hp=Math.max(G.f[1].hp,60);G.f[1].state='idle';G.f[1].invT=0;G.f[0].tryAttack('special')`);
+  for (const sp of ['files', 'chat', 'books', 'trap', 'fork', 'chord', 'drop', 'audit', 'flash', 'dash', 'pull', 'cloud', 'buff', 'finisher', 'random', 'rush', 'superKick', 'skyUpper', 'quake', 'megaSlap', 'suplex', 'wind', 'parry']) {
+    await ev(`G.f[0].lo.sp='${sp}';G.f[0].rage=100;G.f[0].state='idle';G.f[1].pos.x=G.f[0].pos.x+1.5;G.f[1].pos.z=G.f[0].pos.z;G.f[1].hp=Math.max(G.f[1].hp,60);G.f[1].state='idle';G.f[1].invT=0;G.f[0].tryAttack('special')`);
     await sleep(350);
   }
   await sleep(1200);
   ok(await ev('G.f[1].hp < G.f[1].maxHp'), 'specials deal damage');
+  for (const st of Object.keys(await ev('STYLES'))) {
+    await ev(`G.f[0].lo.st='${st}';G.f[0].style=STYLES['${st}'];G.f[0].state='idle';G.f[0].pos.y=0;G.f[1].state='idle';G.f[1].invT=0;G.f[1].hp=G.f[1].maxHp;G.f[1].pos.x=G.f[0].pos.x+1.2;G.f[1].pos.z=G.f[0].pos.z;G.f[0].face=G.f[0].faceT=Math.atan2(1.2,0);G.f[0].lastAtkEnd=-9`);
+    for (const k of ['jab', 'jab', 'hook']) { await ev(`G.f[0].state='idle';G.f[0].tryAttack('${k}')`); await sleep(160); }
+    await sleep(1100);
+    ok(await ev('G.f[1].hp < G.f[1].maxHp'), `style ${st}: jab-jab-hook combo connects`);
+  }
   await ev("G.f[0].pos.x=2.6;G.f[0].pos.z=-9.5;G.f[0].y=0;CAM.yaw=-Math.PI/2");
   await pg.keyboard.down('KeyW'); await sleep(1800); await pg.keyboard.up('KeyW');
   ok(await ev('onMezz(G.f[0])'), 'stairs lead up to the mezzanine');
@@ -53,17 +64,21 @@ async function offline(browser) {
   }
   await sleep(1800);
   ok(await ev("!document.querySelector('#endP').classList.contains('hidden')"), 'end panel after 2 round wins');
+  await ev("G.f[1].state='idle';G.f[1].invT=0;G.f[1].hp=1;G.f[1].pos.x=G.f[0].pos.x+1;G.f[1].pos.z=G.f[0].pos.z;G.f[1].takeHit(G.f[0],{dmg:50,knock:4,stun:.5,unblockable:1})");
+  ok(await ev("G.f[1].state==='ko' && G.f[1].koFly"), 'KO sends the loser flying');
+  await sleep(2200);
+  ok(await ev("G.f[1].dusted"), 'KO\'d fighter bursts into dust');
   await ev('toMenu()'); await pg.click('#movesBtn'); await sleep(100);
-  ok(await ev("document.querySelectorAll('#mvList .mv').length") === 14 && await ev("[...document.querySelectorAll('#mvList .ds')].every(d=>d.textContent.length>5)"), 'move list shows every special with a description');
+  ok(await ev("document.querySelectorAll('#mvList .mv').length===SP_LIST.length") && await ev("[...document.querySelectorAll('#mvList .ds')].every(d=>d.textContent.length>5)") && await ev("document.querySelectorAll('#mvStyles .mv').length") === 6, 'move list shows every style and special with a description');
   await pg.keyboard.press('Escape'); ok(await ev("$('#movesP').classList.contains('hidden')"), 'Esc closes the move list');
-  await pg.click('#modeSeg button[data-m="train"]'); await pg.click('#startBtn'); await sleep(1700);
+  await pg.click('#modeSeg button[data-m="train"]'); await pg.click('#startBtn'); await pg.click('#loadGo'); await sleep(1700);
   ok(await ev("G.phase==='fight' && $('#timer').textContent==='∞'"), 'training room: fight with no timer');
   await ev("G.f[1].pos.x=G.f[0].pos.x+1.2;G.f[1].pos.z=G.f[0].pos.z;G.f[1].hp=3;G.f[1].invT=0;G.f[1].state='idle';G.f[1].takeHit(G.f[0],{dmg:20,knock:1,stun:.3})");
   ok(await ev("G.f[1].state!=='ko' && G.f[1].hp>=1"), 'training dummy cannot be KO\'d');
   await sleep(2600);
   ok(await ev("G.f[1].hp===G.f[1].maxHp && G.f[0].rage===100 && G.phase==='fight'"), 'dummy heals and special gauge refills');
   await pg.keyboard.press('KeyT'); ok(await ev('TR.dummy') === 1, 'T cycles the dummy behaviour');
-  await ev('toMenu()'); await pg.click('#modeSeg button[data-m="arcade"]'); await pg.click('#startBtn'); await sleep(300);
+  await ev('toMenu()'); await pg.click('#modeSeg button[data-m="arcade"]'); await pg.click('#startBtn'); await pg.click('#loadGo'); await sleep(300);
   for (let st = 0; st < 6; st++) {
     await pg.click('#interGo'); await sleep(1600);
     await ev("G.f[1].hp=0.5;G.f[1].invT=0;G.f[1].state='idle';G.f[1].takeHit(G.f[0],{dmg:5,knock:1,stun:.3})");
