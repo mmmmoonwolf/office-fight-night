@@ -104,6 +104,7 @@ body.touch #hint{display:none}
 .vs{align-self:center;font-weight:800;font-size:22px;color:#ffd23d}
 .hint{text-align:center;font-size:13px;opacity:.85;margin-bottom:10px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:10px}
+#grid{grid-template-columns:repeat(2,1fr)}@media(min-width:560px){#grid{grid-template-columns:repeat(4,1fr)}}@media(min-width:1180px){#grid{grid-template-columns:repeat(8,1fr)}}
 .card{background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.04));border:3px solid rgba(255,255,255,.12);border-radius:14px;padding:8px;cursor:pointer;position:relative;transition:transform .12s,border-color .12s}
 .card:hover{transform:translateY(-3px)}
 .card.sel{border-color:var(--c)}
