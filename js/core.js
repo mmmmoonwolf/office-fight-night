@@ -42,7 +42,7 @@ const ROSTER=[
 // everyone is equal: characters only differ in looks — fighting style + special are picked separately (LOADOUT)
 ROSTER.forEach(c=>Object.assign(c,{hp:100,pow:1,spd:1,aspd:1,size:1,body:'3d'}));
 // the arcade's final boss — not selectable
-const BOSS_CH={id:'boss',name:'Boss Bonkers',role:'The big boss with the magic scarf',body:'3d',skin:'#f2c6a2',hair:'#ff7a1a',hairStyle:'model',shirt:'#5a1d8a',shorts:'#1b1e26',accent:'#ffd23d',sleeves:true,acc:[],
+const BOSS_CH={id:'boss',name:'Boss Bonkers',role:'The big boss with the magic scarf',body:'3d',skin:'#f2c6a2',hair:'#ff7a1a',hairStyle:'model',shirt:'#5a1d8a',shorts:'#1b1e26',accent:'#ffd23d',sleeves:true,acc:[],hatKey:'crown',
   hp:125,pow:1.2,spd:0.86,aspd:0.92,size:1.1,sp:'drop',emote:'point',
   quotes:['บอสมาแล้ว!','บองเกอร์สสส!','ใครกล้าท้าบอส!?','ผ้าพันคอนี้มีพลัง!','ยอมแพ้ซะดีๆ!']};
 const HURT=['โอ๊ย!','เจ็บนะ!','ขอลาป่วย!','จะฟ้อง HR!','ขอเบิกค่ารักษา!','ยังไม่ได้กินข้าวเลย!','พักเที่ยงก่อน!','ขอลาพักร้อน!','ประกันสังคมช่วยด้วย!'];
@@ -65,13 +65,13 @@ function loadSave(){
     if(s.wins)STATS.wins=s.wins;if(Array.isArray(s.lo))STATS.lo=[s.lo[0]||null,s.lo[1]||null];
     ROSTER.forEach(c=>{
       if(s.names&&s.names[c.id])c.name=s.names[c.id];
-      c.glove=(s.gloves&&s.gloves[c.id])||0;
+      c.hat=(s.hats&&s.hats[c.id])||0;
       if(s.photos&&s.photos[c.id]){c.photoData=s.photos[c.id];const im=new Image();im.onload=()=>{c.photoImg=im;if(window.refreshFaces)refreshFaces();};im.src=c.photoData;}
     });
-  }catch(e){ROSTER.forEach(c=>c.glove=c.glove||0);}
+  }catch(e){ROSTER.forEach(c=>c.hat=c.hat||0);}
 }
 function saveAll(){
-  try{const s={names:{},photos:{},gloves:{},wins:STATS.wins,lo:STATS.lo};ROSTER.forEach(c=>{s.names[c.id]=c.name;s.gloves[c.id]=c.glove||0;if(c.photoData)s.photos[c.id]=c.photoData;});localStorage.setItem(SAVE_KEY,JSON.stringify(s));}catch(e){}
+  try{const s={names:{},photos:{},hats:{},wins:STATS.wins,lo:STATS.lo};ROSTER.forEach(c=>{s.names[c.id]=c.name;s.hats[c.id]=c.hat||0;if(c.photoData)s.photos[c.id]=c.photoData;});localStorage.setItem(SAVE_KEY,JSON.stringify(s));}catch(e){}
 }
 const winsOf=c=>STATS.wins[c.id]||0;
 
@@ -334,6 +334,19 @@ addEventListener('keydown',e=>{
 addEventListener('keyup',e=>held.delete(e.code));
 addEventListener('blur',()=>held.clear());
 const has=(set,arr)=>arr.some(c=>set.has(c));
+/* Gamepads (standard mapping): polled once per frame; buttons become virtual codes 'G<pad><button>' in held/pressed,
+   so they work through the same key schemes (SCH) as the keyboard. Pad 0 → player 1, pad 1 → player 2.
+   GP[n] = left stick x/y + right stick x (camera), last = when it was last used (key prompts switch to pad labels). */
+const GP=[{x:0,y:0,rx:0,on:false,last:-1e9},{x:0,y:0,rx:0,on:false,last:-1e9}];
+const GPB={0:'A',1:'B',2:'X',3:'Y',4:'LB',5:'RB',6:'LT',7:'RT',8:'Back',9:'Start',12:'Up',13:'Down',14:'Left',15:'Right'};
+function pollPads(){let n=0;const ps=navigator.getGamepads?navigator.getGamepads():[];const now=performance.now();
+  for(const p of ps||[]){if(!p||!p.connected||n>1)continue;const g=GP[n],dz=v=>Math.abs(v)<0.22?0:v;
+    if(!g.on){g.on=true;if(typeof banner==='function')banner('🎮 Controller '+(n+1)+' connected',2);}
+    g.x=dz(p.axes[0]||0);g.y=dz(p.axes[1]||0);g.rx=dz(p.axes[2]||0);if(g.x||g.y||g.rx)g.last=now;
+    p.buttons.forEach((b,i)=>{const nm=GPB[i];if(!nm)return;const c='G'+n+nm;if(b.pressed||b.value>0.5){if(!held.has(c)){pressed.add(c);g.last=now;}held.add(c);}else held.delete(c);});
+    n++;}
+  for(;n<2;n++){if(GP[n].on){GP[n].on=false;GP[n].x=GP[n].y=GP[n].rx=0;}}}
+const padUsed=n=>GP[n].on&&performance.now()-GP[n].last<15000;
 // Mobile: stop iOS/Android from zooming the page (double-tap, pinch while pressing several buttons, input focus)
 (function noZoom(){
   const typing=t=>t&&t.closest&&t.closest('input,select,textarea');
