@@ -6,7 +6,7 @@
    channels of snap() (legs are invisible on a 3D fighter): legs[0].rotation.x = clip index, legs[1] = time.
    Per character the model is recoloured (hair, skin, shirt, trousers, scarf) and wears the character's chibi
    hairstyle (except hairStyle 'model', which keeps the model's own hair). */
-const B3={gltf:null,failed:false,wait:[],gray:{},CLIPS:[],raw:2.5};
+const B3={gltf:null,failed:false,wait:[],gray:{},CLIPS:[],raw:2.5,chars:{}};
 // clip windows in seconds: a = wind-up start, i = impact (lands at the end of the move's startup), e = follow-through end
 const B3ATK={jab:{a:0.13,i:0.57,e:1.0},cross:{a:0.1,i:0.4,e:0.95},hook:{a:0.1,i:0.43,e:1.2},hookR:{a:0.03,i:0.33,e:1.0},upper:{a:0.13,i:0.53,e:1.2},
   kick1:{a:0.27,i:0.6,e:1.13},kick2:{a:0.4,i:0.67,e:1.13},mmaKick:{a:0.33,i:0.72,e:1.33},flipKick:{a:0.1,i:0.4,e:1.5},
@@ -18,6 +18,16 @@ function loadFighterModel(cb){
     new THREE.GLTFLoader().load('assets/models/fighter.glb',g=>{B3.CLIPS=g.animations.map(a=>a.name);
       const bb=new THREE.Box3().setFromObject(g.scene);B3.raw=bb.max.y-bb.min.y;done(g);},undefined,()=>done(null));}
   catch(e){done(null);}}
+// a cast member's own model (assets/models/char_<name>.glb: mesh + skeleton only) — clips come from fighter.glb,
+// with the hips height track scaled to this skeleton so short and tall characters keep their feet on the floor
+function loadCharModel(name,cb){
+  let e=B3.chars[name];if(e){if(e.g||e.failed)cb(e);else e.wait.push(cb);return;}
+  e=B3.chars[name]={g:null,failed:false,wait:[cb],clips:null,raw:2};const done=()=>{const w=e.wait;e.wait=[];w.forEach(f=>f(e));};
+  loadFighterModel(base=>{if(!base){e.failed=true;return done();}
+    try{new THREE.GLTFLoader().load('assets/models/char_'+name+'.glb',g=>{e.g=g;const bb=new THREE.Box3().setFromObject(g.scene);e.raw=bb.max.y-bb.min.y;
+        const h0=base.scene.getObjectByName('mixamorigHips'),h1=g.scene.getObjectByName('mixamorigHips'),k=h0&&h1?h1.position.y/h0.position.y:1;
+        e.clips=base.animations.map(c=>{const n=c.clone();n.tracks.forEach(t=>{if(t.name==='mixamorigHips.position')for(let q=0;q<t.values.length;q++)t.values[q]*=k;});return n;});done();},
+      undefined,()=>{e.failed=true;done();});}catch(err){e.failed=true;done();}});}
 // a grey version of a texture (luminance, brightened) so material.color can recolour it without losing the detail
 function grayTex(tex){if(!tex||!tex.image)return tex;const k=tex.uuid;if(B3.gray[k])return B3.gray[k];
   try{const im=tex.image,c=document.createElement('canvas');c.width=im.width;c.height=im.height;const g=c.getContext('2d');g.drawImage(im,0,0);
@@ -27,6 +37,8 @@ function grayTex(tex){if(!tex||!tex.image)return tex;const k=tex.uuid;if(B3.gray
 const B3_SKIN0=new THREE.Color('#f2c6a2');
 function attach3D(f){
   f.b3={ready:false,acts:{},cur:null,mixer:null,model:null,hand:[null,null]};
+  if(f.ch.model){loadCharModel(f.ch.model,e=>{if(!e.g||f.disposed)return;const m=THREE.SkeletonUtils.clone(e.g.scene);m.scale.setScalar(2.5/e.raw);
+    m.traverse(o=>{if(o.isMesh){o.frustumCulled=false;o.castShadow=true;}});finish3D(f,m,e.clips);});return;}
   loadFighterModel(g=>{if(!g||f.disposed)return;const ch=f.ch,m=THREE.SkeletonUtils.clone(g.scene),k=2.5/B3.raw;m.scale.setScalar(k);
     let headMesh=null,hairMesh=null;
     m.traverse(o=>{if(!o.isMesh)return;o.frustumCulled=false;o.castShadow=true;const n=o.name,mt=o.material.clone();o.material=mt;
@@ -43,14 +55,18 @@ function attach3D(f){
       const hg=new THREE.Group();const want=new THREE.Matrix4().compose(c,new THREE.Quaternion(),new THREE.Vector3(r/0.5,r/0.5,r/0.5));
       const loc=new THREE.Matrix4().copy(hb.matrixWorld).invert().multiply(want);loc.decompose(hg.position,hg.quaternion,hg.scale);hb.add(hg);
       buildHair(hg,ch,M(ch.hair));if(hairMesh)hairMesh.visible=false;}
-    // team-coloured boxing gloves on the hands
+    finish3D(f,m,g.animations);
+  });
+}
+// common to every 3D body: team-coloured gloves on the hand bones, an animation mixer, hide the chibi parts
+function finish3D(f,m,clips){
+    const bone=n=>m.getObjectByName('mixamorig'+n);m.updateMatrixWorld(true);
     ['LeftHand','RightHand'].forEach((n,h)=>{const b=bone(n);if(!b)return;const s=new THREE.Vector3();b.getWorldScale(s);
       const gl=new THREE.Mesh(new THREE.SphereGeometry(0.2/s.x,14,10),f.gloveMat);gl.scale.set(1,0.95,1.15);gl.position.y=0.07/s.x;gl.castShadow=true;b.add(gl);f.b3.hand[h]=gl;});
-    const mx=new THREE.AnimationMixer(m);g.animations.forEach(c=>{f.b3.acts[c.name]=mx.clipAction(c);});
+    const mx=new THREE.AnimationMixer(m);clips.forEach(c=>{f.b3.acts[c.name]=mx.clipAction(c);});
     f.body.traverse(o=>{if(o.isMesh)o.visible=false;});f.body.add(m);
     Object.assign(f.b3,{ready:true,mixer:mx,model:m});
     if(f.held){const t=f.held.type;f.removeHeld();f.setHeldVis(t);}
-  });
 }
 // which clip should play now, and where (t = seconds, or null to let it run)
 function pick3D(f){

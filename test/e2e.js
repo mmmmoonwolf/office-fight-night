@@ -20,12 +20,10 @@ async function openPage(ctx, errs, url = BASE + '/test.html') {
 async function offline(browser) {
   console.log('\n[offline] duel vs CPU, specials, items, rounds, arcade');
   const errs = []; const ctx = await browser.newContext(); const pg = await openPage(ctx, errs); const ev = s => pg.evaluate(s);
-  ok(await ev("document.querySelectorAll('.card').length") === 8, '8 character cards');
+  ok(await ev("document.querySelectorAll('.card').length") === 6, '6 character cards');
+  ok(await ev("ROSTER.map(c=>c.name).join()") === 'Kip Kaboom,Momo Mellow,Ruby Rumble,Grumbo,Nana Nitro,Duke Jiggly', 'the new cartoon cast');
+  ok(await ev("ROSTER.every(c=>c.body==='3d'&&c.model)") && (await (await pg.request.get(BASE + '/assets/portraits/kip.png')).status()) === 200 && (await (await pg.request.get(BASE + '/assets/models/char_duke.glb')).status()) === 200, 'every character is a 3D model with a portrait');
   ok(await ev("ROSTER.every(c=>c.hp===100&&c.pow===1&&c.spd===1&&c.aspd===1&&c.size===1)"), 'every character has the same stats');
-  ok(await ev("ROSTER.find(c=>c.id==='dear').body==='3d' && ROSTER.filter(c=>c.body==='3d').length===1"), 'Dear uses the 3D body by default');
-  await pg.click('#body3dAll'); ok(await ev("ROSTER.every(c=>c.body==='3d')"), 'one button switches everyone to the 3D body');
-  await pg.click('#body3dAll'); await pg.click('.card[data-i="3"] .bd');
-  ok(await ev("ROSTER.every(c=>c.body==='chibi'||c.id==='dear') && document.querySelector('.card[data-i=\"3\"] .bd').textContent.includes('3D')"), 'per-character body button toggles and shows the choice');
   await pg.click('.card[data-i="2"]'); await pg.click('.card[data-i="0"]');
   await pg.click('#startBtn'); await sleep(150);
   ok(await ev("!$('#loadP').classList.contains('hidden') && document.querySelectorAll('#stlGrid .opt').length===Object.keys(STYLES).length && document.querySelectorAll('#spGrid .opt').length>=20"), 'start opens the style + special picker');
@@ -45,7 +43,7 @@ async function offline(browser) {
   await ev("window.__ai=aiThink;aiThink=()=>({mx:0,mz:0,atk:null,block:false,jump:false,grab:false})"); // CPU stands still for the scripted checks
   await ev("G.f[1].lo={st:'box',sp:'rush'};G.f[1].style=STYLES.box");
   for (const st of Object.keys(await ev('STYLES'))) {
-    await ev(`G.f[0].lo.st='${st}';G.f[0].style=STYLES['${st}'];G.f[0].state='idle';G.f[0].pos.y=0;G.f[1].state='idle';G.f[1].invT=0;G.f[1].hp=G.f[1].maxHp;G.f[1].pos.x=G.f[0].pos.x+1.2;G.f[1].pos.z=G.f[0].pos.z;G.f[0].face=G.f[0].faceT=Math.atan2(1.2,0);G.f[0].lastAtkEnd=-9;G.f[1].fx.parry=0;G.f[1].vel.x=G.f[1].vel.z=0;G.f[0].vel.x=G.f[0].vel.z=0`);
+    await ev(`G.f[0].lo.st='${st}';G.f[0].style=STYLES['${st}'];G.f[0].state='idle';G.f[0].pos.y=0;G.f[1].state='idle';G.f[1].invT=0;G.f[1].hp=G.f[1].maxHp;G.f[1].pos.x=G.f[0].pos.x+1.2;G.f[1].pos.z=G.f[0].pos.z;G.f[0].face=G.f[0].faceT=Math.atan2(1.2,0);G.f[0].lastAtkEnd=-9;G.f[1].fx.parry=0;G.f.forEach(f=>{f.y=groundAt(f.pos.x,f.pos.z,9);f.vy=0;f.dashing=null;f.wind=null;f.stream=null;f.knockdown=false;f.atk=null;f.koFly=false;});G.f[1].pos.x=G.f[0].pos.x+1.2;G.f[1].pos.z=G.f[0].pos.z;G.f[1].vel.x=G.f[1].vel.z=0;G.f[0].vel.x=G.f[0].vel.z=0`);
     for (const k of ['jab', 'jab', 'hook']) { await ev(`G.f[0].state='idle';G.f[0].tryAttack('${k}')`); await sleep(160); }
     await sleep(1100);
     ok(await ev('G.f[1].hp < G.f[1].maxHp'), `style ${st}: jab-jab-hook combo connects`);
