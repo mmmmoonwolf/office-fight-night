@@ -233,7 +233,7 @@ function endMatch(team){
   const winners=G.f.filter(f=>f.team===team),losers=G.f.filter(f=>f.team!==team);
   G.f.forEach(f=>{f.win=f.team===team;if(f.win){if(f.state==='ko'){f.state='idle';f.hp=1;}f.setExpr('win',0,true);}});
   const unlocks=[];
-  if(winners.some(f=>f.human!=null))winners.filter(f=>f.human!=null).forEach(f=>{const before=winsOf(f.ch);STATS.wins[f.ch.id]=before+1;GLOVES.forEach(g=>{if(g.need===before+1&&g.need>0)unlocks.push(f.ch.name+' ปลดล็อกถุงมือ'+g.name+'!');});});
+  if(winners.some(f=>f.human!=null))winners.filter(f=>f.human!=null).forEach(f=>{const before=winsOf(f.ch);STATS.wins[f.ch.id]=before+1;});
   saveAll();
   {const me=G.f.find(f=>f.human===0),hw=winners.some(f=>f.human!=null);const mine=G.humans===2?hw:(me&&me.team===team);
     SFX.voLocal(mine?(G.humans===2&&winners.some(f=>f.human===1)&&!winners.some(f=>f.human===0)?'f_you_win':'you_win'):'you_lose',1.2);
@@ -465,14 +465,13 @@ function buildCards(){
     const el=document.createElement('div');el.className='card';el.dataset.i=i;
     el.innerHTML=`<div class="badges"></div><canvas width="180" height="180"></canvas><input class="nmIn" maxlength="18"><div class="role"></div>
       <div class="ttl"></div>
-      <div class="pbtns"><label class="btn sm">📷 รูปหน้า<input type="file" accept="image/*" hidden></label><button class="btn sm ghost rm">ลบรูป</button><button class="btn sm ghost glv"></button></div>`;
+      <div class="pbtns"><label class="btn sm">📷 รูปหน้า<input type="file" accept="image/*" hidden></label><button class="btn sm ghost rm">ลบรูป</button></div>`;
     el.querySelector('.role').textContent=c.role;
     const inp=el.querySelector('.nmIn');inp.value=c.name;
     inp.addEventListener('input',()=>{c.name=inp.value.trim()||c.name;buildSlots();saveAll();G.f.forEach(f=>{if(f.ch===c&&f.tagEl&&f.human==null)f.tagEl.textContent=c.name;});});
     inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();e.stopPropagation();});
     el.querySelector('input[type=file]').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)loadPhoto(f,c);e.target.value='';});
     el.querySelector('.rm').addEventListener('click',()=>{c.photoImg=null;c.photoData=null;saveAll();refreshFaces();});
-    el.querySelector('.glv').addEventListener('click',()=>{const w=winsOf(c);let g=c.glove||0;for(let k=1;k<=GLOVES.length;k++){const n=(g+k)%GLOVES.length;if(GLOVES[n].need<=w){g=n;break;}}c.glove=g;saveAll();updateCards();buildFromSlots();});
     el.addEventListener('click',e=>{if(e.target.closest('input,label,button'))return;SFX.init();G.slots[G.slotSel]=i;const n=G.mode==='arcade'?1:slotCount();G.slotSel=(G.slotSel+1)%n;buildSlots();updateCards();buildFromSlots();});
     grid.appendChild(el);
   });
@@ -492,9 +491,8 @@ function updateCards(){
     el.classList.toggle('sel',mine.length>0);if(mine.length)el.style.setProperty('--c',slotInfo(mine[0]).color);
     el.querySelector('.rm').style.display=c.photoImg?'':'none';
     const b=el.querySelector('.badges');b.innerHTML='';mine.forEach(s=>{const t=document.createElement('span');t.className='tag';t.style.setProperty('--c',slotInfo(s).color);t.textContent=slotInfo(s).label.split(' ')[0];b.appendChild(t);});
-    const w=winsOf(c);const nextG=GLOVES.find(g=>g.need>w);
-    el.querySelector('.ttl').textContent='ชนะ '+w+' · '+titleOf(w)+(nextG?' · อีก '+(nextG.need-w)+' ชนะปลดถุงมือ'+nextG.name:'');
-    el.querySelector('.glv').textContent='🥊 '+GLOVES[c.glove||0].name;
+    const w=winsOf(c);
+    el.querySelector('.ttl').textContent='ชนะ '+w+' · '+titleOf(w);
   });
   buildSlots();
 }
