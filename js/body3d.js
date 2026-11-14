@@ -74,7 +74,7 @@ function pick3D(f){
   const S=f.state,A=f.atk,air=f.y>groundAt(f.pos.x,f.pos.z,f.y)+0.2;
   if(S==='ko')return{c:'stunned',t:Math.min(2.1,0.95+f.koT)};
   if(S==='down')return{c:'stunned',t:Math.min(2.1,1.3+(0.85-f.downT)*1.2)};
-  if(f.win)return{c:'win',loop:1};
+  if(f.win)return{c:f.winClip||(f.winClip=pick(['win','whatever'])),loop:1};
   if(G.phase==='intro')return{c:'ready',t:Math.min(0.98,G.phaseT*0.75)};
   if(S==='stun'){const r=f.react;if(r){const d=B3.gltf.animations.find(a=>a.name===r.c).duration,t=r.t*1.25;if(t<d)return{c:r.c,t};}
     return f.stunT>0.25||f.fx.dizzy>0?{c:'pain',t:0.9+Math.sin(f.t*2.4)*0.55}:{c:r?r.c:'hitM',t:9};}
@@ -82,7 +82,7 @@ function pick3D(f){
   if(S==='grab'){const w=B3ATK.throwBig,k=Math.min(1,f.grabT/(f.superGrab?0.55:0.32));return{c:'throwBig',t:w.a+(w.i-w.a)*k};}
   if(S==='recover'&&f.t-(f.throwAt||-9)<0.6){const w=B3ATK.throw,k=(f.t-f.throwAt)/0.6;return{c:'throw',t:k<0.2?w.a+(w.i-w.a)*k/0.2:w.i+(w.e-w.i)*(k-0.2)/0.8};}
   if(S==='block')return{c:'block',t:1.25};
-  if(S==='dash')return f.dashing&&f.dashing.tornado?{c:'hurricane',loop:1,speed:1.4}:{c:'run',loop:1,speed:2};
+  if(S==='dash')return f.dashing&&f.dashing.tornado?{c:'hurricane',loop:1,speed:1.4}:{c:'run',loop:1,speed:1.6};
   if(S==='attack'&&A){const d=A.def,P=d.pose||A.type,slot=A.slot;
     if(P==='rush')return{c:'rush',t:0.4+Math.max(0,A.t-d.startup)*1.6};
     if(P==='spin')return{c:'hurricane',t:(A.t*1.6)%1.8};
@@ -95,7 +95,12 @@ function pick3D(f){
     if(tt<d.startup)t=w.a+(w.i-w.a)*(tt/d.startup);else if(tt<d.startup+d.active)t=w.i;else t=w.i+(w.e-w.i)*Math.min(1,(tt-d.startup-d.active)/Math.max(0.01,tot-d.startup-d.active));
     return{c:clip,t};}
   if(air)return{c:'jumping',t:f.vy>0?0.62:0.92};
-  if(f.moving>0.15)return{c:'run',loop:1,speed:0.7+f.moving*0.6};
+  // locomotion: the clip speed follows the real ground speed so the feet don't slide
+  // (Run loop ≈ 4.6 m/s at speed 1, Walking ≈ 1.6 m/s); the Party Animal style keeps the wobbly drunk run
+  if(f.moving>0.15){const v=Math.hypot(f.mv.x,f.mv.z);
+    if(f.lo&&f.lo.st==='drunk')return{c:'runDrunk',loop:1,speed:clamp(v/3.2,0.6,1.5)};
+    if(v>2.3)return{c:'run',loop:1,speed:clamp(v/4.6,0.7,1.4)};
+    return{c:'walk',loop:1,speed:clamp(v/1.6,0.6,1.5)};}
   return{c:'idle',loop:1};
 }
 function play3D(f,c,t,dt,speed){const B=f.b3,a=B.acts[c];if(!a)return;
