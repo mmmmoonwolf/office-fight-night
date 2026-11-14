@@ -66,6 +66,12 @@ function finish3D(f,m,clips){
       const a=new THREE.Group();a.position.y=0.07/s.x;b.add(a);f.b3.hand[h]=a;});
     const mx=new THREE.AnimationMixer(m);clips.forEach(c=>{f.b3.acts[c.name]=mx.clipAction(c);});
     f.body.traverse(o=>{if(o.isMesh)o.visible=false;});f.body.add(m);
+    if(f.hatKey&&f.hatKey!=='none'){const hb=bone('Head'),ht=bone('HeadTop_End');
+      if(hb){const a=hb.getWorldPosition(new THREE.Vector3()),b=ht?ht.getWorldPosition(new THREE.Vector3()):a.clone().add(new THREE.Vector3(0,0.3,0));
+        const top=new THREE.Box3().setFromObject(m).max.y,hl=a.distanceTo(b),big=clamp((top-b.y)/hl,0,1.6),r=hl*0.62*(1+big*0.55),p=new THREE.Vector3(b.x,Math.max(b.y,top)-r*(f.hatKey==='viking'?0.05:0.22),b.z);
+        // big hair or a big hat underneath → a bigger hat on top, so it still reads
+        const want=new THREE.Matrix4().compose(p,new THREE.Quaternion(),new THREE.Vector3(r,r,r)),loc=new THREE.Matrix4().copy(hb.matrixWorld).invert().multiply(want);
+        const hat=makeHat(f.hatKey);loc.decompose(hat.position,hat.quaternion,hat.scale);hb.add(hat);f.hatObj=hat;}}
     Object.assign(f.b3,{ready:true,mixer:mx,model:m});
     if(f.held){const t=f.held.type;f.removeHeld();f.setHeldVis(t);}
 }

@@ -114,7 +114,7 @@ function updCamera(raw){
   else if(G.phase==='menu'||!G.f.length){CAM.yaw+=raw*0.07;focus=V(0,0.5,0);yaw=CAM.yaw;pitch=0.42;dist=13;}
   else if(G.phase==='end'){const w=G.f.find(f=>f.win)||G.f[0];focus=V(w.pos.x,w.y+0.4,w.pos.z);yaw=lerpAngle(CAM.yaw,w.face,0.03);CAM.yaw=yaw;pitch=0.3;dist=6;}
   else{
-    if(G.humans===1&&!G.paused){if(held.has('KeyQ'))CAM.yaw-=2.2*raw;if(held.has('KeyE'))CAM.yaw+=2.2*raw;}
+    if(G.humans===1&&!G.paused){if(held.has('KeyQ'))CAM.yaw-=2.2*raw;if(held.has('KeyE'))CAM.yaw+=2.2*raw;CAM.yaw+=GP[0].rx*2.4*raw;}
     const hf=humansFocus();focus=hf.p;yaw=CAM.yaw;pitch=CAM.pitch;dist=(9.4+hf.spread*(G.humans===2?1.1:0.25))*CAM.zoom;dist=clamp(dist,4.5,26);
   }
   CAM.focus.lerp(focus,G.phase==='replay'?1:1-Math.exp(-8*raw));
@@ -140,10 +140,14 @@ const SCH={
   p1:{up:['KeyW'],dn:['KeyS'],lf:['KeyA'],rt:['KeyD'],jab:['KeyQ','TJab'],hook:['KeyE','THook'],sp:['KeyR','TSpec'],blk:['ShiftLeft','TBlock'],grab:['KeyF','TGrab'],jump:['Space','TJump']},
   p2:{up:['KeyI','ArrowUp'],dn:['KeyK','ArrowDown'],lf:['KeyJ','ArrowLeft'],rt:['KeyL','ArrowRight'],jab:['KeyU','Numpad1'],hook:['KeyO','Numpad2'],sp:['KeyP','Numpad3'],blk:['KeyN','Numpad0','ShiftRight'],grab:['KeyH','Numpad4'],jump:['KeyM','Enter','NumpadEnter']},
 };
+const PADMAP={up:['Up'],dn:['Down'],lf:['Left'],rt:['Right'],jab:['X'],hook:['Y'],sp:['RB','RT'],blk:['LB','LT'],grab:['B'],jump:['A']};
+const PADLAB={jab:'X',hook:'Y',sp:'RB',blk:'LB',grab:'B',jump:'A'};
+[['solo',0],['p1',0],['p2',1]].forEach(([s,n])=>{for(const a in PADMAP)SCH[s][a]=SCH[s][a].concat(PADMAP[a].map(b=>'G'+n+b));});
 function readPlayer(h){
   const S=h===1?SCH.p2:(G.humans===2?SCH.p1:SCH.solo);
   let rx=(has(held,S.rt)?1:0)-(has(held,S.lf)?1:0),rf=(has(held,S.up)?1:0)-(has(held,S.dn)?1:0);
   if(h===0){rx+=touch.x;rf-=touch.y;}
+  {const g=GP[h===1?1:0];if(g.on){rx+=g.x;rf-=g.y;const m=Math.hypot(rx,rf);if(m>1){rx/=m;rf/=m;}}}
   const c=Math.cos(CAM.yaw),s=Math.sin(CAM.yaw);
   const mx=c*rx-s*rf,mz=-s*rx-c*rf;
   let atk=null;if(has(pressed,S.sp))atk='special';else if(has(pressed,S.hook))atk='hook';else if(has(pressed,S.jab))atk='jab';
@@ -161,6 +165,14 @@ function readPlayer(h){
     b.addEventListener('pointerdown',e=>{SFX.init();held.add(k);pressed.add(k);e.preventDefault();});
     const up=()=>held.delete(k);b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('pointerleave',up);});
 })();
+function padMenus(){
+  const st=pressed.has('G0Start')||pressed.has('G1Start'),a=pressed.has('G0A')||pressed.has('G1A'),b=pressed.has('G0B')||pressed.has('G1B');if(!st&&!a&&!b)return;
+  const vis=q=>!$(q).classList.contains('hidden'),key=c=>onGlobalKey({code:c,repeat:false,preventDefault(){}});
+  if(vis('#loadP')){if(st||a)key('Enter');else if(b)key('Escape');return;}
+  if(vis('#interP')&&(st||a)){key('Enter');return;}
+  if(vis('#endP')&&st){const btn=$('#endBtns button');if(btn)btn.click();return;}
+  if(G.phase==='menu'&&vis('#menu')&&st){$('#startBtn').click();return;}
+  if(st)key('Escape');}
 window.onGlobalKey=e=>{
   if(G.phase==='replay'){skipReplay();return;}
   if(!$('#loadP').classList.contains('hidden')){if(e.code==='Enter')$('#loadGo').click();else if(e.code==='Escape')$('#loadBack').click();return;}
@@ -172,9 +184,30 @@ window.onGlobalKey=e=>{
 };
 
 /* ================= ROUND FLOW ================= */
+/* ================= LOADING SCREEN =================
+   Boot: the shop's furniture models + fighter.glb (animations) through THREE.DefaultLoadingManager.
+   Before a match: only the chosen fighters' own models (arcade: the whole ladder), skipped when already cached. */
+const LDS={boot:true};
+function showLoad(txt,frac){$('#loadScr').classList.remove('hidden');$('#loadTxt').textContent=txt;$('#loadBar').style.width=Math.round(clamp(frac,0,1)*100)+'%';}
+function hideLoad(){$('#loadScr').classList.add('hidden');}
+if(typeof REAL_THREE!=='undefined'&&REAL_THREE&&THREE.GLTFLoader&&THREE.DefaultLoadingManager){
+  const mgr=THREE.DefaultLoadingManager;
+  mgr.onProgress=(u,l,t)=>{if(LDS.boot)showLoad('Setting up the shop… '+l+' / '+t,l/t);};
+  mgr.onLoad=()=>{if(LDS.boot){LDS.boot=false;hideLoad();}};
+  showLoad('Setting up the shop…',0.02);loadFighterModel(()=>{});
+  setTimeout(()=>{if(LDS.boot){LDS.boot=false;hideLoad();}},25000);}
+function preloadFighters(chs,cb){
+  const names=[...new Set(chs.filter(c=>c&&c.body==='3d').map(c=>c.model||''))];
+  if(typeof REAL_THREE==='undefined'||!REAL_THREE||!THREE.GLTFLoader||typeof loadCharModel!=='function')return cb();
+  const need=names.filter(n=>n?!(B3.chars[n]&&(B3.chars[n].g||B3.chars[n].failed)):!(B3.gltf||B3.failed));if(!need.length)return cb();
+  let done=0;LDS.boot=false;showLoad('Fighters are warming up… 0 / '+need.length,0.05);
+  const one=()=>{done++;showLoad('Fighters are warming up… '+done+' / '+need.length,done/need.length);if(done===need.length){hideLoad();cb();}};
+  need.forEach(n=>n?loadCharModel(n,one):loadFighterModel(one));}
 function startMatch(){
   SFX.init();SFX.music(true);
-  if(G.mode==='arcade'){startArcade();return;}
+  if(G.mode==='arcade'){preloadFighters([...ROSTER,BOSS_CH],startArcade);return;}
+  const n=G.mode==='duel'||G.mode==='train'?2:4;preloadFighters(G.slots.slice(0,n).map(i=>ROSTER[i]),startMatch2);}
+function startMatch2(){
   buildFromSlots();G.wins={};G.round=1;G.matchBill=0;
   enterFightUI();startRound();
 }
@@ -233,7 +266,9 @@ function endMatch(team){
   const winners=G.f.filter(f=>f.team===team),losers=G.f.filter(f=>f.team!==team);
   G.f.forEach(f=>{f.win=f.team===team;if(f.win){if(f.state==='ko'){f.state='idle';f.hp=1;}f.setExpr('win',0,true);}});
   const unlocks=[];
+  const tw0=totalWins();
   if(winners.some(f=>f.human!=null))winners.filter(f=>f.human!=null).forEach(f=>{const before=winsOf(f.ch);STATS.wins[f.ch.id]=before+1;});
+  HATS.forEach(h=>{if(h.need>tw0&&h.need<=totalWins())unlocks.push('New hat unlocked: '+h.icon+' '+h.name+' — pick it on the loadout screen!');});
   saveAll();
   {const me=G.f.find(f=>f.human===0),hw=winners.some(f=>f.human!=null);const mine=G.humans===2?hw:(me&&me.team===team);
     SFX.voLocal(mine?(G.humans===2&&winners.some(f=>f.human===1)&&!winners.some(f=>f.human===0)?'f_you_win':'you_win'):'you_lose',1.2);
@@ -374,7 +409,7 @@ function togglePause(force){if(NET.role!=='off'){const show=force!==undefined?fo
 $('#resumeBtn').addEventListener('click',()=>togglePause(false));
 /* ================= MOVE LIST ================= */
 function keyName(c){return c==='Space'?'Space':c.startsWith('Shift')?'Shift':c.replace(/^Key|^Digit/,'');}
-function keysOf(list){return list.filter(k=>!/^(T[A-Z]|Numpad|Arrow|Enter)/.test(k)).map(k=>'<kbd>'+keyName(k)+'</kbd>').join(' ')||'—';}
+function keysOf(list){return list.filter(k=>!/^(T[A-Z]|Numpad|Arrow|Enter|G\d)/.test(k)).map(k=>'<kbd>'+keyName(k)+'</kbd>').join(' ')||'—';}
 function buildMoves(){
   const S=G.humans===2?SCH.p1:SCH.solo,me=G.f.find(f=>f.human===0),meId=me?me.ch.id:null;
   const rows=[
@@ -388,6 +423,7 @@ function buildMoves(){
     ['','COUNTER','Hit someone while they are winding up'],
   ];
   let h='<h3>Basics'+(G.humans===2?' (P1 keys)':'')+'</h3><div class="mvb">'+rows.map(r=>'<b>'+r[1]+(r[0]?' '+r[0]:'')+'</b><span>'+r[2]+'</span>').join('')+'</div>';
+  h+='<p class="small">🎮 <b>Controller</b>: stick / d-pad move · <kbd>X</kbd> jab · <kbd>Y</kbd> hook · <kbd>RB</kbd> special · <kbd>LB</kbd> block · <kbd>B</kbd> grab / throw · <kbd>A</kbd> jump · right stick camera · <kbd>Start</kbd> pause. Controller 1 = P1, controller 2 = P2.</p>';
   h+='<h3>Stuff in the shop</h3><div style="font-size:14px;line-height:1.7">Swing it: '+Object.values(WEAPONS).map(w=>w.en).join(' · ')+' (breaks after a few hits — or throw it)<br>Snacks & envelopes: '+Object.values(POWER).map(p=>p.bad?p.en+' (feeling lucky?)':p.enTxt).join(' · ')+'</div>';
   const myLo=me?me.lo:STATS.lo[0]||{st:'box',sp:'rush'};
   h+='<h3>Fighting styles (pick before a match)</h3><div class="mvs" id="mvStyles"></div><h3>Specials (pick one)</h3><div class="mvs" id="mvList"></div>';
@@ -403,7 +439,7 @@ const LD={who:0,cur:null};
 function loadoutHumans(){return G.mode==='arcade'?1:G.humans;}
 function openLoadout(h){
   LD.who=h;const ch=ROSTER[G.slots[h]];LD.cur=Object.assign({},humanLo(h,ch));
-  $('#loadT').textContent=(loadoutHumans()>1?'P'+(h+1)+' · ':'')+'Pick your style & special';
+  $('#loadT').textContent=(loadoutHumans()>1?'P'+(h+1)+' · ':'')+'Pick your style, special & hat';
   portrait(ch,$('#loadPic'));$('#loadName').textContent=ch.name;
   $('#loadGo').textContent=h+1<loadoutHumans()?'Next: P'+(h+2)+' ▶':'Ready! 🥊';
   const sg=$('#stlGrid');sg.innerHTML='';
@@ -419,11 +455,19 @@ function openLoadout(h){
     el.querySelector('em').textContent=SP_MELEE.has(k)?'MELEE':'GADGET';el.querySelector('em').className=SP_MELEE.has(k)?'melee':'toy';
     el.querySelector('.ds').textContent=SP_DESC[k]||'';
     el.addEventListener('click',()=>{LD.cur.sp=k;SFX.pickup();paintLoadout();});pg.appendChild(el);});
+  const hg=$('#hatGrid');hg.innerHTML='';const tw=totalWins();
+  $('#hatInfo').textContent='('+tw+' total win'+(tw===1?'':'s')+' — win matches to unlock more)';
+  HATS.forEach((H,i)=>{const ok=hatOk(i),el=document.createElement('button');el.className='opt'+(ok?'':' lock');el.dataset.k=i;
+    el.innerHTML='<span class="ic"></span><span><b></b><small class="ds"></small></span>';el.querySelector('.ic').textContent=ok?H.icon:'🔒';
+    el.querySelector('b').textContent=H.name;el.querySelector('.ds').textContent=ok?(H.need?'Unlocked':''):'Win '+H.need+' matches';
+    el.addEventListener('click',()=>{if(!ok){SFX.tone('square',220,160,0.08,0.06);return;}ch.hat=i;saveAll();SFX.pickup();paintLoadout();});hg.appendChild(el);});
+  if(!hatOk(ch.hat|0))ch.hat=0;
   paintLoadout();$('#loadP').classList.remove('hidden');$('#loadP').scrollTop=0;
 }
 function paintLoadout(){
   document.querySelectorAll('#stlGrid .opt').forEach(b=>b.classList.toggle('on',b.dataset.k===LD.cur.st));
   document.querySelectorAll('#spGrid .opt').forEach(b=>b.classList.toggle('on',b.dataset.k===LD.cur.sp));
+  const hch=ROSTER[G.slots[LD.who]];document.querySelectorAll('#hatGrid .opt').forEach(b=>b.classList.toggle('on',+b.dataset.k===(hch.hat|0)));
   $('#loadSum').textContent=STYLES[LD.cur.st].icon+' '+STYLES[LD.cur.st].name+' + '+(SP_ICON[LD.cur.sp]||'')+' '+spName(LD.cur.sp);
 }
 $('#loadRand').addEventListener('click',()=>{LD.cur=randLoadout();SFX.pickup();paintLoadout();});
@@ -525,7 +569,8 @@ function promptAt(wp,html,cls){const v=wp.clone().project(camera);if(v.z>1||v.x<
 function keyCap(f,act,hot){
   const touchUI=document.body.classList.contains('touch')&&f.human===0;
   const S=f.human===1?SCH.p2:(G.humans===2&&NET.role==='off'?SCH.p1:SCH.solo);
-  const txt=touchUI?{grab:'GRAB',jab:'JAB',sp:'SP'}[act]:S[act][0].replace(/^Key|^Digit/,'').replace('ShiftLeft','Shift');
+  const pad=padUsed(f.human===1?1:0);
+  const txt=touchUI&&!pad?{grab:'GRAB',jab:'JAB',sp:'SP'}[act]:pad?PADLAB[act]:S[act][0].replace(/^Key|^Digit/,'').replace('ShiftLeft','Shift');
   return `<b class="${touchUI?'tb2':''}${hot?' hot':''}">${txt}</b>`;
 }
 function weaponsNear(f,d){
@@ -561,6 +606,7 @@ let last=performance.now();
 function loop(now){
   requestAnimationFrame(loop);
   const raw=Math.min(0.05,(now-last)/1000);last=now;
+  pollPads();padMenus();
   if(NET.role==='client'){netClientFrame(raw);}
   else if(G.phase==='replay'&&RP){updReplay(raw);}
   else if(!G.paused){

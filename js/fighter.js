@@ -246,6 +246,38 @@ const armGeo=new THREE.CylinderGeometry(0.1,0.09,1,8);
 const GLOVE_OFS=V(0,-0.04,0.06);
 function seg(m,a,b){const d=b.clone().sub(a),l=d.length();m.position.copy(a).add(b).multiplyScalar(0.5);if(l>1e-4)m.quaternion.setFromUnitVectors(UPV,d.multiplyScalar(1/l));m.scale.y=Math.max(0.05,l);}
 /* real 3D hair (inside the head group: head radius 0.5, centre at 0) */
+/* ================= HATS (unlock rewards) =================
+   Unlocked by total wins (all characters, all modes), picked per character on the loadout screen (ch.hat = index).
+   makeHat(k) builds one in "hat units": brim/base at y = 0, about 1 unit radius — the caller scales it to the head. */
+const HATS=[{k:'none',name:'No hat',icon:'🚫',need:0},{k:'party',name:'Party hat',icon:'🎉',need:1},{k:'crown',name:'Crown',icon:'👑',need:3},
+  {k:'chef',name:'Chef hat',icon:'👨‍🍳',need:5},{k:'cone',name:'Traffic cone',icon:'🚧',need:8},{k:'halo',name:'Halo',icon:'😇',need:12},
+  {k:'viking',name:'Viking helmet',icon:'⚔️',need:16},{k:'duck',name:'Rubber duck',icon:'🦆',need:22},{k:'piano',name:'Tiny grand piano',icon:'🎹',need:30}];
+const totalWins=()=>Object.values(STATS.wins).reduce((a,b)=>a+(b|0),0);
+const hatOk=i=>!!HATS[i]&&totalWins()>=HATS[i].need;
+function makeHat(k){
+  const g=new THREE.Group(),add=(geo,m,x,y,z)=>{const o=new THREE.Mesh(geo,m);o.position.set(x||0,y||0,z||0);o.castShadow=true;g.add(o);return o;};
+  if(k==='party'){const c=add(new THREE.ConeGeometry(0.55,1.5,20),M('#ff4fa3',{roughness:.5}),0,0.75);c.rotation.z=0.15;
+    for(let i=0;i<3;i++)add(new THREE.TorusGeometry(0.42-i*0.13,0.05,6,20),M('#ffe14d'),0.03+i*0.06,0.25+i*0.4).rotation.x=Math.PI/2;
+    add(new THREE.SphereGeometry(0.17,10,8),M('#4fd1ff'),0.21,1.5);}
+  else if(k==='crown'){const gold=M('#ffcc33',{metalness:.8,roughness:.25});add(new THREE.CylinderGeometry(0.62,0.58,0.42,24,1,true),gold,0,0.21).material.side=THREE.DoubleSide;
+    for(let i=0;i<6;i++){const a=i/6*Math.PI*2;add(new THREE.ConeGeometry(0.13,0.36,6),gold,Math.sin(a)*0.58,0.6,Math.cos(a)*0.58);
+      add(new THREE.SphereGeometry(0.07,8,6),M(i%2?'#e0245e':'#2fa7ff',{roughness:.2}),Math.sin(a)*0.63,0.2,Math.cos(a)*0.63);}}
+  else if(k==='chef'){const w=M('#ffffff',{roughness:.9});add(new THREE.CylinderGeometry(0.5,0.55,0.6,20),w,0,0.3);
+    const p=add(new THREE.SphereGeometry(0.62,16,12),w,0,0.82);p.scale.set(1.05,0.75,1.05);}
+  else if(k==='cone'){add(new THREE.BoxGeometry(1.2,0.08,1.2),M('#ff6a00'),0,0.04);add(new THREE.ConeGeometry(0.48,1.4,20),M('#ff6a00'),0,0.75);
+    add(new THREE.CylinderGeometry(0.3,0.36,0.22,20),M('#ffffff'),0,0.75);}
+  else if(k==='halo'){const h=add(new THREE.TorusGeometry(0.6,0.07,8,32),M('#fff27a',{emissive:new THREE.Color('#ffd23d'),emissiveIntensity:.9}),0,0.55);h.rotation.x=Math.PI/2;g.userData.spin=h;}
+  else if(k==='viking'){add(new THREE.SphereGeometry(0.68,20,12,0,Math.PI*2,0,Math.PI/2),M('#9aa3ad',{metalness:.7,roughness:.35}),0,0);
+    add(new THREE.TorusGeometry(0.68,0.06,6,24),M('#c58b2a',{metalness:.6}),0,0.04).rotation.x=Math.PI/2;
+    for(const s of[-1,1]){const h=add(new THREE.ConeGeometry(0.14,0.75,10),M('#f3ead2'),s*0.78,0.45);h.rotation.z=-s*0.75;}}
+  else if(k==='duck'){const y=M('#ffd21f',{roughness:.4});const b=add(new THREE.SphereGeometry(0.5,16,12),y,0,0.38);b.scale.set(1,0.75,1.25);
+    add(new THREE.SphereGeometry(0.3,14,10),y,0,0.85,0.3);add(new THREE.ConeGeometry(0.12,0.3,10),M('#ff7a00'),0,0.82,0.65).rotation.x=Math.PI/2;
+    for(const s of[-1,1])add(new THREE.SphereGeometry(0.05,6,6),M('#111111'),s*0.13,0.93,0.55);}
+  else if(k==='piano'){const blk=M('#111111',{roughness:.3,metalness:.2});const bd=add(new THREE.BoxGeometry(1.1,0.28,0.8),blk,0,0.14);
+    const lid=add(new THREE.BoxGeometry(1.05,0.04,0.78),blk,0.12,0.5);lid.rotation.z=0.55;add(new THREE.BoxGeometry(1.0,0.06,0.18),M('#f4f4f4'),0,0.22,0.47);
+    for(let i=0;i<6;i++)add(new THREE.BoxGeometry(0.06,0.07,0.1),blk,-0.42+i*0.17,0.26,0.47);}
+  return g;
+}
 function buildHair(Hd,ch,mat){
   const hs=ch.hairStyle,photo=!!ch.photoImg,add=(m)=>{m.castShadow=true;Hd.add(m);return m;};
   const dbl=mat.clone();dbl.side=THREE.DoubleSide;
@@ -284,7 +316,7 @@ class Fighter{
     this.body=new THREE.Group();this.root.add(this.body);this.body.scale.setScalar(this.S);
     const cast=m=>{m.castShadow=true;return m;};
     const skin=M(ch.skin),shirt=M(ch.shirt),shorts=M(ch.shorts),shoe=M('#1d1d1d'),hairM=M(ch.hair);
-    const gs=GLOVES[ch.glove||0]||GLOVES[0];
+    const gs=GLOVES[0];
     const gcol=gs.color||this.color;
     this.gloveMat=M(gcol,{roughness:gs.rough||.35,metalness:gs.metal||0,emissive:new THREE.Color(gs.em||this.color),emissiveIntensity:gs.em?0.35:0,map:gs.tiger?tigerTex:null});
     if(gs.tiger)this.gloveMat.color.set('#ffffff');
@@ -309,6 +341,7 @@ class Fighter{
     const hm=new THREE.Mesh(new THREE.SphereGeometry(0.5,32,20),new THREE.MeshStandardMaterial({map:this.faceTex,roughness:.8}));hm.castShadow=true;Hd.add(hm);
     for(const s of[-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,6),skin);e.position.set(s*0.49,-0.02,0);e.scale.set(0.6,1,1);Hd.add(e);}
     this.hairBack=buildHair(Hd,ch,hairM);this.hairO=1;
+    this.hatKey=ch.hatKey||(HATS[ch.hat|0]||HATS[0]).k;if(this.hatKey!=='none'){const hat=makeHat(this.hatKey);hat.position.y=0.4;hat.scale.setScalar(0.42);Hd.add(hat);this.hatObj=hat;}
     const A=ch.acc,fz=0.31*sb;
     if(A.includes('tie')){vbox(0.28,0.26,0.02,M('#f4f4f4'),0,0.66,fz-0.01,T);vbox(0.11,0.42,0.03,M(ch.accent||'#c0392b'),0,0.5,fz,T);}
     if(A.includes('tag')){vbox(0.2,0.11,0.02,M('#ffffff'),0.22,0.62,fz-0.03,T);vbox(0.2,0.03,0.025,M('#c0392b'),0.22,0.66,fz-0.025,T);}
@@ -342,7 +375,7 @@ class Fighter{
     this.stream=null;this.dashing=null;this.pulled=null;this.victim=null;this.grabbedBy=null;
     this.fx={dizzy:0,slow:0,buff:0,immune:0,parry:0};this.react=null;this.ap=null;if(this.head)this.head.rotation.set(0,0,0);this.wind=null;this.koFly=false;this.dusted=false;this.superGrab=false;
     if(this.held)this.removeHeld();
-    this.body.rotation.set(0,0,0);this.body.position.set(0,0,0);this.body.scale.setScalar(this.S);this.torso.rotation.set(0,0,0);
+    this.body.rotation.set(0,0,0);this.body.position.set(0,0,0);this.body.scale.setScalar(this.S);this.bsc=this.S;this.squashT=0;this.torso.rotation.set(0,0,0);
     this.root.position.set(x,y,z);this.root.rotation.y=face;
     this.setExpr('normal',0,true);
   }
@@ -469,7 +502,10 @@ class Fighter{
       if(att.comboN>=3)comboPop(att);}
     if(h.dizzy&&this.fx.immune<=0){this.fx.dizzy=Math.max(this.fx.dizzy,h.dizzy);}
     const heavy=!!h.heavy||crit;
-    SFX.hit(heavy);G.shake=Math.max(G.shake,heavy?0.22:0.08);G.hitStop=Math.max(G.hitStop,crit?0.11:heavy?0.07:0.03);
+    // hit feel: the freeze, the camera shake and the victim's squash all scale with how hard the hit was
+    const pw=clamp(dmg/20,0,1);
+    SFX.hit(heavy);G.shake=Math.max(G.shake,0.07+pw*0.25+(heavy?0.08:0));G.hitStop=Math.max(G.hitStop,crit?0.13:0.045+pw*0.06+(heavy?0.02:0));
+    this.squashT=0.18;this.squashK=0.07+pw*0.1+(heavy?0.04:0);
     hype=Math.min(1,hype+(heavy?0.35:0.12));
     popup(Math.round(dmg)+'',hp,crit||dmg>=14?'crit':'dmg',0.8);
     burst(hp.clone().add(V(-nx*0.4,-0.1,-nz*0.4)),dmg>=14?0xffb000:0xffee66,heavy?12:6,heavy?4:2.5);
@@ -477,7 +513,7 @@ class Fighter{
     if(this.hp<=0){this.hp=0;this.state='ko';this.koT=0;this.setExpr('ko');
       // KO: launch them across the room, tumbling — they burst into dust when they hit something (koPoof)
       this.koFly=true;this.vy=Math.max(this.vy,9+rand(0,3));this.y+=0.05;this.vel.x=nx*rand(15,19);this.vel.z=nz*rand(15,19);
-      this.knockdown=false;this.dropHeld();this.stream=null;this.dashing=null;this.wind=null;G.hitStop=Math.max(G.hitStop,0.14);
+      this.knockdown=false;this.dropHeld();this.stream=null;this.dashing=null;this.wind=null;G.hitStop=Math.max(G.hitStop,0.18);G.shake=Math.max(G.shake,0.6);
       burst(hp.clone(),0xffffff,14,6);ringFx(this.pos.x,this.y+1,this.pos.z,2.6,0xffe14d,0.4);popup(pick(['บ๊ายบาย~ 👋','ลาออก!!','ปลิวววว!','ไปไกลๆ!']),hp.clone().add(V(0,1.6,0)),'combo',1.2);
       popup('K.O.!',hp.clone().add(V(0,1,0)),'crit',1.4);SFX.voice(this.vp,'ko');SFX.koWhoosh();SFX.koBell();onKO(this,att);}
     else{if(Math.random()<(heavy?0.6:0.3))SFX.voice(this.vp,'hurt');if(Math.random()<(heavy?0.4:0.15)){if(Math.random()<0.55)say(this,pick(HURT));else if(att)say(att,pick(att.ch.quotes));}}
@@ -701,7 +737,9 @@ class Fighter{
     if(this.win&&(this.ch.emote==='jump'||!this.ch.emote))by=Math.abs(Math.sin(t*7))*0.35;
     this.body.position.y=by;
     const bs=this.S*(this.fx.buff>0?1.25:1)*(this.win&&this.ch.emote==='flex'?1+Math.abs(Math.sin(t*6))*0.04:1);
-    if(this.dusted)this.body.scale.setScalar(0.001);else this.body.scale.setScalar(lerp(this.body.scale.x,bs,1-Math.exp(-8*dt)));
+    if(this.dusted)this.body.scale.setScalar(0.001);else{this.bsc=lerp(this.bsc||this.body.scale.x,bs,1-Math.exp(-8*dt));this.body.scale.setScalar(this.bsc);
+      // squash on impact: held through the hit-stop (dt = 0), then springs back
+      if(this.squashT>0){this.squashT-=dt;const k=Math.max(0,this.squashT/0.18)*this.squashK;this.body.scale.set(this.bsc*(1+k*0.6),this.bsc*(1-k),this.bsc*(1+k*0.6));}}
     if(this.ring)this.ring.visible=!this.dusted;
     let lean=0,twist=0,roll=0;
     if(S==='stun')lean=-0.4;else if(S==='block')lean=0.15;else if(S==='grab')lean=0.2;else if(S==='dash')lean=0.35;

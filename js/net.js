@@ -2,7 +2,7 @@
 /* ==========================================================================
    ONLINE PLAY — claude.ai `room` capability, host-authoritative.
    Everything travels in presence (allowed for every viewer, no topic rights):
-     lobby   : {rc,jt,nm,c,gl,lo,v,st}         (room code, join time, nickname, char, glove, [style,special], visible, host settings)
+     lobby   : {rc,jt,nm,c,gl,lo,v,st}         (room code, join time, nickname, char, hat index, [style,special], visible, host settings)
      host    : + {g: match config, s: snapshot}  (~20 Hz, kept < 3.4 KB)
      client  : + {in: [mx,mz,block, jab#,hook#,special#,jump#,grab#]}  (press counters, not edges)
    The host runs the normal offline simulation; remote fighters read netInput().
@@ -74,7 +74,7 @@ function myPeerId(){if(!NET.room)return null;const p=NET.room.peers().find(p=>p.
 function lobbyHost(){const m=members();if(NET.room&&NET.room.p2p)return m.find(p=>p.peer===P2P_PREFIX+NET.code)||null;return m.find(p=>p.presence.v!==0)||m[0]||null;}
 function amLobbyHost(){const h=lobbyHost();return!!(h&&h.sameTab);}
 function setPresence(patch){if(!NET.room)return;NET.room.presence(patch).then(()=>{},err=>{if(err&&err.code==='invalid_argument')console.warn('presence',err.message);});}
-function myLobbyPresence(){const c=+$('#onChar').value||0;const ch=ROSTER[c]||ROSTER[0];return{rc:NET.code,jt:NET.jt,nm:safeStr(ch.name,18),c,gl:ch.glove|0,lo:[$('#onStyle').value||'box',$('#onSp').value||ch.sp],bd:1,v:document.hidden?0:1};}
+function myLobbyPresence(){const c=+$('#onChar').value||0;const ch=ROSTER[c]||ROSTER[0];return{rc:NET.code,jt:NET.jt,nm:safeStr(ch.name,18),c,gl:hatOk(ch.hat|0)?ch.hat|0:0,lo:[$('#onStyle').value||'box',$('#onSp').value||ch.sp],bd:1,v:document.hidden?0:1};}
 const cleanLo=a=>({st:a&&STYLES[a[0]]?a[0]:'box',sp:a&&SP_LIST.includes(a[1])?a[1]:'rush'});
 document.addEventListener('visibilitychange',()=>{if(NET.code)setPresence({v:document.hidden?0:1});});
 
@@ -82,12 +82,13 @@ document.addEventListener('visibilitychange',()=>{if(NET.code)setPresence({v:doc
 function newCode(){const a='abcdefghjkmnpqrstuvwxyz23456789';let s='';for(let i=0;i<4;i++)s+=a[Math.floor(Math.random()*a.length)];return s;}
 function showOnline(msg){
   $('#menu').classList.add('hidden');$('#onlineP').classList.remove('hidden');
+  if(typeof REAL_THREE!=='undefined'&&REAL_THREE&&typeof loadCharModel==='function')ROSTER.forEach(c=>{if(c.model)loadCharModel(c.model,()=>{});});
   const sel=$('#onChar');if(!sel.options.length)ROSTER.forEach((c,i)=>{const o=document.createElement('option');o.value=i;sel.appendChild(o);});
   ROSTER.forEach((c,i)=>{sel.options[i].textContent=c.name+' — '+c.role;});
   const ss=$('#onStyle'),sp=$('#onSp'),lo=STATS.lo[0]||{st:'box',sp:'rush'};
   if(!ss.options.length){STYLE_KEYS.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=STYLES[k].icon+' '+STYLES[k].name;ss.appendChild(o);});ss.value=lo.st;
     SP_LIST.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=(SP_ICON[k]||'')+' '+spName(k);sp.appendChild(o);});sp.value=SPECIALS[lo.sp]?lo.sp:'rush';}
-  if(!NET.code)sel.value=G.slots[0];SFX.music(true);
+  if(!NET.code)sel.value=G.slots[0];SFX.music(true);fillHatSel();
   portrait(ROSTER[+sel.value],$('#onPic'));
   const ready=!!NET.room||NET.p2p;
   $('#onMsg').textContent=msg||(ready?'':'Getting online ready… wait a moment and try again');
@@ -106,7 +107,7 @@ async function enterRoom(code,create){
       await loadPeerJS();
       let room=null;
       for(let k=0;k<3&&!room;k++){
-        try{room=await p2pRoom(code,create);}
+        try{await p2pIce();room=await p2pRoom(code,create);}
         catch(e){if(create&&e.message==='taken'){code=newCode();continue;}throw e;}
       }
       NET.room=room;
@@ -150,7 +151,11 @@ $('#onEnter').addEventListener('click',()=>enterRoom($('#onCode').value));
 $('#onCode').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')enterRoom($('#onCode').value);});
 $('#onLeave').addEventListener('click',leaveRoom);
 ['#onStyle','#onSp'].forEach(q=>$(q).addEventListener('change',()=>{STATS.lo[0]={st:$('#onStyle').value,sp:$('#onSp').value};saveAll();if(NET.code)setPresence(myLobbyPresence());}));
-$('#onChar').addEventListener('change',()=>{portrait(ROSTER[+$('#onChar').value],$('#onPic'));if(NET.code)setPresence(myLobbyPresence());renderLobby();});
+function fillHatSel(){const hs=$('#onHat'),ch=ROSTER[+$('#onChar').value]||ROSTER[0];hs.innerHTML='';
+  HATS.forEach((h,i)=>{const o=document.createElement('option');o.value=i;const ok=hatOk(i);o.disabled=!ok;o.textContent=h.icon+' '+h.name+(ok?'':' 🔒 '+h.need+' wins');hs.appendChild(o);});
+  hs.value=hatOk(ch.hat|0)?ch.hat|0:0;}
+$('#onHat').addEventListener('change',()=>{const ch=ROSTER[+$('#onChar').value];if(ch){ch.hat=+$('#onHat').value|0;saveAll();}if(NET.code)setPresence(myLobbyPresence());});
+$('#onChar').addEventListener('change',()=>{portrait(ROSTER[+$('#onChar').value],$('#onPic'));fillHatSel();if(NET.code)setPresence(myLobbyPresence());renderLobby();});
 $('#onCopy').addEventListener('click',()=>{try{navigator.clipboard.writeText(NET.code).then(()=>$('#onCopy').textContent='Copied ✓',()=>{});}catch(e){}});
 $('#onRejoin').addEventListener('click',()=>{NET.declined=null;});
 [['onMode','mode'],['onDiff','diff'],['onLoc','loc']].forEach(([id,k])=>document.querySelectorAll('#'+id+' button').forEach(b=>b.addEventListener('click',()=>{NET.set[k]=k==='diff'?+b.dataset.v:b.dataset.v;setPresence({st:{m:NET.set.mode,d:NET.set.diff,l:NET.set.loc}});renderLobby();})));
@@ -170,7 +175,7 @@ function netBuildMatch(cfg){
   clearFighters();G.mode=cfg.mode;G.diff=G.baseDiff=clamp(cfg.diff|0,0,2);G.loc=['out','up','back','wing'].includes(cfg.loc)?cfg.loc:'in';G.humans=1;G.roundLoc=null;G.paused=false;G.photo=false;
   const me=myPeerId();NET.mySlot=-1;let pn=0;
   cfg.sl.forEach((s,i)=>{const peer=s[0]||'',ci=clamp(s[1]|0,0,ROSTER.length-1),base=ROSTER[ci];
-    const ch=Object.assign({},base,{body:s[6]?'3d':'chibi',name:safeStr(s[2]||base.name,18),glove:clamp(s[3]|0,0,GLOVES.length-1),photoImg:peer&&peer===me?base.photoImg:null});
+    const ch=Object.assign({},base,{body:s[6]?'3d':'chibi',name:safeStr(s[2]||base.name,18),hat:clamp(s[3]|0,0,HATS.length-1),photoImg:peer&&peer===me?base.photoImg:null});
     const team=cfg.mode==='team'?(i<2?0:1):i,color=cfg.mode==='team'?TEAMCOL[team][i%2]:SLOTCOL[i];
     const isMe=!!peer&&peer===me;if(isMe)NET.mySlot=i;
     const f=new Fighter(ch,i,{human:isMe?0:null,team,color,label:peer?'P'+(++pn):'CPU',lo:cleanLo([s[4],s[5]])});
@@ -375,6 +380,19 @@ function netClientFrame(raw){
    ========================================================================== */
 const P2P_PREFIX='ofn-';
 const P2P_ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}]};
+/* TURN relay for networks that block direct connections (mobile carriers, office Wi-Fi, strict NAT).
+   Metered.ca's free plan: put the app name + API key here (their docs say this key is meant to sit in front-end code;
+   it can only mint short-lived TURN credentials). Or set localStorage 'ofn.ice' to a JSON array of iceServers.
+   Both empty → STUN only, as before. */
+const TURN_CFG={meteredApp:'',meteredKey:''};
+let ICE_CACHE=null;
+function p2pIce(){if(ICE_CACHE)return Promise.resolve(ICE_CACHE);
+  const base=P2P_ICE.iceServers.slice(),fin=extra=>{ICE_CACHE={iceServers:base.concat(extra||[])};NET.turn=!!(extra&&extra.length);return ICE_CACHE;};
+  try{const ls=JSON.parse(localStorage.getItem('ofn.ice')||'null');if(Array.isArray(ls)&&ls.length)return Promise.resolve(fin(ls));}catch(e){}
+  if(!TURN_CFG.meteredApp||!TURN_CFG.meteredKey||typeof fetch!=='function')return Promise.resolve(fin([]));
+  const ctl=typeof AbortController==='function'?new AbortController():null;const to=setTimeout(()=>{if(ctl)ctl.abort();},4000);
+  return fetch('https://'+encodeURIComponent(TURN_CFG.meteredApp)+'.metered.live/api/v1/turn/credentials?apiKey='+encodeURIComponent(TURN_CFG.meteredKey),ctl?{signal:ctl.signal}:{})
+    .then(r=>r.ok?r.json():[]).then(a=>fin(Array.isArray(a)?a.filter(s=>s&&s.urls):[])).catch(()=>fin([])).finally(()=>clearTimeout(to));}
 function loadPeerJS(){
   if(window.Peer)return Promise.resolve();
   const urls=['https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js','https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'];
@@ -384,7 +402,7 @@ function p2pRoom(code,create){
   return new Promise((resolve,reject)=>{
     const hostId=P2P_PREFIX+code;let done=false,myId=null,mine={},snap=[],hostConn=null,closeCb=null,closed=false;
     const others=new Map(),conns=new Map();
-    const peer=create?new Peer(hostId,{config:P2P_ICE}):new Peer({config:P2P_ICE});
+    const ice=ICE_CACHE||P2P_ICE,peer=create?new Peer(hostId,{config:ice}):new Peer({config:ice});
     const fz=p=>Object.freeze(p&&typeof p==='object'?Object.assign({},p):{});
     const rebuild=()=>{snap=Object.freeze([Object.freeze({peer:myId,by:null,isMe:true,sameTab:true,kind:'viewer',guest:false,presence:fz(mine),updatedAt:Date.now()}),
       ...[...others].map(([id,p])=>Object.freeze({peer:id,by:null,isMe:false,sameTab:false,kind:'viewer',guest:false,presence:p,updatedAt:Date.now()}))]);};
