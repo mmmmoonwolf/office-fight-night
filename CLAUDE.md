@@ -11,8 +11,8 @@ street (motorbike-taxi stand, som-tam cart, pickup truck, poles with tangled cab
 into the 2nd-floor violin & book shop (built above the right-hand neighbour) whose 4 front glass panes break when
 someone is knocked into them — they drop onto the sidewalk and take fall damage. GetAmped-style chase camera.
 
-- 6 original cartoon characters (`ROSTER` in `js/core.js`): Kip Kaboom, Momo Mellow, Ruby Rumble, Grumbo, Nana Nitro,
-  Duke Jiggly — each a rigged Mixamo model (`model` → `assets/models/char_<model>.glb`) with a pre-rendered card
+- 7 original cartoon characters (`ROSTER` in `js/core.js`): Kip Kaboom, Momo Mellow, Ruby Rumble, Grumbo, Nana Nitro,
+  Duke Jiggly, Pippa Pop — each a rigged Mixamo model (`model` → `assets/models/char_<model>.glb`) with a pre-rendered card
   portrait (`assets/portraits/<id>.png`, drawn by `portrait()`). **Everyone has the same stats**; they only differ in
   looks. Their chibi fields are only the fallback when a model can't load (and on the stubbed test pages). The arcade's
   final boss is `BOSS_CH` "Boss Bonkers" (the original fighter.glb character, recoloured; arcade list index `-1`).

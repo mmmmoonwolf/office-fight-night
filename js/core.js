@@ -34,6 +34,8 @@ const ROSTER=[
   sp:'dash',emote:'flex',quotes:['ปี๊ดดด! ซิทอัพ 100 ที!','ยายยังฟิต!','หลานจ๋า มานี่!','วิ่งรอบสนามอีกสิบรอบ!','อายุเป็นแค่ตัวเลข!']},
  {id:'duke',name:'Duke Jiggly',role:'ราชาเพลงร็อค พุงเด้งดึ๋ง',model:'duke',skin:'#f1d2bc',hair:'#141414',hairStyle:'swept',shirt:'#f4f4f4',shorts:'#f4f4f4',sleeves:true,acc:[],bulk:1.35,
   sp:'buff',emote:'guitar',quotes:['ขอบคุณมากครับบบ~','พุงนี้ร็อคแอนด์โรล!','เต้นสิ เต้น!','ราชามาแล้ว!','อุ้ย พุงเด้ง!']},
+ {id:'pippa',name:'Pippa Pop',role:'สาวผมมิ้นต์เสื้อกระต่าย เตะไวกว่าแสง',model:'pippa',skin:'#f6d6c6',hair:'#3fd0c8',hairStyle:'bob',fem:true,shirt:'#f59ad0',shorts:'#d61f8a',acc:[],
+  sp:'megaSlap',emote:'jump',quotes:['ป๊อปปป!','กระต่ายน้อยเตะแรงนะ!','ผมสีมิ้นต์ไม่ได้แปลว่าใจดี!','ปิ๊ป ป๊อป บึ้ม!','เตะเสร็จไปกินไอติม!']},
 ];
 // everyone is equal: characters only differ in looks — fighting style + special are picked separately (LOADOUT)
 ROSTER.forEach(c=>Object.assign(c,{hp:100,pow:1,spd:1,aspd:1,size:1,body:'3d'}));
