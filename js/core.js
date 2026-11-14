@@ -36,6 +36,8 @@ const ROSTER=[
   sp:'buff',emote:'guitar',quotes:['ขอบคุณมากครับบบ~','พุงนี้ร็อคแอนด์โรล!','เต้นสิ เต้น!','ราชามาแล้ว!','อุ้ย พุงเด้ง!']},
  {id:'pippa',name:'Pippa Pop',role:'Mint-haired bunny fan — kicks faster than light',model:'pippa',skin:'#f6d6c6',hair:'#3fd0c8',hairStyle:'bob',fem:true,shirt:'#f59ad0',shorts:'#d61f8a',acc:[],
   sp:'megaSlap',emote:'jump',quotes:['ป๊อปปป!','กระต่ายน้อยเตะแรงนะ!','ผมสีมิ้นต์ไม่ได้แปลว่าใจดี!','ปิ๊ป ป๊อป บึ้ม!','เตะเสร็จไปกินไอติม!']},
+ {id:'zuzu',name:'Zuzu Zoom',role:'Headphone dancer — fights to her own beat',model:'zuzu',skin:'#7a4a32',hair:'#141414',hairStyle:'bun',fem:true,shirt:'#2b2b2b',shorts:'#f5d21c',acc:['glasses'],accent:'#ff3b2f',
+  sp:'wind',emote:'dance',quotes:['ซูมมม!','เปิดเพลงดังๆ!','จังหวะนี้ของฉัน!','หลบไปเลย เต้นผ่าน!','เบสแน่นกว่าหมัดอีก!']},
 ];
 // everyone is equal: characters only differ in looks — fighting style + special are picked separately (LOADOUT)
 ROSTER.forEach(c=>Object.assign(c,{hp:100,pow:1,spd:1,aspd:1,size:1,body:'3d'}));

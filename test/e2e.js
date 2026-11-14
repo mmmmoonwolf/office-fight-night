@@ -20,8 +20,8 @@ async function openPage(ctx, errs, url = BASE + '/test.html') {
 async function offline(browser) {
   console.log('\n[offline] duel vs CPU, specials, items, rounds, arcade');
   const errs = []; const ctx = await browser.newContext(); const pg = await openPage(ctx, errs); const ev = s => pg.evaluate(s);
-  ok(await ev("document.querySelectorAll('.card').length") === 7, '7 character cards');
-  ok(await ev("ROSTER.map(c=>c.name).join()") === 'Kip Kaboom,Momo Mellow,Ruby Rumble,Grumbo,Nana Nitro,Duke Jiggly,Pippa Pop', 'the new cartoon cast');
+  ok(await ev("document.querySelectorAll('.card').length") === 8, '8 character cards');
+  ok(await ev("ROSTER.map(c=>c.name).join()") === 'Kip Kaboom,Momo Mellow,Ruby Rumble,Grumbo,Nana Nitro,Duke Jiggly,Pippa Pop,Zuzu Zoom', 'the new cartoon cast');
   ok(await ev("ROSTER.every(c=>c.body==='3d'&&c.model)") && (await (await pg.request.get(BASE + '/assets/portraits/kip.png')).status()) === 200 && (await (await pg.request.get(BASE + '/assets/models/char_duke.glb')).status()) === 200, 'every character is a 3D model with a portrait');
   ok(await ev("ROSTER.every(c=>c.hp===100&&c.pow===1&&c.spd===1&&c.aspd===1&&c.size===1)"), 'every character has the same stats');
   await pg.click('.card[data-i="2"]'); await pg.click('.card[data-i="0"]');
