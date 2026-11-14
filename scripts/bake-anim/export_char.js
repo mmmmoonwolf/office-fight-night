@@ -1,9 +1,9 @@
 // Builds one GLB: Boy01 skinned mesh + selected Mixamo clips (in place, renamed). Usage: node export_char.js <three pkg> <fbx dir> <out.glb>
 const open=require('./fbxpage.js');const fs=require('fs'),path=require('path');const [T,DIR,OUT]=process.argv.slice(2);
 // key: source file, or [source, firstFrame, lastFrame] to keep only part of a clip (30 fps)
-const CLIPS={idle:'Fighting Idle',ready:'Action_Idle_To_Fight_Idle',block:'Body_Block',run:'Drunk_Run_Forward',jab:'Punching',cross:'Punching (1)',hookR:'Right_Hook',hook:'Hook',
+const CLIPS={idle:'Fighting Idle',ready:'Action_Idle_To_Fight_Idle',block:'Body_Block',run:'Run',runDrunk:'Drunk_Run_Forward',walk:'Walking',jab:'Punching',cross:'Punching (1)',hookR:'Right_Hook',hook:'Hook',
   upper:'Uppercut',hitL:'Light Hit To Head',hitM:'Medium Hit To Head',hitFace:'Receive Punch To The Face',hitHead:'Head Hit',hitBody:'Hit To Body',hitBig:'Big Hit To Head',
-  hitUpper:'Receive Uppercut To The Face',stunned:'Stunned',jumping:'Jumping',win:'Standing',rush:'Combo Punch',throw:['Throw_Object',50,100],throwBig:['Goalie_Throw',15,80],
+  hitUpper:'Receive Uppercut To The Face',stunned:'Stunned',jumping:'Jumping',win:'Victory_Idle',whatever:'Whatever_Gesture',rush:'Combo Punch',throw:['Throw_Object',50,100],throwBig:['Goalie_Throw',15,80],
   melee:'Standing_Melee_Combo_Attack_Ver._3',mmaKick:'Mma_Kick',kick1:'Mma_Kick_1',kick2:'Mma_Kick_2',flipKick:'Flip_Kick',hurricane:'Hurricane_Kick',pain:'Pain_Gesture'};
 (async()=>{const {b,p}=await open(T,DIR);await p.addScriptTag({path:path.join(T,'examples/js/exporters/GLTFExporter.js')});await p.addScriptTag({path:path.join(T,'examples/js/utils/BufferGeometryUtils.js')});
  p.on('console',m=>console.log('page:',m.text()));
