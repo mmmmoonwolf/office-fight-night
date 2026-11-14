@@ -279,6 +279,7 @@ function netClientEnd(wt){
   if(NET.role!=='client'||G.phase!=='end')return;
   const winners=G.f.filter(f=>f.team===wt),losers=G.f.filter(f=>f.team!==wt),me=G.f[NET.mySlot];
   if(me&&me.team===wt){STATS.wins[me.ch.id]=winsOf(me.ch)+1;saveAll();}
+  if(me)SFX.voLocal(wt>=0&&me.team===wt?'you_win':'you_lose',0.6);
   $('#endTitle').textContent=wt<0?'เสมอ!':(me?(me.team===wt?'คุณชนะ! 🏆':(G.mode==='team'?((wt===0?'ทีมแดง':'ทีมฟ้า')+' ชนะ'):(winners[0]?winners[0].ch.name+' ชนะ':''))+' 😵'):(winners[0]?winners[0].ch.name+' ชนะ! 🏆':''));
   const pics=$('#endPics');pics.innerHTML='';winners.forEach(f=>{const c=document.createElement('canvas');c.width=c.height=260;portrait(f.ch,c,'win');pics.appendChild(c);});
   $('#endSub').textContent=winners[0]?winners[0].ch.name+' : "'+pick(winners[0].ch.quotes)+'" · รอโฮสต์กดเล่นอีกตา...':'รอโฮสต์กดเล่นอีกตา...';

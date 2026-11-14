@@ -27,6 +27,8 @@ async function offline(browser) {
   ok(await ev("!$('#loadP').classList.contains('hidden') && document.querySelectorAll('#stlGrid .opt').length===Object.keys(STYLES).length && document.querySelectorAll('#spGrid .opt').length>=20"), 'start opens the style + special picker');
   await pg.click('#stlGrid .opt[data-k="kick"]'); await pg.click('#spGrid .opt[data-k="superKick"]');
   await pg.click('#loadGo'); await sleep(1700); await ev('G.evT=999');
+  ok(await ev("Object.keys(SFX.SMP).length") >= 30 && await ev("!!SFX.SMP.punchH && !!SFX.SMP.vo_round"), 'recorded hit sounds and announcer lines load');
+  ok(await ev("Object.keys(MODELS).length>=20 && BRK.some(b=>b.brk.name==='โซฟารับแขก') && 'pillow' in WEAPONS"), 'furniture models are placed, breakable and throwable');
   ok(await ev("G.f[0].lo.st==='kick' && G.f[0].lo.sp==='superKick' && STATS.lo[0].st==='kick'"), 'picked style + special are used and remembered');
   ok(await ev('G.phase') === 'fight', 'duel reaches fight phase');
   for (let i = 0; i < 20; i++) { await pg.keyboard.down('KeyD'); await pg.keyboard.press('KeyJ'); await pg.keyboard.press('KeyK'); await pg.keyboard.up('KeyD'); await pg.keyboard.press('Space'); await sleep(80); }
@@ -36,14 +38,15 @@ async function offline(browser) {
   }
   await sleep(1200);
   ok(await ev('G.f[1].hp < G.f[1].maxHp'), 'specials deal damage');
+  await ev("window.__ai=aiThink;aiThink=()=>({mx:0,mz:0,atk:null,block:false,jump:false,grab:false})"); // CPU stands still for the scripted checks
+  await ev("G.f[1].lo={st:'box',sp:'rush'};G.f[1].style=STYLES.box");
   for (const st of Object.keys(await ev('STYLES'))) {
-    await ev(`G.f[0].lo.st='${st}';G.f[0].style=STYLES['${st}'];G.f[0].state='idle';G.f[0].pos.y=0;G.f[1].state='idle';G.f[1].invT=0;G.f[1].hp=G.f[1].maxHp;G.f[1].pos.x=G.f[0].pos.x+1.2;G.f[1].pos.z=G.f[0].pos.z;G.f[0].face=G.f[0].faceT=Math.atan2(1.2,0);G.f[0].lastAtkEnd=-9`);
+    await ev(`G.f[0].lo.st='${st}';G.f[0].style=STYLES['${st}'];G.f[0].state='idle';G.f[0].pos.y=0;G.f[1].state='idle';G.f[1].invT=0;G.f[1].hp=G.f[1].maxHp;G.f[1].pos.x=G.f[0].pos.x+1.2;G.f[1].pos.z=G.f[0].pos.z;G.f[0].face=G.f[0].faceT=Math.atan2(1.2,0);G.f[0].lastAtkEnd=-9;G.f[1].fx.parry=0;G.f[1].vel.x=G.f[1].vel.z=0;G.f[0].vel.x=G.f[0].vel.z=0`);
     for (const k of ['jab', 'jab', 'hook']) { await ev(`G.f[0].state='idle';G.f[0].tryAttack('${k}')`); await sleep(160); }
     await sleep(1100);
     ok(await ev('G.f[1].hp < G.f[1].maxHp'), `style ${st}: jab-jab-hook combo connects`);
   }
   await ev("G.f.forEach(f=>{f.lo.st='box';f.style=STYLES.box;f.wind=null;f.fx.parry=0;f.state='idle';f.atk=null;})");
-  await ev("window.__ai=aiThink;aiThink=()=>({mx:0,mz:0,atk:null,block:false,jump:false,grab:false})"); // CPU stands still for the scripted checks
   await ev("G.f[0].pos.x=2.6;G.f[0].pos.z=-9.5;G.f[0].y=0;CAM.yaw=-Math.PI/2");
   await pg.keyboard.down('KeyW'); await sleep(1800); await pg.keyboard.up('KeyW');
   ok(await ev('onMezz(G.f[0])'), 'stairs lead up to the mezzanine');

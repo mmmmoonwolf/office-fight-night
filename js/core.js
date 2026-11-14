@@ -169,8 +169,23 @@ const SFX={ac:null,nb:null,out:null,musOut:null,ambOut:null,muted:false,mus:null
       const comp=ac.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=4;comp.connect(ac.destination);
       this.out=ac.createGain();this.out.gain.value=this.muted?0:1;this.out.connect(comp);
       this.musOut=ac.createGain();this.musOut.gain.value=0.17;this.musOut.connect(this.out);
-      this.ambOut=ac.createGain();this.ambOut.gain.value=0;this.ambOut.connect(this.out);this.startAmb();}
+      this.ambOut=ac.createGain();this.ambOut.gain.value=0;this.ambOut.connect(this.out);this.startAmb();this.loadSamples();}
     if(this.ac.state==='suspended')this.ac.resume();}catch(e){}},
+  // ---- recorded samples (Kenney Impact Sounds + Voiceover Pack, CC0) — synth sounds stay as the fallback ----
+  SMP:{},
+  loadSamples(){const ac=this.ac;if(!ac||this._smpLoading||typeof fetch!=='function')return;this._smpLoading=1;
+    const add=(key,url)=>fetch(url).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer();}).then(b=>new Promise((res,rej)=>ac.decodeAudioData(b,res,rej))).then(buf=>{(this.SMP[key]=this.SMP[key]||[]).push(buf);}).catch(()=>{});
+    for(const k in SFX_FILES)for(let i=0;i<SFX_FILES[k];i++)add(k,'assets/sfx/'+k+i+'.mp3');
+    VOICE_FILES.forEach(v=>add('vo_'+v,'assets/voice/'+v+'.mp3'));},
+  smp(key,vol=1,rate=1,delay=0){const ac=this.ac,a=this.SMP[key];if(!ac||this.muted||!a||!a.length)return false;
+    const s=ac.createBufferSource();s.buffer=a[Math.floor(Math.random()*a.length)];s.playbackRate.value=rate*(key.startsWith('vo_')?1:rand(0.93,1.07));
+    const g=ac.createGain();g.gain.value=vol;s.connect(g);g.connect(this.out);s.start(ac.currentTime+delay);return s.buffer.duration/s.playbackRate.value;},
+  vo(name,delay=0){return this.smp('vo_'+name,0.95,1,delay);},          // announcer line, heard by everyone online
+  voLocal(name,delay=0){return this.smp('vo_'+name,0.95,1,delay);},     // never broadcast (e.g. "you win" from each player's own point of view)
+  voRound(n){const d=this.smp('vo_round',0.95);if(d&&n>=1&&n<=6)this.smp('vo_'+n,0.95,1,d*0.92);},
+  metal(){if(!this.smp('metalH',0.8))this.thud();},
+  plate(){if(!this.smp('plateH',0.7))this.glass();},
+  wood(){if(!this.smp('woodH',0.85))this.thud();},
   setMuted(m){this.muted=m;if(this.out)this.out.gain.value=m?0:1;},
   env(g,t,a,p,d){g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(p,t+a);g.gain.exponentialRampToValueAtTime(0.0001,t+d);},
   noise(dur,type,f,q,peak,to,a=0.005,delay=0){const ac=this.ac;if(!ac||this.muted)return;const t=ac.currentTime+delay;const s=ac.createBufferSource();s.buffer=this.nb;const fl=ac.createBiquadFilter();fl.type=type;fl.frequency.setValueAtTime(f,t);if(to)fl.frequency.exponentialRampToValueAtTime(to,t+dur);fl.Q.value=q;const g=ac.createGain();this.env(g,t,a,peak,dur);s.connect(fl);fl.connect(g);g.connect(this.out);s.start(t,Math.random()*0.5);s.stop(t+dur+0.05);},
@@ -184,25 +199,26 @@ const SFX={ac:null,nb:null,out:null,musOut:null,ambOut:null,muted:false,mus:null
       const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1200*(0.8+p*0.2)*(kind==='win'||kind==='laugh'?1.35:1);f2.Q.value=7;
       const g=ac.createGain();this.env(g,t,0.012,0.9,K[2]+0.04);o.connect(f1);o.connect(f2);f1.connect(g);f2.connect(g);g.connect(this.out);o.start(t);o.stop(t+K[2]+0.1);}},
   whoosh(){this.noise(rand(0.1,0.18),'bandpass',rand(400,800),rand(0.8,1.6),0.1,rand(1800,3200));},
-  hit(h){const v=Math.floor(Math.random()*3),p=rand(0.85,1.2);
+  hit(h){if(this.smp(h?'punchH':'punchM',h?1:0.8)){if(h)this.tone('sine',95,38,0.2,0.45);return;}
+    const v=Math.floor(Math.random()*3),p=rand(0.85,1.2);
     if(v===0){this.noise(h?0.22:0.12,'lowpass',(h?1000:2200)*p,0.7,h?0.9:0.55);this.tone('sine',(h?140:200)*p,40,h?0.2:0.1,h?0.8:0.5);}
     else if(v===1){this.noise(0.08,'bandpass',1800*p,1.5,0.7);this.noise(h?0.25:0.1,'lowpass',520*p,0.7,h?0.8:0.4);this.tone('triangle',(h?110:170)*p,50,0.12,0.5);}
     else{this.noise(0.05,'highpass',3000*p,0.7,0.5);this.tone('square',(h?90:150)*p,45,h?0.18:0.09,h?0.42:0.28);this.noise(h?0.3:0.12,'lowpass',800,0.7,h?0.7:0.35);}
     if(h&&Math.random()<0.5)this.tone('sine',60,30,0.35,0.6);},
-  block(){this.tone('square',rand(340,420),220,0.07,0.1);this.noise(0.06,'highpass',2500,0.7,0.22);},
-  bell(){[0,0.32].forEach(d=>{this.tone('sine',1320,0,1.2,0.3,d);this.tone('sine',2640,0,0.8,0.1,d);this.tone('triangle',660,0,1.0,0.14,d);});},
-  koBell(){[0,0.17,0.34].forEach(d=>{this.tone('sine',1480,0,0.7,0.22,d);this.tone('triangle',740,0,0.5,0.1,d);});},
+  block(){if(this.smp('softM',0.7,1.3))return;this.tone('square',rand(340,420),220,0.07,0.1);this.noise(0.06,'highpass',2500,0.7,0.22);},
+  bell(){if(this.smp('bell',0.75)){this.smp('bell',0.6,1,0.32);return;}[0,0.32].forEach(d=>{this.tone('sine',1320,0,1.2,0.3,d);this.tone('sine',2640,0,0.8,0.1,d);this.tone('triangle',660,0,1.0,0.14,d);});},
+  koBell(){if(this.smp('bell',0.7,1.08)){this.smp('bell',0.6,1.08,0.17);this.smp('bell',0.55,1.08,0.34);return;}[0,0.17,0.34].forEach(d=>{this.tone('sine',1480,0,0.7,0.22,d);this.tone('triangle',740,0,0.5,0.1,d);});},
   crowd(){this.noise(1.8,'bandpass',700,0.4,0.3,0,0.3);this.noise(1.4,'bandpass',1500,0.6,0.12,0,0.3);this.noise(0.9,'bandpass',rand(900,1300),3,0.08,0,0.05,0.3);},
   piano(){const base=[48,50,52,53,55,57,59,60,62,64,65,67];for(let i=0;i<4;i++){const m=pick(base)+(Math.random()<.3?12:0);const f=440*Math.pow(2,(m-69)/12);const d=Math.random()*0.03;this.tone('triangle',f,0,1.4,0.16,d);this.tone('sine',f*2,0,0.7,0.05,d);}this.noise(0.1,'lowpass',500,0.7,0.5);},
-  thud(){this.tone('sine',rand(75,100),35,0.25,0.7);this.noise(0.15,'lowpass',600,0.7,0.5);},
-  land(){this.noise(0.12,'lowpass',400,0.7,0.3);this.tone('sine',80,40,0.12,0.25);},
-  step(s){this.noise(0.035,s?'bandpass':'lowpass',s?rand(1200,1600):rand(500,700),1,0.06);},
+  thud(){if(this.smp('softH',0.9)){this.tone('sine',80,35,0.2,0.35);return;}this.tone('sine',rand(75,100),35,0.25,0.7);this.noise(0.15,'lowpass',600,0.7,0.5);},
+  land(){if(this.smp('softH',0.55,1.15))return;this.noise(0.12,'lowpass',400,0.7,0.3);this.tone('sine',80,40,0.12,0.25);},
+  step(s){if(this.smp(s===2?'stepCarpet':s?'stepStone':'stepWood',0.35))return;this.noise(0.035,s?'bandpass':'lowpass',s?rand(1200,1600):rand(500,700),1,0.06);},
   guitar(){[82.4,110,146.8,196,246.9,329.6].forEach((x,i)=>this.tone('sawtooth',x,0,1.0,0.05,i*0.015));},
   violin(){const f=pick([392,440,494,523,587,659]);this.tone('sawtooth',f,f*1.02,0.55,0.07);this.tone('sawtooth',f*1.5,0,0.45,0.025);this.noise(0.3,'bandpass',f*3,6,0.05);},
   cello(){const f=pick([65.4,73.4,82.4,98]);this.tone('sawtooth',f,f*0.98,0.9,0.12);this.tone('triangle',f*2,0,0.7,0.06);},
   chord(i){const r=[1,1.335,1.5][i|0]||1;[82.4,123.5,164.8,164.8].forEach(x=>{this.tone('sawtooth',x*r,0,1.1,0.11);this.tone('square',x*r*1.006,0,0.9,0.05);});this.noise(0.3,'lowpass',900,0.7,0.4);if((i|0)===2){this.tone('sine',55,30,0.8,0.7);this.noise(0.8,'lowpass',2500,0.5,0.5,300);}},
-  glass(){this.tone('sine',2400,0,0.5,0.18);this.tone('sine',3150,0,0.4,0.1,0.02);this.noise(0.12,'highpass',4000,0.7,0.3);},
-  glassBreak(){for(let i=0;i<9;i++)this.tone('sine',rand(2500,5600),0,rand(0.2,0.7),0.07,rand(0,0.2));this.noise(0.6,'highpass',2500,0.5,0.6,7000);this.noise(0.25,'lowpass',900,0.7,0.6);},
+  glass(){if(this.smp('glassL',0.7))return;this.tone('sine',2400,0,0.5,0.18);this.tone('sine',3150,0,0.4,0.1,0.02);this.noise(0.12,'highpass',4000,0.7,0.3);},
+  glassBreak(){if(this.smp('glassH',1)){this.smp('glassL',0.6,1.2,0.08);return;}for(let i=0;i<9;i++)this.tone('sine',rand(2500,5600),0,rand(0.2,0.7),0.07,rand(0,0.2));this.noise(0.6,'highpass',2500,0.5,0.6,7000);this.noise(0.25,'lowpass',900,0.7,0.6);},
   alarm(){for(let i=0;i<6;i++)this.tone('square',i%2?880:660,0,0.14,0.08,i*0.16);},
   horn(){this.tone('square',420,0,0.25,0.12);this.tone('square',520,0,0.25,0.08);this.tone('square',420,0,0.22,0.12,0.32);},
   engine(){this.noise(1.6,'lowpass',260,3,0.35,900,0.2);this.tone('sawtooth',70,140,1.4,0.08);},
@@ -214,7 +230,7 @@ const SFX={ac:null,nb:null,out:null,musOut:null,ambOut:null,muted:false,mus:null
   coin(){this.tone('square',988,0,0.08,0.1);this.tone('square',1319,0,0.3,0.1,0.08);},
   drink(){this.tone('sine',400,900,0.12,0.18);this.tone('sine',500,1100,0.12,0.15,0.13);},
   jump(){this.tone('sine',rand(280,330),rand(480,560),0.1,0.08);},
-  crash(){this.piano();this.thud();this.noise(0.5,'lowpass',1400,0.6,0.7);},
+  crash(){this.piano();this.thud();if(!this.smp('woodH',1))this.noise(0.5,'lowpass',1400,0.6,0.7);},
   sofa(){this.tone('sine',70,30,0.45,0.8);this.noise(0.45,'lowpass',300,0.7,0.8);this.tone('triangle',180,90,0.3,0.2,0.05);},
   tornado(){this.noise(1.0,'bandpass',350,1,0.35,1800,0.1);this.tone('sine',300,900,0.9,0.06);},
   flex(){this.voice(0.7,'grunt');this.tone('sawtooth',70,150,0.55,0.15);this.noise(0.5,'lowpass',400,1,0.6,1500,0.05);},
@@ -244,7 +260,9 @@ const SFX={ac:null,nb:null,out:null,musOut:null,ambOut:null,muted:false,mus:null
   amb(level){if(!this.ambOut||level===this.ambLvl)return;this.ambLvl=level;this.ambOut.gain.setTargetAtTime(level*0.14,this.ac.currentTime,0.6);},
 };
 // sounds that stay local (never broadcast to online clients)
-const SFX_LOCAL=new Set(['init','env','noise','tone','setMuted','step','music','musicTempo','_musTick','_note','_hat','_kick','startAmb','amb']);
+const SFX_FILES={punchM:5,punchH:5,softM:3,softH:3,glassH:3,glassL:2,woodH:3,woodM:2,metalH:2,metalM:2,plateH:2,bell:1,stepWood:5,stepStone:5,stepCarpet:5};
+const VOICE_FILES=['round','final_round','ready','go','you_win','you_lose','its_a_tie','time_over','hurry_up','game_over','congratulations','power_up','level_up','war_look_out','war_fire_in_the_hole','1','2','3','4','5','6','f_you_win','f_you_lose','f_ready'];
+const SFX_LOCAL=new Set(['loadSamples','smp','voLocal','init','env','noise','tone','setMuted','step','music','musicTempo','_musTick','_note','_hat','_kick','startAmb','amb']);
 
 
 /* ================= THREE SETUP ================= */

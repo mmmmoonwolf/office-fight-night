@@ -58,7 +58,7 @@ function spawnCloud(f){return cloudAt(f.pos.x,f.y,f.pos.z,f);}
 function cloudAt(x,y,z,owner){const g=new THREE.Group();const mat=new THREE.MeshStandardMaterial({color:0x9fc59a,transparent:true,opacity:.5,roughness:1,depthWrite:false});
   for(let i=0;i<14;i++){const s=new THREE.Mesh(new THREE.SphereGeometry(rand(.6,1.1),10,8),mat);s.position.set(rand(-2,2),rand(0.3,1.8),rand(-2,2));g.add(s);}
   g.position.set(x,y,z);scene.add(g);clouds.push({g,mat,x,z,y,t:0,life:5.5,owner,tick:0});}
-function spawnDrop(f,x,z){const y=groundAt(x,z,20);dropAt(x,z,f);popup('⚠️ แกรนด์กำลังตก!',V(x,y+1.5,z),'crit',1);}
+function spawnDrop(f,x,z){const y=groundAt(x,z,20);dropAt(x,z,f);SFX.vo('war_fire_in_the_hole');popup('⚠️ แกรนด์กำลังตก!',V(x,y+1.5,z),'crit',1);}
 function mkSofa(){const g=new THREE.Group();const m=M('#3aa59a',{roughness:.8}),d=M('#2a7f76');vbox(2.1,0.45,0.95,m,0,0.35,0,g);vbox(2.1,0.7,0.25,d,0,0.8,-0.38,g);for(const s of[-1,1])vbox(0.25,0.6,0.95,d,s*1.0,0.55,0,g);for(const s of[-1,1])vbox(0.9,0.15,0.75,M('#f3d9a4'),s*0.48,0.64,0.06,g);return g;}
 function dropAt(x,z,owner,kind){kind=kind==='sofa'?'sofa':'grand';const y=groundAt(x,z,20);
   const warn=new THREE.Mesh(new THREE.CircleGeometry(1.9,32),new THREE.MeshBasicMaterial({color:0xff2020,transparent:true,opacity:.35}));warn.rotation.x=-Math.PI/2;warn.position.set(x,y+0.03,z);scene.add(warn);
@@ -265,7 +265,7 @@ function buildHair(Hd,ch,mat){
   return backMat;
 }
 const UPV=V(0,1,0);
-const WALLFX={piano:['ชนเปียโน! 🎹','piano'],grand:['ชนแกรนด์! 🎹','piano'],bench:['ชนเก้าอี้!','thud'],guitar:['ชนกีตาร์! 🎸','guitar'],glass:['ชนกระจก!','glass'],counter:['ชนเคาน์เตอร์!','thud'],box:['ชนกล่องพัสดุ! 📦','thud'],shelf:['หนังสือร่วง! 📚','thud'],car:['รถร้อง! 🚨','alarm'],bike:['ชนมอไซค์!','thud'],cart:['ส้มตำหก! 🌶','thud'],pole:['ชนเสาไฟ!','thud'],planter:['ชนกระถาง!','thud'],stage:['ชนแท่น!','thud'],mezz:['ติดผนัง!','thud'],stairs:['ชนบันได!','thud'],desk:['ชนโต๊ะ!','thud'],case:['ชนตู้ไวโอลิน! 🎻','violin'],cello:['ชนเชลโล่! 🎻','cello'],glass2:['ชนกระจก!','glass'],wall:['ติดผนัง!','thud']};
+const WALLFX={piano:['ชนเปียโน! 🎹','piano'],grand:['ชนแกรนด์! 🎹','piano'],bench:['ชนเก้าอี้!','thud'],guitar:['ชนกีตาร์! 🎸','guitar'],glass:['ชนกระจก!','glass'],counter:['ชนเคาน์เตอร์!','thud'],box:['ชนกล่องพัสดุ! 📦','thud'],shelf:['หนังสือร่วง! 📚','thud'],car:['รถร้อง! 🚨','alarm'],bike:['ชนมอไซค์!','metal'],cart:['ส้มตำหก! 🌶','thud'],pole:['ชนเสาไฟ!','metal'],planter:['ชนกระถาง!','thud'],stage:['ชนแท่น!','thud'],amp:['ชนตู้แอมป์! 🔊','wood'],sofa:['ล้มลงโซฟา! 🛋️','sofa'],table:['ชนโต๊ะ!','wood'],lamp:['ชนโคมไฟ! 💡','glass'],tv:['ชนทีวี! 📺','glass'],drums:['ชนกลอง! 🥁','plate'],keyboard:['ชนคีย์บอร์ด!','plate'],ac:['ชนแอร์!','metal'],bin:['ชนถังขยะ! 🗑️','metal'],mezz:['ติดผนัง!','thud'],stairs:['ชนบันได!','thud'],desk:['ชนโต๊ะ!','thud'],case:['ชนตู้ไวโอลิน! 🎻','violin'],cello:['ชนเชลโล่! 🎻','cello'],glass2:['ชนกระจก!','glass'],wall:['ติดผนัง!','thud']};
 const tigerTex=canvasTex(128,64,(g,w,h)=>{g.fillStyle='#ff9a1a';g.fillRect(0,0,w,h);g.fillStyle='#111';for(let i=0;i<9;i++){g.beginPath();const x=i*15;g.moveTo(x,0);g.lineTo(x+8,0);g.lineTo(x+2,h);g.lineTo(x-5,h);g.fill();}});
 
 class Fighter{
@@ -608,7 +608,7 @@ class Fighter{
       const g2=groundAt(this.pos.x,this.pos.z,this.y);
       if(this.y>g2+0.001||this.vy>0){this.airTop=Math.max(this.airTop||this.y,this.y);this.vy-=GRAV*dt;this.y+=this.vy*dt;if(this.y<=g2){this.y=g2;this.land();}}
       else{this.y=g2;this.vy=0;this.airTop=this.y;
-        if(this.moving>0.3&&this.human!=null){this.stepT=(this.stepT||0)-dt*this.moving;if(this.stepT<=0){this.stepT=0.27;SFX.step(this.pos.z>3?1:0);}}}
+        if(this.moving>0.3&&this.human!=null){this.stepT=(this.stepT||0)-dt*this.moving;if(this.stepT<=0){this.stepT=0.27;SFX.step(lvlOf(this)==='f2'?2:zoneOf(this.pos)==='out'?1:0);}}}
       resolveBlocks(this);
       this.pos.x=clamp(this.pos.x,WORLD.x0,WORLD.x1);this.pos.z=clamp(this.pos.z,WORLD.z0,WORLD.z1);
     }
