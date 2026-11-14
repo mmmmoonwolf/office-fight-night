@@ -42,4 +42,6 @@ npm test             # ทดสอบแบบ headless (three.js ถูก stu
 
 เสียงเอฟเฟกต์ เสียงพากย์ และโมเดลเฟอร์นิเจอร์จาก [Kenney](https://kenney.nl) (Impact Sounds, Voiceover Pack, Furniture Kit) — สัญญาอนุญาต CC0
 
+เพลงประกอบและเสียงการ์ตูน (กรีดร้องตอน KO, จรวดพุ่ง, เสียงเท้า) จาก [Pixabay](https://pixabay.com) — Pixabay Content License: tatamusic (menu), lnplusmusic (fight), hitslab (training), sonican (win stinger), universfield, freesound_community
+
 ตัวละคร 3D และท่าต่อสู้จาก [Mixamo](https://www.mixamo.com) (Adobe) — ใช้ในเกมนี้เท่านั้น

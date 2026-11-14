@@ -189,13 +189,14 @@ const SFX={ac:null,nb:null,out:null,musOut:null,ambOut:null,muted:false,mus:null
   noise(dur,type,f,q,peak,to,a=0.005,delay=0){const ac=this.ac;if(!ac||this.muted)return;const t=ac.currentTime+delay;const s=ac.createBufferSource();s.buffer=this.nb;const fl=ac.createBiquadFilter();fl.type=type;fl.frequency.setValueAtTime(f,t);if(to)fl.frequency.exponentialRampToValueAtTime(to,t+dur);fl.Q.value=q;const g=ac.createGain();this.env(g,t,a,peak,dur);s.connect(fl);fl.connect(g);g.connect(this.out);s.start(t,Math.random()*0.5);s.stop(t+dur+0.05);},
   tone(type,f0,f1,dur,peak,delay=0){const ac=this.ac;if(!ac||this.muted)return;const t=ac.currentTime+delay;const o=ac.createOscillator();o.type=type;o.frequency.setValueAtTime(f0,t);if(f1)o.frequency.exponentialRampToValueAtTime(f1,t+dur);const g=ac.createGain();this.env(g,t,0.005,peak,dur);o.connect(g);g.connect(this.out);o.start(t);o.stop(t+dur+0.05);},
   // cartoon voice: a sawtooth through two formant filters, pitch-glided by mood
-  voice(p,kind){const ac=this.ac;if(!ac||this.muted)return;p=clamp(+p||1,0.5,2.2);const K={atk:[1.0,1.35,0.15],hurt:[1.45,0.8,0.22],ko:[1.35,0.42,0.75],win:[1.0,1.7,0.32],sp:[0.85,1.55,0.42],grunt:[0.95,0.72,0.13],laugh:[1.3,1.1,0.1]}[kind]||[1,1,0.15];
+  voice(p,kind){const ac=this.ac;if(!ac||this.muted)return;p=clamp(+p||1,0.5,2.2);if(kind==='ko'&&this.smp('scream',0.8,clamp(p,0.85,1.25)))return;const K={atk:[1.0,1.35,0.15],hurt:[1.45,0.8,0.22],ko:[1.35,0.42,0.75],win:[1.0,1.7,0.32],sp:[0.85,1.55,0.42],grunt:[0.95,0.72,0.13],laugh:[1.3,1.1,0.1]}[kind]||[1,1,0.15];
     const reps=kind==='laugh'?4:kind==='win'?2:1;
     for(let r=0;r<reps;r++){const t=ac.currentTime+r*(kind==='laugh'?0.11:0.2);const base=165*p*(kind==='win'&&r?1.25:1);
       const o=ac.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(base*K[0],t);o.frequency.exponentialRampToValueAtTime(base*K[1],t+K[2]);
       const f1=ac.createBiquadFilter();f1.type='bandpass';f1.frequency.value=(kind==='hurt'||kind==='ko'?780:640)*(0.75+p*0.25);f1.Q.value=5;
       const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1200*(0.8+p*0.2)*(kind==='win'||kind==='laugh'?1.35:1);f2.Q.value=7;
       const g=ac.createGain();this.env(g,t,0.012,0.9,K[2]+0.04);o.connect(f1);o.connect(f2);f1.connect(g);f2.connect(g);g.connect(this.out);o.start(t);o.stop(t+K[2]+0.1);}},
+  koWhoosh(){this.smp('rocket',0.6);},
   whoosh(){this.noise(rand(0.1,0.18),'bandpass',rand(400,800),rand(0.8,1.6),0.1,rand(1800,3200));},
   hit(h){if(this.smp(h?'punchH':'punchM',h?1:0.8)){if(h)this.tone('sine',95,38,0.2,0.45);return;}
     const v=Math.floor(Math.random()*3),p=rand(0.85,1.2);
@@ -210,7 +211,7 @@ const SFX={ac:null,nb:null,out:null,musOut:null,ambOut:null,muted:false,mus:null
   piano(){const base=[48,50,52,53,55,57,59,60,62,64,65,67];for(let i=0;i<4;i++){const m=pick(base)+(Math.random()<.3?12:0);const f=440*Math.pow(2,(m-69)/12);const d=Math.random()*0.03;this.tone('triangle',f,0,1.4,0.16,d);this.tone('sine',f*2,0,0.7,0.05,d);}this.noise(0.1,'lowpass',500,0.7,0.5);},
   thud(){if(this.smp('softH',0.9)){this.tone('sine',80,35,0.2,0.35);return;}this.tone('sine',rand(75,100),35,0.25,0.7);this.noise(0.15,'lowpass',600,0.7,0.5);},
   land(){if(this.smp('softH',0.55,1.15))return;this.noise(0.12,'lowpass',400,0.7,0.3);this.tone('sine',80,40,0.12,0.25);},
-  step(s){if(this.smp(s===2?'stepCarpet':s?'stepStone':'stepWood',0.35))return;this.noise(0.035,s?'bandpass':'lowpass',s?rand(1200,1600):rand(500,700),1,0.06);},
+  step(s){if(this.smp('stepToon',0.22,s===1?1.12:s===2?0.88:1)||this.smp(s===2?'stepCarpet':s?'stepStone':'stepWood',0.35))return;this.noise(0.035,s?'bandpass':'lowpass',s?rand(1200,1600):rand(500,700),1,0.06);},
   guitar(){[82.4,110,146.8,196,246.9,329.6].forEach((x,i)=>this.tone('sawtooth',x,0,1.0,0.05,i*0.015));},
   violin(){const f=pick([392,440,494,523,587,659]);this.tone('sawtooth',f,f*1.02,0.55,0.07);this.tone('sawtooth',f*1.5,0,0.45,0.025);this.noise(0.3,'bandpass',f*3,6,0.05);},
   cello(){const f=pick([65.4,73.4,82.4,98]);this.tone('sawtooth',f,f*0.98,0.9,0.12);this.tone('triangle',f*2,0,0.7,0.06);},
@@ -240,7 +241,28 @@ const SFX={ac:null,nb:null,out:null,musOut:null,ambOut:null,muted:false,mus:null
   powerDown(){this.tone('sine',520,45,0.9,0.28);},
   swish(){this.noise(0.25,'bandpass',900,2,0.15,3000);},
   /* procedural lounge music: Cmaj7-Am7-Dm7-G7 arpeggios + bass + hats */
-  music(on){if(!this.ac)return;if(on&&!this.mus){this.mus={next:this.ac.currentTime+0.15,step:0,tempo:96};this.mus.timer=setInterval(()=>this._musTick(),90);}else if(!on&&this.mus){clearInterval(this.mus.timer);this.mus=null;}},
+  /* recorded BGM (Pixabay, assets/music): one <audio> per track routed through bgmOut, cross-faded when the wanted track
+     changes (game loop → bgm(name, rate)); 'win' plays once, then the menu track. If a file can't play, the procedural
+     lounge loop below takes over. */
+  BGM_LOOP:{menu:1,fight:1,train:1,win:0},bgmEl:{},bgmCur:null,bgmOK:false,bgmFail:false,
+  bgm(name,rate=1){const ac=this.ac;if(!ac||this.bgmFail||typeof Audio==='undefined')return;
+    if(name==='win'&&this.bgmWinDone)name='menu';if(name!=='win')this.bgmWinDone=false;
+    const cur=this.bgmEl[this.bgmCur];if(cur&&cur.el.playbackRate!==rate&&name===this.bgmCur)cur.el.playbackRate=rate;
+    if(name===this.bgmCur)return;
+    if(cur){const g=cur.g.gain;g.cancelScheduledValues(ac.currentTime);g.setValueAtTime(g.value,ac.currentTime);g.linearRampToValueAtTime(0,ac.currentTime+0.6);
+      const el=cur.el;setTimeout(()=>{if(this.bgmCur!==cur.name)el.pause();},700);}
+    this.bgmCur=name;let t=this.bgmEl[name];
+    try{if(!t){if(!this.bgmOut){this.bgmOut=ac.createGain();this.bgmOut.gain.value=0.42;this.bgmOut.connect(this.out);}
+        const el=new Audio('assets/music/'+name+'.mp3');el.loop=!!this.BGM_LOOP[name];el.preload='auto';
+        const g=ac.createGain();g.gain.value=0;ac.createMediaElementSource(el).connect(g);g.connect(this.bgmOut);
+        t=this.bgmEl[name]={name,el,g};
+        el.addEventListener('playing',()=>{if(!this.bgmOK){this.bgmOK=true;this.music(false);}});
+        el.addEventListener('ended',()=>{if(name==='win')this.bgmWinDone=true;});
+        el.addEventListener('error',()=>{this.bgmFail=true;this.bgmCur=null;this.music(true);});}
+      if(name!=='menu'&&name!=='train'||!t.el.loop)t.el.currentTime=0;t.el.playbackRate=rate;
+      const g=t.g.gain;g.cancelScheduledValues(ac.currentTime);g.setValueAtTime(0,ac.currentTime);g.linearRampToValueAtTime(name==='win'?1.1:1,ac.currentTime+0.5);
+      const p=t.el.play();if(p&&p.catch)p.catch(()=>{if(this.bgmCur===name)this.bgmCur=null;});}catch(e){this.bgmFail=true;}},
+  music(on){if(!this.ac)return;if(on&&this.bgmOK)return;if(on&&!this.mus){this.mus={next:this.ac.currentTime+0.15,step:0,tempo:96};this.mus.timer=setInterval(()=>this._musTick(),90);}else if(!on&&this.mus){clearInterval(this.mus.timer);this.mus=null;}},
   musicTempo(bpm){if(this.mus)this.mus.tempo=bpm;},
   _musTick(){const ac=this.ac,M=this.mus;if(!M)return;if(M.next<ac.currentTime)M.next=ac.currentTime+0.05;
     const prog=[[48,52,55,59],[45,48,52,55],[50,53,57,60],[43,47,50,53]],pat=[0,1,2,3,2,1,2,3];
@@ -258,9 +280,9 @@ const SFX={ac:null,nb:null,out:null,musOut:null,ambOut:null,muted:false,mus:null
   amb(level){if(!this.ambOut||level===this.ambLvl)return;this.ambLvl=level;this.ambOut.gain.setTargetAtTime(level*0.14,this.ac.currentTime,0.6);},
 };
 // sounds that stay local (never broadcast to online clients)
-const SFX_FILES={punchM:5,punchH:5,softM:3,softH:3,glassH:3,glassL:2,woodH:3,woodM:2,metalH:2,metalM:2,plateH:2,bell:1,stepWood:5,stepStone:5,stepCarpet:5};
+const SFX_FILES={scream:2,rocket:1,stepToon:4,punchM:5,punchH:5,softM:3,softH:3,glassH:3,glassL:2,woodH:3,woodM:2,metalH:2,metalM:2,plateH:2,bell:1,stepWood:5,stepStone:5,stepCarpet:5};
 const VOICE_FILES=['round','final_round','ready','go','you_win','you_lose','its_a_tie','time_over','hurry_up','game_over','congratulations','power_up','level_up','war_look_out','war_fire_in_the_hole','1','2','3','4','5','6','f_you_win','f_you_lose','f_ready'];
-const SFX_LOCAL=new Set(['loadSamples','smp','voLocal','init','env','noise','tone','setMuted','step','music','musicTempo','_musTick','_note','_hat','_kick','startAmb','amb']);
+const SFX_LOCAL=new Set(['loadSamples','smp','voLocal','init','env','noise','tone','setMuted','step','music','musicTempo','bgm','_musTick','_note','_hat','_kick','startAmb','amb']);
 
 
 /* ================= THREE SETUP ================= */

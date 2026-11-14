@@ -80,6 +80,7 @@ npm test        # node test/e2e.js — offline flow + host/2 clients online flow
 | `assets/models/char_*.glb`, `assets/portraits/*.png` | the cast's Mixamo models and their card portraits (`scripts/bake-anim/portraits.js`) |
 | `js/vendor/GLTFLoader.js` | three.js r128 `examples/js` GLTFLoader (MIT), vendored; test pages strip it |
 | `assets/sfx/*.mp3` | Kenney **Impact Sounds** (CC0): punches, soft/wood/metal/plate/glass impacts, bell, footsteps on wood/concrete/carpet |
+| `assets/music/*.mp3` | BGM from Pixabay (Content License): `menu` (menu/lobby), `fight` (rounds, ×1.08 in the last 15 s), `train` (training room), `win` (end screen stinger, once, then `menu`) — played by `SFX.bgm(name, rate)` from the main loop; the procedural `music` loop is only the fallback. `assets/sfx/scream*`, `rocket0`, `stepToon*` are Pixabay too (KO scream via `voice(…,'ko')`, `koWhoosh`, cartoon footsteps in `step`) |
 | `assets/voice/*.mp3` | Kenney **Voiceover Pack** (CC0) announcer lines (`f_` = female voice) |
 | `assets/models/*.glb` | Kenney **Furniture Kit** (CC0) models used in the shop and as weapons |
 | `scripts/serve.js` | zero-dependency static server with the three page variants |
