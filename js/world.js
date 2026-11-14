@@ -603,13 +603,13 @@ function mkMovers(){const g=new THREE.Group();const up=upright(0,0,Math.PI/2);sc
 function startMovers(){
   const {g,ps}=mkMovers();
   const dir=Math.random()<.5?1:-1;NPC.movers={g,p:ps,x:dir>0?-14:10.4,z:pick([-4.5,-2.6,-0.4,1.0]),dir,cd:new Map()};scene.add(g);
-  banner('🎹 ทีมย้ายเปียโนกำลังเข็นผ่าน! หลบด้วย!',3.5);
+  banner('🎹 Piano movers coming through — out of the way!',3.5);
 }
 const mkCustomer=()=>makePerson('#54a0ff',null,'#3a2a1a');
 function startCustomer(){
   const p=mkCustomer();scene.add(p.g);
   NPC.customer={p,x:rand(-6,6),z:12.5,path:[{x:0,z:5},{x:0,z:1.5},{x:6.6,z:-0.8},{x:0,z:1.6},{x:0,z:5},{x:pick([-18,18]),z:5.5}],i:0,wait:0};
-  setTimeout(()=>{if(NPC.customer){SFX.chime();banner('🛎️ ลูกค้าเข้าร้าน! ทำตัวปกติ ห้ามต่อยในร้าน!',4.5);}},2600);
+  setTimeout(()=>{if(NPC.customer){SFX.chime();banner('🛎️ Customer in the shop! Act normal — no punching inside!',4.5);}},2600);
 }
 
 /* ================= RAIN ================= */
@@ -619,7 +619,7 @@ const RAIN={n:900,geo:null,pts:null,on:0};
   for(let i=0;i<RAIN.n;i++)resetDrop(i,true);})();
 function resetDrop(i,initial){const p=RAIN.pos,cx=RAIN.cx||0,cz=RAIN.cz||10;const x=cx+rand(-18,18),z=cz+rand(-12,12),y=initial?rand(0,14):14;p[i*6]=x;p[i*6+1]=y;p[i*6+2]=z;p[i*6+3]=x+0.05;p[i*6+4]=y-0.6;p[i*6+5]=z+0.05;}
 function updRain(dt,focus){
-  if(G.rain>0){G.rain-=dt;if(G.rain<=0)banner('☀️ ฝนหยุดแล้ว',2);}
+  if(G.rain>0){G.rain-=dt;if(G.rain<=0)banner('☀️ The rain stopped',2);}
   const want=G.rain>0?1:0;RAIN.on=lerp(RAIN.on,want,1-Math.exp(-1.5*dt));
   RAIN.ls.visible=RAIN.on>0.02;
   EV.dark=lerp(EV.dark,EV.blackout>0?1:0,1-Math.exp(-3*dt));const dk=1-EV.dark*0.78,fl=EV.flash>0?(EV.flash-=dt,1.8):1;
@@ -652,23 +652,23 @@ function updWater(dt){ // visuals only (runs on host and clients)
 }
 function startFlood(){if(G.rain<=0)G.rain=30;FLOOD.t=26;FLOOD.zap=-1;FLOOD.zapT=rand(7,11);
   FLOOD.junk.forEach(j=>{j.x=rand(-30,28);j.z=pick([rand(8,14),rand(-20,-15),rand(-11,2)]);j.vx=rand(-.6,.6);j.vz=rand(-.4,.4);});
-  banner('🌊 น้ำท่วม! เดินลุยน้ำช้า ระวังสายไฟช็อต ⚡',4);SFX.thunder();}
+  banner('🌊 FLOOD! Wading is slow — watch out for live wires ⚡',4);SFX.thunder();}
 function updFlood(dt){
-  if(FLOOD.t>0){FLOOD.t-=dt;const want=FLOOD.t>5?0.5:0;FLOOD.lvl=want>FLOOD.lvl?Math.min(want,FLOOD.lvl+dt*0.09):Math.max(0,FLOOD.lvl-dt*0.12);if(FLOOD.t<=0){FLOOD.zap=-1;banner('☀️ น้ำลดแล้ว',2);}}
+  if(FLOOD.t>0){FLOOD.t-=dt;const want=FLOOD.t>5?0.5:0;FLOOD.lvl=want>FLOOD.lvl?Math.min(want,FLOOD.lvl+dt*0.09):Math.max(0,FLOOD.lvl-dt*0.12);if(FLOOD.t<=0){FLOOD.zap=-1;banner('☀️ The water is going down',2);}}
   else FLOOD.lvl=Math.max(0,FLOOD.lvl-dt*0.15);
   if(FLOOD.lvl<0.1){FLOOD.zap=-1;return;}
   FLOOD.zapT-=dt;
-  if(FLOOD.zap<0&&FLOOD.zapT<=0&&FLOOD.t>7){FLOOD.zap=Math.floor(Math.random()*ZAP_POLES.length);FLOOD.zapT=6;const[x,z]=ZAP_POLES[FLOOD.zap];banner('⚡ สายไฟขาดตกน้ำ! หนีออกจากเสาไฟ!',3);SFX.shock();popup('⚡⚡⚡',V(x,2,z),'crit',1.5);}
+  if(FLOOD.zap<0&&FLOOD.zapT<=0&&FLOOD.t>7){FLOOD.zap=Math.floor(Math.random()*ZAP_POLES.length);FLOOD.zapT=6;const[x,z]=ZAP_POLES[FLOOD.zap];banner('⚡ A cable fell in the water! Get away from the pole!',3);SFX.shock();popup('⚡⚡⚡',V(x,2,z),'crit',1.5);}
   else if(FLOOD.zap>=0&&FLOOD.zapT<=0){FLOOD.zap=-1;FLOOD.zapT=rand(6,9);}
   if(FLOOD.zap>=0){FLOOD.tick-=dt;if(FLOOD.tick<=0){FLOOD.tick=0.45;const[x,z]=ZAP_POLES[FLOOD.zap];
     ringFx(x,FLOOD.lvl,z,4.2,0xfff35a,0.4);burst(V(x+rand(-1.5,1.5),FLOOD.lvl+0.3,z+rand(-1.5,1.5)),0xfff35a,6,4);
     for(const f of G.f){if(f.state==='ko'||!inWater(f)||Math.hypot(f.pos.x-x,f.pos.z-z)>4.2)continue;
       f.takeHit(null,{dmg:3,knock:1,stun:.35,unblockable:1,dir:{x:f.pos.x-x,z:f.pos.z-z}});f.fx.dizzy=Math.max(f.fx.dizzy,0.6);popup('ช็อต!! ⚡',f.headPos().add(V(0,0.6,0)),'crit',0.8);SFX.shock();}}}
 }
-function startBlackout(){EV.blackout=12;SFX.powerDown();banner('🔌 ไฟดับ! มองไม่ค่อยเห็นแล้ว ต่อยมั่วไปก่อน',3.5);}
-function startStorm(){EV.storm=15;EV.gustT=1.5;if(G.rain<=0)G.rain=16;banner('🌪️ พายุเข้า! ลมกระโชกแรง ระวังปลิว',3.5);SFX.thunder();EV.flash=0.15;}
+function startBlackout(){EV.blackout=12;SFX.powerDown();banner('🔌 BLACKOUT! Can\'t see a thing — just swing!',3.5);}
+function startStorm(){EV.storm=15;EV.gustT=1.5;if(G.rain<=0)G.rain=16;banner('🌪️ STORM! Strong gusts — hold on to something',3.5);SFX.thunder();EV.flash=0.15;}
 function updStorm(dt){
-  if(EV.blackout>0){EV.blackout-=dt;if(EV.blackout<=0)banner('💡 ไฟมาแล้ว',1.8);}
+  if(EV.blackout>0){EV.blackout-=dt;if(EV.blackout<=0)banner('💡 Lights are back',1.8);}
   if(EV.storm<=0){EV.gust=null;return;}
   EV.storm-=dt;EV.gustT-=dt;
   if(EV.gustT<=0){EV.gustT=rand(2.2,3.4);const a=rand(0,Math.PI*2);EV.gust={x:Math.sin(a),z:Math.cos(a),t:1.1};SFX.gust();if(Math.random()<.35){SFX.thunder();EV.flash=0.12;}}
@@ -685,7 +685,7 @@ function mkVan(){const g=new THREE.Group();const w=M('#f4f4f4',{roughness:.4,met
   for(const[x,z]of[[0.9,1.6],[-0.9,1.6],[0.9,-1.5],[-0.9,-1.5]]){const wh=cyl(0.38,0.38,0.28,M('#151515'),x,0.38,z,g,14);wh.rotation.z=Math.PI/2;}
   return g;}
 const VANPATH=[[38,11.2],[-29.1,11.2],[-29.1,-17.8],[27.8,-17.8],[27.8,11.2],[-38,11.2]];
-function startVan(){const g=mkVan();scene.add(g);NPC.van={g,x:VANPATH[0][0],z:VANPATH[0][1],i:1,cd:new Map(),rot:-Math.PI/2};banner('🚚 รถส่งของซิ่งรอบร้าน! หลบด้วย!',3.5);SFX.horn();SFX.vo('war_look_out',0.3);}
+function startVan(){const g=mkVan();scene.add(g);NPC.van={g,x:VANPATH[0][0],z:VANPATH[0][1],i:1,cd:new Map(),rot:-Math.PI/2};banner('🚚 Delivery van racing round the block — dodge!',3.5);SFX.horn();SFX.vo('war_look_out',0.3);}
 function updVan(dt){const v=NPC.van;if(!v)return;const wp=VANPATH[v.i];if(!wp){scene.remove(v.g);NPC.van=null;return;}
   const dx=wp[0]-v.x,dz=wp[1]-v.z,d=Math.hypot(dx,dz),sp=11*dt;
   if(d<=sp){v.x=wp[0];v.z=wp[1];v.i++;}else{v.x+=dx/d*sp;v.z+=dz/d*sp;v.rot=lerpAngle(v.rot,Math.atan2(dx,dz),1-Math.exp(-8*dt));}
@@ -704,17 +704,17 @@ function mkGuitarItem(){const g=guitar('#d9a35a','#4a2810');g.scale.setScalar(0.
 function mkParcel(){const g=new THREE.Group();const m=M('#c89b62',{roughness:.9});vbox(0.5,0.42,0.5,m,0,0.21,0,g);vbox(0.52,0.06,0.12,M('#d9c08a'),0,0.42,0,g);return g;}
 function mkCone(){const g=new THREE.Group();const c=new THREE.Mesh(new THREE.ConeGeometry(0.22,0.65,12),M('#ff6a00'));c.position.y=0.36;c.castShadow=true;g.add(c);vbox(0.5,0.05,0.5,M('#ff6a00'),0,0.025,0,g);const s=cyl(0.15,0.17,0.1,M('#fff'),0,0.4,0,g,12);return g;}
 const WEAPONS={
-  chair:{name:'เก้าอี้เปียโน',dmg:1.6,range:0.6,knock:3,dur:5,throwDmg:13,mk:mkChair,hold:{p:[0,0.1,0.25],r:[0.3,0,1.4]}},
-  stand:{name:'ขาตั้งกีตาร์',dmg:1.3,range:1.0,knock:1.5,dur:6,throwDmg:10,mk:mkStand,hold:{p:[0,0.1,0.2],r:[1.3,0,0]}},
-  guitar:{name:'กีตาร์',dmg:1.5,range:0.8,knock:2.5,dur:3,throwDmg:12,mk:mkGuitarItem,hold:{p:[0,0.05,0.15],r:[1.4,0,0]},sfx:'guitar'},
-  box:{name:'กล่องพัสดุ',dmg:1.1,range:0.2,knock:1,dur:2,throwDmg:14,mk:mkParcel,hold:{p:[0,0,0.25],r:[0,0,0]}},
-  violin:{name:'ไวโอลิน',dmg:1.35,range:0.7,knock:2,dur:4,throwDmg:12,mk:()=>{const g=new THREE.Group();const v=mkViolin();v.position.y=0.15;v.rotation.x=-Math.PI/2;g.add(v);return g;},hold:{p:[0,0.05,0.2],r:[1.2,0,0]},sfx:'violin'},
-  cello:{name:'เชลโล่',dmg:2.0,range:1.1,knock:5,dur:3,throwDmg:18,mk:()=>{const g=new THREE.Group();const v=mkViolin('#7a3410');v.scale.setScalar(2.3);v.position.y=0.22;v.rotation.x=-Math.PI/2;g.add(v);return g;},hold:{p:[0,0.1,0.35],r:[1.3,0,0]},sfx:'cello'},
-  lamp:{name:'โคมไฟตั้งพื้น',dmg:1.4,range:1.2,knock:3,dur:4,throwDmg:12,mk:()=>fitModel(new THREE.Group(),'lampRoundFloor',0.32,1.5,0.35,'#ddd'),hold:{p:[0,0.05,0.2],r:[1.35,0,0]},sfx:'glass'},
-  bin:{name:'ถังขยะ',dmg:1.7,range:0.5,knock:5,dur:3,throwDmg:16,mk:()=>fitModel(new THREE.Group(),'trashcan',0.55,0.75,0.5,'#2e7d32'),hold:{p:[0,0.1,0.3],r:[0.4,0,0]},sfx:'metal'},
-  pillow:{name:'หมอนอิง',dmg:0.4,range:0.5,knock:9,dur:8,throwDmg:4,mk:()=>fitModel(new THREE.Group(),'pillow',0.55,0.5,0.25,'#f39c12'),hold:{p:[0,0.05,0.25],r:[0.2,0,0]}},
-  monitor:{name:'จอคอม',dmg:1.5,range:0.4,knock:3,dur:2,throwDmg:15,mk:()=>fitModel(new THREE.Group(),'computerScreen',0.7,0.55,0.2,'#111'),hold:{p:[0,0.05,0.3],r:[0.3,0,0]},sfx:'glass'},
-  cone:{name:'กรวยจราจร',dmg:1.2,range:0.5,knock:1.5,dur:4,throwDmg:11,mk:mkCone,hold:{p:[0,0,0.2],r:[1.5,0,0]}},
+  chair:{en:'Piano stool',name:'เก้าอี้เปียโน',dmg:1.6,range:0.6,knock:3,dur:5,throwDmg:13,mk:mkChair,hold:{p:[0,0.1,0.25],r:[0.3,0,1.4]}},
+  stand:{en:'Guitar stand',name:'ขาตั้งกีตาร์',dmg:1.3,range:1.0,knock:1.5,dur:6,throwDmg:10,mk:mkStand,hold:{p:[0,0.1,0.2],r:[1.3,0,0]}},
+  guitar:{en:'Guitar',name:'กีตาร์',dmg:1.5,range:0.8,knock:2.5,dur:3,throwDmg:12,mk:mkGuitarItem,hold:{p:[0,0.05,0.15],r:[1.4,0,0]},sfx:'guitar'},
+  box:{en:'Parcel',name:'กล่องพัสดุ',dmg:1.1,range:0.2,knock:1,dur:2,throwDmg:14,mk:mkParcel,hold:{p:[0,0,0.25],r:[0,0,0]}},
+  violin:{en:'Violin',name:'ไวโอลิน',dmg:1.35,range:0.7,knock:2,dur:4,throwDmg:12,mk:()=>{const g=new THREE.Group();const v=mkViolin();v.position.y=0.15;v.rotation.x=-Math.PI/2;g.add(v);return g;},hold:{p:[0,0.05,0.2],r:[1.2,0,0]},sfx:'violin'},
+  cello:{en:'Cello',name:'เชลโล่',dmg:2.0,range:1.1,knock:5,dur:3,throwDmg:18,mk:()=>{const g=new THREE.Group();const v=mkViolin('#7a3410');v.scale.setScalar(2.3);v.position.y=0.22;v.rotation.x=-Math.PI/2;g.add(v);return g;},hold:{p:[0,0.1,0.35],r:[1.3,0,0]},sfx:'cello'},
+  lamp:{en:'Floor lamp',name:'โคมไฟตั้งพื้น',dmg:1.4,range:1.2,knock:3,dur:4,throwDmg:12,mk:()=>fitModel(new THREE.Group(),'lampRoundFloor',0.32,1.5,0.35,'#ddd'),hold:{p:[0,0.05,0.2],r:[1.35,0,0]},sfx:'glass'},
+  bin:{en:'Trash can',name:'ถังขยะ',dmg:1.7,range:0.5,knock:5,dur:3,throwDmg:16,mk:()=>fitModel(new THREE.Group(),'trashcan',0.55,0.75,0.5,'#2e7d32'),hold:{p:[0,0.1,0.3],r:[0.4,0,0]},sfx:'metal'},
+  pillow:{en:'Pillow',name:'หมอนอิง',dmg:0.4,range:0.5,knock:9,dur:8,throwDmg:4,mk:()=>fitModel(new THREE.Group(),'pillow',0.55,0.5,0.25,'#f39c12'),hold:{p:[0,0.05,0.25],r:[0.2,0,0]}},
+  monitor:{en:'Monitor',name:'จอคอม',dmg:1.5,range:0.4,knock:3,dur:2,throwDmg:15,mk:()=>fitModel(new THREE.Group(),'computerScreen',0.7,0.55,0.2,'#111'),hold:{p:[0,0.05,0.3],r:[0.3,0,0]},sfx:'glass'},
+  cone:{en:'Traffic cone',name:'กรวยจราจร',dmg:1.2,range:0.5,knock:1.5,dur:4,throwDmg:11,mk:mkCone,hold:{p:[0,0,0.2],r:[1.5,0,0]}},
 };
 function powerMesh(type){
   const g=new THREE.Group();
@@ -727,11 +727,11 @@ function powerMesh(type){
   return g;
 }
 const POWER={
-  coffee:{name:'กาแฟเย็น ☕',txt:'กาแฟเย็น +25 ☕',fn:f=>f.heal(25),snd:'drink'},
-  bonus:{name:'ซองโบนัส 💰',txt:'ซองโบนัส! พลังเต็ม 💰',fn:f=>{f.rage=100;},snd:'coin'},
-  ot:{name:'ซองเอกสาร ❓',txt:'โดนใบสั่ง OT! ช้าลง 😩',fn:f=>{f.fx.slow=6;},snd:'zap',bad:1},
-  yadom:{name:'ยาดม 🌿',txt:'ยาดม สดชื่น! 🌿',fn:f=>{f.heal(10);f.fx.dizzy=0;f.fx.immune=6;},snd:'drink'},
-  somtam:{name:'ส้มตำ 🌶',txt:'ส้มตำ +35 เผ็ดดด 🌶',fn:f=>{f.heal(35);f.fx.dizzy=Math.max(f.fx.dizzy,0.8);},snd:'drink'},
+  coffee:{en:'Iced coffee ☕',enTxt:'Iced coffee +25 HP ☕',name:'กาแฟเย็น ☕',txt:'กาแฟเย็น +25 ☕',fn:f=>f.heal(25),snd:'drink'},
+  bonus:{en:'Bonus envelope 💰',enTxt:'Bonus envelope: special full 💰',name:'ซองโบนัส 💰',txt:'ซองโบนัส! พลังเต็ม 💰',fn:f=>{f.rage=100;},snd:'coin'},
+  ot:{en:'Mystery envelope ❓',enTxt:'Overtime slip! slowed down 😩',name:'ซองเอกสาร ❓',txt:'โดนใบสั่ง OT! ช้าลง 😩',fn:f=>{f.fx.slow=6;},snd:'zap',bad:1},
+  yadom:{en:'Inhaler 🌿',enTxt:'Inhaler: dizziness gone 🌿',name:'ยาดม 🌿',txt:'ยาดม สดชื่น! 🌿',fn:f=>{f.heal(10);f.fx.dizzy=0;f.fx.immune=6;},snd:'drink'},
+  somtam:{en:'Som tam 🌶',enTxt:'Som tam +35 HP, spicy! 🌶',name:'ส้มตำ 🌶',txt:'ส้มตำ +35 เผ็ดดด 🌶',fn:f=>{f.heal(35);f.fx.dizzy=Math.max(f.fx.dizzy,0.8);},snd:'drink'},
 };
 const WSPOTS=[{x:-3.6,y:0,z:-9.8,t:'chair'},{x:0.6,y:0,z:-9.8,t:'chair'},{x:-12.1,y:0.45,z:-7.75,t:'chair'},{x:-6,y:0,z:-5,t:'chair'},{x:2,y:0,z:-6.5,t:'stand'},{x:-4.8,y:0,z:0.2,t:'stand'},{x:-5.2,y:0,z:2.2,t:'guitar'},{x:6.6,y:0,z:2.2,t:'box'},{x:8.8,y:0,z:0.2,t:'box'},{x:9.6,y:2.4,z:-9,t:'box'},{x:4,y:0,z:-5.4,t:'guitar'},
   {x:-9.5,y:0.15,z:4.2,t:'cone'},{x:5,y:0.15,z:6.9,t:'cone'},{x:-12,y:0,z:10.9,t:'cone'},{x:13,y:0.15,z:6.6,t:'box'},{x:-1.5,y:0.15,z:4.1,t:'stand'},{x:-16,y:1.05,z:9,t:'box'},
@@ -789,7 +789,7 @@ function updEvents(dt){
   else if(e==='blackout')startBlackout();
   else if(e==='storm')startStorm();
   else if(e==='van')startVan();
-  else if(e==='rain'||(e==='rainLow'&&Math.random()<.4)){G.rain=18;banner('☔ ฝนตก! ถนนหน้าร้านลื่นมาก',3.5);}
+  else if(e==='rain'||(e==='rainLow'&&Math.random()<.4)){G.rain=18;banner('☔ RAIN! The streets are slippery',3.5);}
 }
 function resetWorld(){
   NPC.bikes.forEach(b=>scene.remove(b.o.g));NPC.bikes.length=0;NPC.bikeT=rand(4,8);

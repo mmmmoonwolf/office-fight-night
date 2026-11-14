@@ -41,7 +41,12 @@ someone is knocked into them — they drop onto the sidewalk and take fall damag
 - Weapons to pick up/throw, power-ups, combos (jab-jab-hook), grabs/throws, stage hazards, random events
   (customer walks in → no punching inside, piano movers, rain makes the street slippery, motorbikes, stray dog),
   KO replay, photo mode, glove unlocks/titles stored in `localStorage`, sick-leave note for the loser
-- All UI text is **Thai**. Keep new UI copy in Thai, identifiers in English.
+- **UI text is English** (menus, cards, loadout, move list, lobby, pause, HUD, centre announcements, event banners, key
+  prompts, end screen, sick note), set in **Fredoka** (body) and **Luckiest Guy** (titles, big buttons, timer, banners)
+  from Google Fonts, with Kanit as the Thai fallback. **In-game text stays Thai**: floating popups over people and
+  objects (damage jokes like หักเงินเดือน, ชนเปียโน!, คริ!!…), speech bubbles (`quotes`, `HURT`), the special-move shout
+  (`SPECIALS[k].name`) and the salary-damage banner. For the UI use `spName(k)` (`SP_EN`), `WEAPONS[t].en`,
+  `POWER[t].en`/`enTxt`; the Thai `name`/`txt` fields feed the popups.
 - Original names only — no other game's names, logos, characters or assets.
 
 ## Commands
