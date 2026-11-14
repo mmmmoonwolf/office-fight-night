@@ -22,6 +22,10 @@ async function offline(browser) {
   const errs = []; const ctx = await browser.newContext(); const pg = await openPage(ctx, errs); const ev = s => pg.evaluate(s);
   ok(await ev("document.querySelectorAll('.card').length") === 8, '8 character cards');
   ok(await ev("ROSTER.every(c=>c.hp===100&&c.pow===1&&c.spd===1&&c.aspd===1&&c.size===1)"), 'every character has the same stats');
+  ok(await ev("ROSTER.find(c=>c.id==='dear').body==='3d' && ROSTER.filter(c=>c.body==='3d').length===1"), 'Dear uses the 3D body by default');
+  await pg.click('#body3dAll'); ok(await ev("ROSTER.every(c=>c.body==='3d')"), 'one button switches everyone to the 3D body');
+  await pg.click('#body3dAll'); await pg.click('.card[data-i="3"] .bd');
+  ok(await ev("ROSTER.every(c=>c.body==='chibi'||c.id==='dear') && document.querySelector('.card[data-i=\"3\"] .bd').textContent.includes('3D')"), 'per-character body button toggles and shows the choice');
   await pg.click('.card[data-i="2"]'); await pg.click('.card[data-i="0"]');
   await pg.click('#startBtn'); await sleep(150);
   ok(await ev("!$('#loadP').classList.contains('hidden') && document.querySelectorAll('#stlGrid .opt').length===Object.keys(STYLES).length && document.querySelectorAll('#spGrid .opt').length>=20"), 'start opens the style + special picker');

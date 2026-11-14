@@ -66,6 +66,10 @@ npm test        # node test/e2e.js — offline flow + host/2 clients online flow
 | `js/fighter.js` | effects (projectiles, rings, smoke clouds, coupons, falling grand, tape), `SPECIALS`, `ATK` frame data, `Fighter` class (model, physics, combat, animation, `snap`/`applySnap`), `aiThink` |
 | `js/game.js` | `G` state, slots/modes, HUD, name tags, camera, input schemes, round flow, arcade, KO replay recorder, photo mode, menu/cards, main loop |
 | `js/net.js` | online lobby + host-authoritative sync (see below) |
+| `js/anim.js`, `js/anim_data.js` | mocap poses for the chibi rig (see "Mocap poses") |
+| `js/body3d.js` | rigged 3D body option (see "3D body") |
+| `js/vendor/SkeletonUtils.js` | three.js r128 SkeletonUtils (MIT), vendored to clone skinned characters |
+| `assets/models/fighter.glb` | Mixamo character + animations (used only inside this game) |
 | `js/vendor/GLTFLoader.js` | three.js r128 `examples/js` GLTFLoader (MIT), vendored; test pages strip it |
 | `assets/sfx/*.mp3` | Kenney **Impact Sounds** (CC0): punches, soft/wood/metal/plate/glass impacts, bell, footsteps on wood/concrete/carpet |
 | `assets/voice/*.mp3` | Kenney **Voiceover Pack** (CC0) announcer lines (`f_` = female voice) |
@@ -129,6 +133,17 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
   `animate()` turns them into torso lean/twist/roll, hip bob, leg swing (when standing still) and head nod/tilt;
   `glovePose()` uses `animHand()` (shoulder + stretched arm vector, kept clear of the big head). Anything else falls
   back to the procedural poses. `ANIM_ON.v=false` switches mocap off. Poses travel online through `snap()` as before.
+- **3D body** (`js/body3d.js`, `assets/models/fighter.glb` = Mixamo "Boy01" + 29 clips, built by
+  `scripts/bake-anim/export_char.js`): a character with `body:'3d'` (per-character card button, saved in
+  `officeFight.v2` `bodies`; Dear defaults to 3D; "🧍 ร่าง 3D ทุกคน" switches all) gets the skinned model inside
+  `f.body`, recoloured per character (greyscaled textures × hair/shirt/shorts/accent colours, skin tint on head/hands),
+  wearing the character's own `buildHair()` hairstyle on the head bone, team-colour gloves on the hand bones, and
+  held items in the right hand (`handObj`/`handScale`). The chibi rig still runs invisibly underneath (physics,
+  `headPos`, `snap`). `pick3D` chooses clip + time from the fighter state (attacks are time-warped with `B3ATK` so
+  the impact frame lands at the end of startup; kicks/swings/throws/grab-throw/hurricane/flip-kick have their own
+  clips); `upd3D` plays it with cross-fades. Online/replay: clip index + time ride in `legs[0|1].rotation.x` of
+  `snap()` (invisible on a 3D fighter) and `apply3D` plays them; the slot tuple gains `s[6]` = 3D flag, presence `bd`.
+  Test pages strip `SkeletonUtils`/`GLTFLoader`, so fighters stay chibi there.
 - Fighters are chibi: `S = ch.size × 0.84`, short legs (hip 0.72), bean torso, head group `this.head` scaled 1.26
   (head-relative coordinates, radius 0.5). Hair is real geometry from `buildHair()` (cap + fringe + curtains/locks for
   long hair, bun, spikes…); fringes are skipped when a face photo is used. Arms are 2-bone IK (`updArms`, `seg`):

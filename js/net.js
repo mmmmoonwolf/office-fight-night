@@ -74,7 +74,7 @@ function myPeerId(){if(!NET.room)return null;const p=NET.room.peers().find(p=>p.
 function lobbyHost(){const m=members();if(NET.room&&NET.room.p2p)return m.find(p=>p.peer===P2P_PREFIX+NET.code)||null;return m.find(p=>p.presence.v!==0)||m[0]||null;}
 function amLobbyHost(){const h=lobbyHost();return!!(h&&h.sameTab);}
 function setPresence(patch){if(!NET.room)return;NET.room.presence(patch).then(()=>{},err=>{if(err&&err.code==='invalid_argument')console.warn('presence',err.message);});}
-function myLobbyPresence(){const c=+$('#onChar').value||0;const ch=ROSTER[c]||ROSTER[0];return{rc:NET.code,jt:NET.jt,nm:safeStr(ch.name,18),c,gl:ch.glove|0,lo:[$('#onStyle').value||'box',$('#onSp').value||ch.sp],v:document.hidden?0:1};}
+function myLobbyPresence(){const c=+$('#onChar').value||0;const ch=ROSTER[c]||ROSTER[0];return{rc:NET.code,jt:NET.jt,nm:safeStr(ch.name,18),c,gl:ch.glove|0,lo:[$('#onStyle').value||'box',$('#onSp').value||ch.sp],bd:ch.body==='3d'?1:0,v:document.hidden?0:1};}
 const cleanLo=a=>({st:a&&STYLES[a[0]]?a[0]:'box',sp:a&&SP_LIST.includes(a[1])?a[1]:'rush'});
 document.addEventListener('visibilitychange',()=>{if(NET.code)setPresence({v:document.hidden?0:1});});
 
@@ -170,7 +170,7 @@ function netBuildMatch(cfg){
   clearFighters();G.mode=cfg.mode;G.diff=G.baseDiff=clamp(cfg.diff|0,0,2);G.loc=['out','up','back','wing'].includes(cfg.loc)?cfg.loc:'in';G.humans=1;G.roundLoc=null;G.paused=false;G.photo=false;
   const me=myPeerId();NET.mySlot=-1;let pn=0;
   cfg.sl.forEach((s,i)=>{const peer=s[0]||'',ci=clamp(s[1]|0,0,ROSTER.length-1),base=ROSTER[ci];
-    const ch=Object.assign({},base,{name:safeStr(s[2]||base.name,18),glove:clamp(s[3]|0,0,GLOVES.length-1),photoImg:peer&&peer===me?base.photoImg:null});
+    const ch=Object.assign({},base,{body:s[6]?'3d':'chibi',name:safeStr(s[2]||base.name,18),glove:clamp(s[3]|0,0,GLOVES.length-1),photoImg:peer&&peer===me?base.photoImg:null});
     const team=cfg.mode==='team'?(i<2?0:1):i,color=cfg.mode==='team'?TEAMCOL[team][i%2]:SLOTCOL[i];
     const isMe=!!peer&&peer===me;if(isMe)NET.mySlot=i;
     const f=new Fighter(ch,i,{human:isMe?0:null,team,color,label:peer?'P'+(++pn):'คอม',lo:cleanLo([s[4],s[5]])});
@@ -182,8 +182,8 @@ function netHostStart(){
   const m=members().slice(0,4);
   let mode=NET.set.mode;if(mode==='duel'&&m.length>2)mode='ffa';
   const n=mode==='duel'?2:4,order=mode==='team'?[0,2,1,3]:[0,1,2,3],sl=new Array(n).fill(null);
-  m.forEach((p,i)=>{if(i<n){const c=clamp(+p.presence.c|0,0,ROSTER.length-1);const l=cleanLo(p.presence.lo);sl[order[i]]=[p.peer,c,safeStr(p.presence.nm||ROSTER[c].name,18),p.presence.gl|0,l.st,l.sp];}});
-  for(let i=0;i<n;i++)if(!sl[i]){const c=Math.floor(Math.random()*ROSTER.length),l=randLoadout();sl[i]=['',c,ROSTER[c].name,0,l.st,l.sp];}
+  m.forEach((p,i)=>{if(i<n){const c=clamp(+p.presence.c|0,0,ROSTER.length-1);const l=cleanLo(p.presence.lo);sl[order[i]]=[p.peer,c,safeStr(p.presence.nm||ROSTER[c].name,18),p.presence.gl|0,l.st,l.sp,p.presence.bd?1:0];}});
+  for(let i=0;i<n;i++)if(!sl[i]){const c=Math.floor(Math.random()*ROSTER.length),l=randLoadout();sl[i]=['',c,ROSTER[c].name,0,l.st,l.sp,ROSTER[c].body==='3d'?1:0];}
   NET.cfg={id:Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),mode,diff:NET.set.diff,loc:NET.set.loc,sl};
   NET.role='host';NET.fxBuf=[];NET.fxSeq=0;NET.remote={};NET.ack={};NET.seq=0;
   setPresence({g:NET.cfg,s:null,in:null});

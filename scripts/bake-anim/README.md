@@ -15,3 +15,17 @@ node scripts/bake-anim/bake.js <three package dir> <folder of .fbx> baked.json
 Then copy the clips the game uses into `js/anim_data.js` (keys: idle, jab, cross, hook, upper, hitL, hitM,
 hitFace, hitHead, hitBody, hitBig, hitUpper, stunned, jump) — see `ATK_CLIP` / `HIT_CLIPS` in `js/anim.js`
 for how frames map onto attack timing.
+
+## The rigged 3D body (`assets/models/fighter.glb`)
+
+`export_char.js` builds the skinned character used by `js/body3d.js`: the Mixamo "Boy01" mesh (from the skinned
+`Right_Hook.fbx`) re-bound to one skeleton (the FBX gives each body part its own copy), JPEG textures ≤ 512 px,
+indexed geometry, plus the clips listed in `CLIPS` (in place: hips x/z frozen). Put every source `.fbx` (skinned
+and skinless Mixamo clips) in one folder, then:
+
+```bash
+node scripts/bake-anim/export_char.js <three package dir> <folder of .fbx> assets/models/fighter.glb
+```
+
+Clip timings (wind-up / impact / follow-through, seconds) live in `B3ATK` in `js/body3d.js`; re-check them when a
+clip is swapped. New clips for the chibi body go into `js/anim_data.js` with `bake.js`.

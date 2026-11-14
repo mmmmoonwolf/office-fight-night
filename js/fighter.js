@@ -328,6 +328,7 @@ class Fighter{
     const pr=new THREE.Mesh(new THREE.RingGeometry(0.62,0.78,32),new THREE.MeshBasicMaterial({color:new THREE.Color(this.color),transparent:true,opacity:.85,side:THREE.DoubleSide}));
     pr.rotation.x=-Math.PI/2;pr.position.y=0.03;pr.scale.setScalar(this.S);this.root.add(pr);this.ring=pr;
     this.rage=0;this.expr='';this.reset(0,0,0,0);
+    if(ch.body==='3d'&&typeof attach3D==='function')attach3D(this);
   }
   reset(x,y,z,face){
     this.pos={x,z};this.vel={x:0,z:0};this.mv={x:0,z:0};this.y=y;this.vy=0;this.hp=this.maxHp;this.lagHp=this.maxHp;
@@ -340,7 +341,7 @@ class Fighter{
     this.root.position.set(x,y,z);this.root.rotation.y=face;
     this.setExpr('normal',0,true);
   }
-  dispose(){scene.remove(this.root);if(this.tagEl)this.tagEl.remove();}
+  dispose(){this.disposed=true;scene.remove(this.root);if(this.tagEl)this.tagEl.remove();}
   redraw(){drawFace(this.faceCv,this.ch,this.expr);this.faceTex.needsUpdate=true;}
   setExpr(e,dur=0,force){if(e!==this.expr||force){this.expr=e;this.redraw();}this.exprT=dur;}
   headPos(){const v=V(0,0,0);this.head.getWorldPosition(v);return v;}
@@ -390,17 +391,17 @@ class Fighter{
     this.state='recover';this.recT=0.18;
   }
   pickUp(it){
-    removeItem(it);const W=WEAPONS[it.type];const mesh=W.mk();mesh.position.set(...W.hold.p);mesh.rotation.set(...W.hold.r);mesh.scale.multiplyScalar(1/this.S*1.0);
-    this.gloves[0].add(mesh);this.held={type:it.type,dur:it.dur,mesh};SFX.pickup();popup('ได้ '+W.name+'!',this.headPos().add(V(0,0.7,0)),'good',1);
+    removeItem(it);const W=WEAPONS[it.type];const mesh=W.mk();mesh.position.set(...W.hold.p);mesh.rotation.set(...W.hold.r);mesh.scale.multiplyScalar(handScale(this));
+    handObj(this).add(mesh);this.held={type:it.type,dur:it.dur,mesh};SFX.pickup();popup('ได้ '+W.name+'!',this.headPos().add(V(0,0.7,0)),'good',1);
     this.state='recover';this.recT=0.15;
   }
   endDash(){this.dashing=null;this.state='recover';this.recT=0.35;}
-  removeHeld(){if(this.held){this.gloves[0].remove(this.held.mesh);this.held=null;}}
+  removeHeld(){if(this.held){const m=this.held.mesh;if(m.parent)m.parent.remove(m);this.held=null;}}
   dropHeld(){if(!this.held)return;dropWeapon(this.held.type,this.held.dur,this.pos.x+rand(-.4,.4),groundAt(this.pos.x,this.pos.z,this.y+0.5),this.pos.z+rand(-.4,.4));this.removeHeld();}
   throwHeld(){
     this.lockOn();const W=WEAPONS[this.held.type];const mesh=W.mk();
     fireProj(this,'thrown',this.face,{mesh,wt:this.held.type,speed:14,vy:2.5,grav:8,dmg:W.throwDmg*this.ch.pow,knock:6,stun:.5,spin:9,launch:3,kd:1,life:1.6,r:0.5});
-    this.removeHeld();SFX.whoosh();this.state='recover';this.recT=0.25;this.setExpr('attack',0.3);
+    this.removeHeld();SFX.whoosh();this.state='recover';this.recT=0.25;this.throwAt=this.t;this.setExpr('attack',0.3);
   }
   resolveHit(over){
     const a=this.atk,d=a.def,o=over||{};const sw=a.type==='swingL'||a.type==='swingH';const W=sw&&this.held?WEAPONS[this.held.type]:null;
@@ -703,7 +704,7 @@ class Fighter{
       if(p<0.6)lean=big?-0.15:-0.05;else if(p<1.6)lean=big?0.1:0.2;
       if(!big&&p>0.5&&p<2.2)twist=(a.hand===0?-1:1)*(['hook','swingH','slap','slapH','kickH'].includes(AP)?0.7:0.4);
       if(AP==='head'||AP==='rocket')lean=p<1?-0.35:0.75;else if(AP==='dropkick')lean=-0.3;else if(AP==='chop'&&p>=1)lean=0.35;else if(AP==='rush')twist=Math.sin(t*60)*0.25;}
-    if(ap){lean=clamp(ap.p[6]*0.9,-0.6,0.7);twist=clamp(ap.p[7]*0.45,-0.75,0.75);roll=clamp(ap.p[8]*0.6,-0.35,0.35);}
+    if(ap){lean=clamp(ap.p[6]*0.7,-0.4,0.6);twist=clamp(ap.p[7]*0.45,-0.75,0.75);roll=clamp(ap.p[8]*0.5,-0.25,0.25);}
     if(this.win){const e=this.ch.emote;if(e==='bow')lean=Math.max(0,Math.sin(t*2.5))*0.8;if(e==='chill')roll=Math.sin(t*1.5)*0.12;if(e==='flex')twist=Math.sin(t*12)*0.08;if(e==='guitar')lean=-0.15+Math.sin(t*8)*0.05;}
     this.torso.rotation.x=lerp(this.torso.rotation.x,lean,1-Math.exp(-14*dt));
     this.torso.rotation.y=lerp(this.torso.rotation.y,twist,1-Math.exp(-16*dt));
@@ -716,11 +717,11 @@ class Fighter{
     const sw=Math.sin(this.walk)*0.6*this.moving;
     if(lying){this.legs[0].rotation.x=0;this.legs[1].rotation.x=0;}
     else if(air&&S!=='grabbed'){this.legs[0].rotation.x=lerp(this.legs[0].rotation.x,-0.7,0.3);this.legs[1].rotation.x=lerp(this.legs[1].rotation.x,0.3,0.3);}
-    else if(ap&&ap.legs&&this.moving<0.15){const k=1-Math.exp(-14*dt);this.legs[0].rotation.x=lerp(this.legs[0].rotation.x,clamp(ap.p[9]*0.8,-1,0.8),k);this.legs[1].rotation.x=lerp(this.legs[1].rotation.x,clamp(ap.p[10]*0.8,-1,0.8),k);}
+    else if(ap&&ap.legs&&this.moving<0.15){const k=1-Math.exp(-14*dt);const lo=S==='attack'?-1.8:-1;this.legs[0].rotation.x=lerp(this.legs[0].rotation.x,clamp(ap.p[9]*0.85,lo,0.8),k);this.legs[1].rotation.x=lerp(this.legs[1].rotation.x,clamp(ap.p[10]*0.85,lo,0.8),k);}
     else{this.legs[0].rotation.x=sw;this.legs[1].rotation.x=-sw;}
     if(A){const d=A.def,tt=A.t,env=tt<d.startup?easeOutCubic(Math.min(1,tt/d.startup)):tt<d.startup+d.active?1:Math.max(0,1-(tt-d.startup-d.active)/d.recover);
-      if(AP==='kick')this.legs[A.hand].rotation.x=-1.15*env;
-      else if(AP==='kickH')this.legs[A.hand].rotation.x=-1.65*env;
+      if(AP==='kick'&&!ap)this.legs[A.hand].rotation.x=-1.15*env;
+      else if(AP==='kickH'&&!ap)this.legs[A.hand].rotation.x=-1.65*env;
       else if(AP==='dropkick'){this.legs[0].rotation.x=this.legs[1].rotation.x=-1.45*env;}
       else if(AP==='roll'&&env>0.2){this.legs[0].rotation.x=this.legs[1].rotation.x=-1.2;}}
     for(const h of[0,1]){const act=S==='attack'&&this.atk&&(this.atk.hand===h||this.atk.type==='cast');this.gp[h].lerp(this.glovePose(h).add(GLOVE_OFS),act?1-Math.exp(-45*dt):1-Math.exp(-16*dt));}
@@ -731,6 +732,7 @@ class Fighter{
     if(this.stars.visible)this.stars.rotation.y+=dt*6;
     if(this.rainbow)this.gloveMat.color.setHSL((t*0.3)%1,0.9,0.55);
     this.gloveMat.emissiveIntensity=Math.max(EV.dark*0.9,this.rage>=100?0.45+0.45*Math.sin(t*12):this.baseEm);
+    if(this.b3)upd3D(this,dt);
   }
   /* long hair hides the whole body from the chase camera → fade it when the camera looks at the fighter's back */
   hairFade(dt){
@@ -743,10 +745,10 @@ class Fighter{
     m.opacity=this.hairO;m.depthWrite=this.hairO>0.97;
   }
   lite(dt){this.t+=dt;if(this.rainbow)this.gloveMat.color.setHSL((this.t*0.3)%1,0.9,0.55);this.gloveMat.emissiveIntensity=this.rage>=100?0.45+0.45*Math.sin(this.t*12):this.baseEm;if(this.stars.visible)this.stars.rotation.y+=dt*6;}
-  setHeldVis(type){const cur=this.held?this.held.type:null;if(cur===type)return;this.removeHeld();if(type){const W=WEAPONS[type];const mesh=W.mk();mesh.position.set(...W.hold.p);mesh.rotation.set(...W.hold.r);mesh.scale.multiplyScalar(1/this.S);this.gloves[0].add(mesh);this.held={type,dur:0,mesh};}}
+  setHeldVis(type){const cur=this.held?this.held.type:null;if(cur===type)return;this.removeHeld();if(type){const W=WEAPONS[type];const mesh=W.mk();mesh.position.set(...W.hold.p);mesh.rotation.set(...W.hold.r);mesh.scale.multiplyScalar(handScale(this));handObj(this).add(mesh);this.held={type,dur:0,mesh};}}
   snap(){return[this.pos.x,this.y,this.pos.z,this.root.rotation.y,this.body.rotation.x,this.body.position.y,this.body.scale.x,this.torso.rotation.x,this.torso.rotation.y,this.torso.rotation.z,this.legs[0].rotation.x,this.legs[1].rotation.x,this.gp[0].x,this.gp[0].y,this.gp[0].z,this.gp[1].x,this.gp[1].y,this.gp[1].z,EXPRS.indexOf(this.expr),this.stars.visible?1:0];}
   applySnap(s){if(G.phase==='replay'&&this.body.scale.x>0.05&&s[6]<0.01)koDustFx(V(s[0],s[1]+1.2,s[2]),'ปุ้ง!!');if(this.ring)this.ring.visible=s[6]>0.01;
-    this.root.position.set(s[0],s[1],s[2]);this.root.rotation.y=s[3];this.body.rotation.x=s[4];this.body.position.y=s[5];this.body.scale.setScalar(s[6]);this.torso.rotation.set(s[7],s[8],s[9]);this.legs[0].rotation.x=s[10];this.legs[1].rotation.x=s[11];this.gp[0].set(s[12],s[13],s[14]);this.gp[1].set(s[15],s[16],s[17]);this.updArms();const e=EXPRS[s[18]]||'normal';if(e!==this.expr){this.expr=e;this.redraw();}this.stars.visible=!!s[19];}
+    this.root.position.set(s[0],s[1],s[2]);this.root.rotation.y=s[3];this.body.rotation.x=s[4];this.body.position.y=s[5];this.body.scale.setScalar(s[6]);this.torso.rotation.set(s[7],s[8],s[9]);this.legs[0].rotation.x=s[10];this.legs[1].rotation.x=s[11];this.gp[0].set(s[12],s[13],s[14]);this.gp[1].set(s[15],s[16],s[17]);this.updArms();const e=EXPRS[s[18]]||'normal';if(e!==this.expr){this.expr=e;this.redraw();}this.stars.visible=!!s[19];if(this.b3)apply3D(this,s[10],s[11]);}
 }
 function say(f,text,sp){popup(text,f.headPos().add(V(0,0.95*f.S,0)),'bubble'+(sp?' sp':''),sp?1.4:1.5);}
 
