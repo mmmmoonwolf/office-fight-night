@@ -27,12 +27,28 @@ async function offline(browser) {
   await pg.click('.card[data-i="2"]'); await pg.click('.card[data-i="0"]');
   await pg.click('#startBtn'); await sleep(150);
   ok(await ev("!$('#loadP').classList.contains('hidden') && document.querySelectorAll('#stlGrid .opt').length===Object.keys(STYLES).length && document.querySelectorAll('#spGrid .opt').length>=20"), 'start opens the style + special picker');
+  ok(await ev("document.querySelectorAll('#hatGrid .opt').length===HATS.length && document.querySelectorAll('#hatGrid .opt.lock').length===HATS.length-1"), 'loadout lists the hats, locked ones greyed out');
   await pg.click('#stlGrid .opt[data-k="kick"]'); await pg.click('#spGrid .opt[data-k="superKick"]');
   await pg.click('#loadGo'); await sleep(1700); await ev('G.evT=999');
   ok(await ev("Object.keys(SFX.SMP).length") >= 30 && await ev("!!SFX.SMP.punchH && !!SFX.SMP.vo_round"), 'recorded hit sounds and announcer lines load');
   ok(await ev("Object.keys(MODELS).length>=20 && BRK.some(b=>b.brk.name==='โซฟารับแขก') && 'pillow' in WEAPONS"), 'furniture models are placed, breakable and throwable');
   ok(await ev("G.f[0].lo.st==='kick' && G.f[0].lo.sp==='superKick' && STATS.lo[0].st==='kick'"), 'picked style + special are used and remembered');
   ok(await ev('G.phase') === 'fight', 'duel reaches fight phase');
+  // gamepad (standard mapping, faked): left stick moves player 1, X jabs
+  await ev("window.__pad={connected:true,axes:[1,0,0,0],buttons:Array.from({length:17},()=>({pressed:false,value:0}))};Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>[window.__pad]});G.f[0].state='idle';G.f[0].atk=null;window.__x0=G.f[0].pos.x;window.__z0=G.f[0].pos.z");
+  await sleep(500);
+  ok(await ev("GP[0].on && Math.hypot(G.f[0].pos.x-__x0,G.f[0].pos.z-__z0)>0.5"), 'gamepad left stick moves player 1');
+  await ev("__pad.axes=[0,0,0,0];G.f[0].state='idle';G.f[0].atk=null;__pad.buttons[2]={pressed:true,value:1}"); await sleep(80);
+  ok(await ev("G.f[0].state==='attack'||G.f[0].state==='recover'"), 'gamepad X button attacks');
+  await ev("__pad.buttons[2]={pressed:false,value:0};__pad.connected=false"); await sleep(100);
+  ok(await ev("!GP[0].on"), 'unplugged gamepad is released');
+  // hit feel: the freeze and the victim's squash grow with the damage
+  const hs = await ev("[2,20].map(d=>{const v=G.f[1];G.hitStop=0;v.state='idle';v.invT=0;v.hp=100;v.fx.parry=0;v.style=STYLES.box;v.takeHit(G.f[0],{dmg:d,knock:1,stun:.2});return [G.hitStop,v.squashK];})");
+  ok(hs[0][0] >= 0.04 && hs[1][0] > hs[0][0] + 0.03 && hs[1][1] > hs[0][1], 'hit-stop and squash scale with damage');
+  // hats replace the old glove unlocks
+  ok(await ev("STATS.wins={kip:3};const r=hatOk(2)&&!hatOk(3)&&HATS[2].k==='crown';STATS.wins={};r"), 'hats unlock by total wins');
+  ok(await ev("HATS.every(h=>h.k==='none'||makeHat(h.k).children.length>0) && BOSS_CH.hatKey==='crown'"), 'every hat builds, the boss wears the crown');
+  ok(await ev("p2pIce().then(()=>{}),localStorage.setItem('ofn.ice',JSON.stringify([{urls:'turn:relay.example:3478',username:'u',credential:'c'}])),ICE_CACHE=null,p2pIce().then(c=>{localStorage.removeItem('ofn.ice');ICE_CACHE=null;return c.iceServers.some(s=>String(s.urls).startsWith('turn:'))&&c.iceServers.some(s=>String(s.urls).startsWith('stun:'));})"), 'TURN servers from settings are added to the P2P ICE list');
   for (let i = 0; i < 20; i++) { await pg.keyboard.down('KeyD'); await pg.keyboard.press('KeyJ'); await pg.keyboard.press('KeyK'); await pg.keyboard.up('KeyD'); await pg.keyboard.press('Space'); await sleep(80); }
   for (const sp of ['files', 'chat', 'books', 'trap', 'fork', 'chord', 'drop', 'audit', 'flash', 'dash', 'pull', 'cloud', 'buff', 'finisher', 'random', 'rush', 'superKick', 'skyUpper', 'quake', 'megaSlap', 'suplex', 'wind', 'parry']) {
     await ev(`G.f[0].lo.sp='${sp}';G.f[0].rage=100;G.f[0].state='idle';G.f[1].pos.x=G.f[0].pos.x+1.5;G.f[1].pos.z=G.f[0].pos.z;G.f[1].hp=Math.max(G.f[1].hp,60);G.f[1].state='idle';G.f[1].invT=0;G.f[0].tryAttack('special')`);
