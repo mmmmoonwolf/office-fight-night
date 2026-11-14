@@ -147,6 +147,20 @@ kbd{background:#fff;color:#222;border-radius:5px;padding:0 5px;font-family:inher
 .panel .btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
 .panel p{opacity:.92}
 .panel.moves{max-width:780px;text-align:left}
+.panel.load{max-width:900px;text-align:left;margin-top:4vh}
+.panel.load h2{text-align:center}
+.panel.load h3{color:#ffd23d;font-size:17px;margin:14px 0 6px}.panel.load h3 small{color:#fff;opacity:.7;font-weight:400;font-size:12px}
+.loadWho{display:flex;gap:14px;align-items:center;justify-content:center;margin:8px 0}
+.loadWho canvas{width:84px;height:84px;border-radius:14px;background:#3b2b45}
+.loadWho b{font-size:22px}.loadWho #loadSum{color:#ffd23d;font-weight:700}.loadWho small{opacity:.7;font-size:12px}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;text-align:left;background:rgba(255,255,255,.06);border:2px solid transparent;border-radius:12px;padding:8px 10px;color:#fff;font-family:inherit;cursor:pointer}
+.opt:hover{background:rgba(255,255,255,.12)}
+.opt.on{border-color:#ffd23d;background:rgba(255,210,61,.16)}
+.opt .ic,.mv .ic{font-size:28px;line-height:1;flex:none;width:36px;text-align:center}
+.opt b{display:block;font-size:15px}.opt small{display:block;font-size:12px;opacity:.9;line-height:1.45}.opt .mvs2{color:#ffd23d;opacity:1}
+.opt em{font-style:normal;font-size:10.5px;font-weight:800;border-radius:6px;padding:0 6px;margin-left:4px}.opt em.melee{background:#e0303a}.opt em.toy{background:#2f6fe0}
+.btns.sticky{position:sticky;bottom:0;background:rgba(30,18,40,.96);padding:10px 0 4px;margin-bottom:-6px}
 .panel.moves h2{text-align:center}
 .panel.moves h3{color:#ffd23d;font-size:17px;margin:16px 0 6px}
 .mvb{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;align-items:baseline}
@@ -208,14 +222,14 @@ body.touch.fighting #touch{display:block}
     <div class="row">
       <div class="seg" id="humSeg"><span class="lab">ผู้เล่น</span><button data-h="1" class="on">1 คน</button><button data-h="2">2 คน (เครื่องเดียวกัน)</button></div>
       <div class="seg" id="diffSeg"><span class="lab">คอม</span><button data-d="0">ง่าย</button><button data-d="1" class="on">กลาง</button><button data-d="2">โหด</button></div>
-      <div class="seg" id="locSeg"><span class="lab">เริ่มที่</span><button data-l="in" class="on">ในโชว์รูม</button><button data-l="out">ริมถนนหน้าร้าน</button><button data-l="up">ชั้น 2 ไวโอลิน</button></div>
+      <div class="seg" id="locSeg"><span class="lab">เริ่มที่</span><button data-l="in" class="on">ในโชว์รูม</button><button data-l="out">ริมถนนหน้าร้าน</button><button data-l="wing">โซนกลอง</button><button data-l="back">หลังร้าน</button><button data-l="up">ชั้น 2 ไวโอลิน</button></div>
     </div>
     <div class="slots" id="slots"></div>
     <div class="hint" id="menuHint"></div>
     <div class="grid" id="grid"></div>
     <div class="startRow"><button id="startBtn" class="btn big">เริ่มชก! 🥊</button> <button id="onlineBtn" class="btn big blue">🌐 เล่นออนไลน์กับเพื่อน</button></div>
     <div class="ctrl" id="ctrlHelp"></div>
-    <div class="startRow"><button class="btn ghost" id="movesBtn">📖 ดูท่าทั้งหมด</button></div>
+    <div class="startRow"><button class="btn ghost" id="movesBtn">📖 ดูท่าทั้งหมด</button> <button class="btn ghost" id="body3dAll">🧍 ร่าง 3D ทุกคน</button></div>
   </div>
 </div>
 
@@ -223,7 +237,7 @@ body.touch.fighting #touch{display:block}
   <div class="panel" style="max-width:640px">
     <h2>เล่นออนไลน์กับเพื่อน 🌐</h2>
     <p id="onMsg" class="onmsg"></p>
-    <div class="onrow"><canvas id="onPic" width="168" height="168"></canvas><div style="text-align:left"><div>ตัวละครของคุณ</div><select id="onChar"></select><div class="small">แก้ชื่อหรือใส่รูปหน้าได้ที่การ์ดในเมนูหลัก</div></div></div>
+    <div class="onrow"><canvas id="onPic" width="168" height="168"></canvas><div style="text-align:left"><div>ตัวละครของคุณ</div><select id="onChar"></select><div>สไตล์ต่อสู้</div><select id="onStyle"></select><div>ท่าไม้ตาย</div><select id="onSp"></select><div class="small">แก้ชื่อหรือใส่รูปหน้าได้ที่การ์ดในเมนูหลัก</div></div></div>
     <div id="onJoinBox">
       <div class="onrow"><button class="btn big" id="onCreate">สร้างห้องใหม่</button></div>
       <div class="onrow"><input id="onCode" maxlength="6" placeholder="รหัสห้อง" autocomplete="off"><button class="btn blue" id="onEnter">เข้าห้อง</button></div>
@@ -250,6 +264,16 @@ body.touch.fighting #touch{display:block}
     <h2>พักเบรก ☕</h2>
     <div class="ctrl" id="ctrlHelp2"></div>
     <div class="btns"><button class="btn" id="resumeBtn">ชกต่อ</button><button class="btn ghost" id="movesBtn2">📖 ดูท่า</button><button class="btn ghost" id="photoBtn">📸 โหมดถ่ายรูป</button><button class="btn ghost" id="quitBtn">กลับเมนู</button></div>
+  </div>
+</div>
+
+<div id="loadP" class="overlay hidden">
+  <div class="panel load">
+    <h2 id="loadT">เลือกสไตล์ต่อสู้ & ท่าไม้ตาย</h2>
+    <div class="loadWho"><canvas id="loadPic" width="160" height="160"></canvas><div><b id="loadName"></b><div id="loadSum"></div><small>ทุกคนพลังเท่ากัน ต่างกันแค่สไตล์กับท่าที่เลือก</small></div></div>
+    <h3>สไตล์ต่อสู้ <small>(ปุ่มจ็อบ / ฮุก / จ็อบ-จ็อบ-ฮุก)</small></h3><div class="opts" id="stlGrid"></div>
+    <h3>ท่าไม้ตาย <small>(ใช้ได้เมื่อเกจม่วงเต็ม)</small></h3><div class="opts" id="spGrid"></div>
+    <div class="btns sticky"><button class="btn ghost" id="loadBack">กลับ</button><button class="btn ghost" id="loadRand">🎲 สุ่ม</button><button class="btn big" id="loadGo">พร้อม! 🥊</button></div>
   </div>
 </div>
 
@@ -305,9 +329,14 @@ body.touch.fighting #touch{display:block}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/vendor/GLTFLoader.js"></script>
+<script src="js/vendor/SkeletonUtils.js"></script>
 <script src="js/core.js"></script>
 <script src="js/world.js"></script>
 <script src="js/fighter.js"></script>
+<script src="js/anim_data.js"></script>
+<script src="js/anim.js"></script>
+<script src="js/body3d.js"></script>
 <script src="js/game.js"></script>
 <script src="js/net.js"></script>
 </body>

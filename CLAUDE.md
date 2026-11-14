@@ -11,14 +11,29 @@ street (motorbike-taxi stand, som-tam cart, pickup truck, poles with tangled cab
 into the 2nd-floor violin & book shop (built above the right-hand neighbour) whose 4 front glass panes break when
 someone is knocked into them — they drop onto the sidewalk and take fall damage. GetAmped-style chase camera.
 
-- 14 characters (`ROSTER` in `js/core.js`), each with a unique special (`SPECIALS` in `js/fighter.js`)
+- 8 characters (`ROSTER` in `js/core.js`: Bomb, Oat, March, Dear, KunJae, Eye, TeeMee, Sing). **Everyone has the same
+  stats** (normalised right after `ROSTER`); they only differ in looks. หัวหน้า lives on as `BOSS_CH`, the arcade's final
+  boss only (arcade list index `-1`, resolved by `chOf`).
+- **Loadout** = fighting style + special, picked after the character on the `#loadP` screen (`openLoadout` in game.js;
+  online: `#onStyle`/`#onSp` → presence `lo`, slot tuple `[peer,char,name,glove,style,special]`). Humans' last picks are
+  saved in `STATS.lo[0|1]`; CPUs get `randLoadout()`. A fighter keeps it in `f.lo` and `f.style`.
+- `STYLES` (fighter.js) map the jab / hook / jab-jab-hook buttons to `ATK` moves and add a small trait
+  (`spd`, `grabR`, `throwMul`, `rageMul`, `dodge`). Selectable specials are `SP_LIST` (icons `SP_ICON`, melee set
+  `SP_MELEE`, text `SP_DESC`); a special with `atk:` is simply a big `ATK` move started with `startAtk`.
+- `ATK` move fields: `pose` (arm/leg/body animation in `glovePose`/`animate`), `lunge {sp,a,b}`, `sweep` (hits whatever it
+  touches while active, stops on hit), `multi {n,iv,last}`, `jumpV`(+`jumpAt`), `onLand` (hits on landing → `landQuake`),
+  `arc` (360°), `unblockable`, `dizzy`, `bigGlove`, `noCrit`, `call` (popup text for combos).
+- Hit feel: 12 % crits (`CRIT`, `critFx`), combo damage bonus + escalating `comboPop`, KO = the loser is launched
+  tumbling (`koFly`) and bursts into dust + a ghost when it hits a wall/floor or after 1.6 s (`koPoof` → `koDust`;
+  `dusted` shrinks the body to scale 0, which travels in `snap()` so clients and the KO replay see it too).
+- Smoke/wind: `puff` (soft spheres), `windFx` (streaks), ghosts — updated by `updSmoke` every frame (also in replays and
+  on clients); `puff`/`windFx`/`koDust` are broadcast by net.js (`pf`/`wd`/`kd`, wind rate-limited).
 - Modes: duel 1v1, FFA 4, team 2v2, arcade ladder (5 + boss) — offline 1–2 players on one keyboard
 - Training room (`G.mode==='train'`, offline only): no timer, no random events, nobody can be KO'd, HP refills after
   2 s without being hit, human rage refills by itself; `T` cycles the dummy (`TR.dummy`: stand / always block / fight
   back via `aiThink`); the dummy's HUD line shows the current combo's hits + damage (`trainHit`, called from `takeHit`)
 - Move list overlay (`#movesP`, `buildMoves` in game.js) from the menu and the pause panel: basic moves with the
-  current key scheme, items, and every special with its one-line Thai description from `SP_DESC` (fighter.js) — add an
-  entry there whenever a new special is added
+  current key scheme, items, all styles and all selectable specials (the player's own picks highlighted).
 - Online up to 4 players on separate devices (`js/net.js`), over one of two transports:
   the claude.ai Artifact `room` capability, or peer-to-peer WebRTC via PeerJS when served from GitHub Pages / any static host
 - Weapons to pick up/throw, power-ups, combos (jab-jab-hook), grabs/throws, stage hazards, random events
@@ -51,6 +66,14 @@ npm test        # node test/e2e.js — offline flow + host/2 clients online flow
 | `js/fighter.js` | effects (projectiles, rings, smoke clouds, coupons, falling grand, tape), `SPECIALS`, `ATK` frame data, `Fighter` class (model, physics, combat, animation, `snap`/`applySnap`), `aiThink` |
 | `js/game.js` | `G` state, slots/modes, HUD, name tags, camera, input schemes, round flow, arcade, KO replay recorder, photo mode, menu/cards, main loop |
 | `js/net.js` | online lobby + host-authoritative sync (see below) |
+| `js/anim.js`, `js/anim_data.js` | mocap poses for the chibi rig (see "Mocap poses") |
+| `js/body3d.js` | rigged 3D body option (see "3D body") |
+| `js/vendor/SkeletonUtils.js` | three.js r128 SkeletonUtils (MIT), vendored to clone skinned characters |
+| `assets/models/fighter.glb` | Mixamo character + animations (used only inside this game) |
+| `js/vendor/GLTFLoader.js` | three.js r128 `examples/js` GLTFLoader (MIT), vendored; test pages strip it |
+| `assets/sfx/*.mp3` | Kenney **Impact Sounds** (CC0): punches, soft/wood/metal/plate/glass impacts, bell, footsteps on wood/concrete/carpet |
+| `assets/voice/*.mp3` | Kenney **Voiceover Pack** (CC0) announcer lines (`f_` = female voice) |
+| `assets/models/*.glb` | Kenney **Furniture Kit** (CC0) models used in the shop and as weapons |
 | `scripts/serve.js` | zero-dependency static server with the three page variants |
 | `test/three_stub.js` | Proxy-based fake THREE (real Vector3 math, everything else no-ops) |
 | `test/room_mock.js` | `window.claude.use('room')` stand-in over BroadcastChannel (presence + peers only) |
@@ -65,19 +88,62 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
 
 - Units are metres. 2nd floor: x ∈ [11.3, 22], z ∈ [-12, 2.85], floor y = 2.4 (`lvlOf(f)` → 'g' | 'mz' | 'f2');
   breakable panes live in `PANES` (`breakPane`, `restorePanes`; a broken pane's block is moved to y = -100).
-- Store interior x ∈ [-15, 11], z ∈ [-12, 3]; glass front at z = 3 with a door gap |x| < 2.3; mezzanine x ∈ [7, 11],
-  z ∈ [-12, -8.2] (y 2.4) reached by 2.2 m-wide stairs at z ∈ [-10.6, -8.4]; doorway to floor 2 at z ∈ [-11.6, -8.6];
-  sidewalk z ∈ [3.1, 7.5] (y 0.15); road z ∈ [7.5, 15]; far sidewalk + shophouses z ≥ 15; side walls x = ±22.
+- Store interior (`STORE`) x ∈ [-23.3, 11], z ∈ [-12, 2.95]: the main showroom plus the **drums & amps wing**
+  (x < -15.3, the bookshelf is a free-standing divider). Doors: front |x| < 2.3, back door x ∈ [-9, -7] at z = -12.3,
+  side door z ∈ [-5, -3] at x = -23.6 (`DOORS`). Mezzanine x ∈ [7, 11], z ∈ [-12, -8.2] (y 2.4) reached by 2.2 m-wide
+  stairs at z ∈ [-10.6, -8.4]; doorway to floor 2 at z ∈ [-11.6, -8.6].
+- The building block (`BLOCK`, store + violin building) is ringed by 2 m sidewalks (y 0.15) and a 7 m road loop:
+  front road z ∈ [7.5, 15], back road z ∈ [-21.3, -14.3], left road x ∈ [-32.6, -25.6], right road x ∈ [24.3, 31.3],
+  then outer sidewalks and buildings. Fighters are clamped to `WORLD`. Start spots: in / out / wing / back / up.
+- **Breakables** (`BRK`, world.js): a collision block with `.brk` — ground-floor glass panes (break on hard impact and
+  let the fighter fly through), wall panels (3 hits → hole + rubble), pianos (become low rubble), bookshelf, guitar
+  stands, drum kits, amps, keyboard. Damage comes from wall impacts (`onWallHit`, KO'd flyers hit hardest), thrown
+  weapons, `quake` landings and falling grands (`smashArea`). Costs add to `BILL` / `G.matchBill` (shown on the end
+  screen). `restoreBreakables()` runs in `resetWorld`; online, the host sends `s.bk` ('0'/'1' per breakable) and
+  clients call `brkVisual`. Broken panels/panes with `exit` become extra ways in and out for the AI.
 - Every solid thing is an AABB in `blocks` (`solid(x0,x1,z0,z1,y0,y1,tag)`). `groundAt` returns the highest top a
   fighter can stand on (step height `STEP` = 0.42); `resolveBlocks` pushes fighters out sideways and reports
   high-speed impacts to `Fighter.onWallHit` (tag → sound/popup in `WALLFX`).
 - Walls that would hide the action fade via `fadeGroup(meshes, cond)`.
 - Long hair (`long`/`longM`) hanging behind the body uses its own material and fades to 30 % while the camera
   looks at the fighter's back (`Fighter.hairFade`, run every frame after `updCamera`; off in photo mode).
-- `zoneOf` ('in'/'out') and `onMezz` drive AI path-finding (door waypoint, stair waypoint).
+- `zoneOf` ('in'/'out'), `lvlOf` and `onMezz` drive AI path-finding: `exitWp` picks the cheapest door or smashed hole
+  between store and street, `outdoorWp` walks around the block via its corners (`BCORN`, `segHitsRect`).
+- Events (`updEvents`, host only; `G.forceEvent` forces the next one): customer, piano movers, rain, **flood**
+  (`FLOOD`: water rises to 0.5 m, `inWater` → 62 % speed + splashes, floating junk, a live cable shocks anyone in the
+  water near one pole), **blackout** (`EV.blackout`: lights down, gloves glow), **storm** (`EV.storm`: gusts push
+  everyone outdoors, thunder flashes), **delivery van** (`NPC.van`, one lap of the loop on `VANPATH`), motorbikes on
+  every road (`dir` ±1 along x, ±2 along z). Flood level, blackout and van travel in the snapshot (`s.ev`).
 
 ## Characters, sound, prompts
 
+- Recorded audio: `SFX.loadSamples()` (called from `SFX.init`) fetches `SFX_FILES` / `VOICE_FILES` into `SFX.SMP`;
+  `SFX.smp(key, vol, rate, delay)` plays one random variant and returns its length (or `false` → the method falls back
+  to the old synthesized sound). `hit`, `block`, `thud`, `land`, `glass`, `glassBreak`, `bell`, `koBell`, `crash`,
+  `step` (0 wood / 1 concrete / 2 carpet), `metal`, `plate`, `wood` use samples. Announcer: `SFX.vo(name)` /
+  `SFX.voRound(n)` are broadcast like any SFX; `SFX.voLocal` is not (each player hears their own "you win/you lose").
+- Furniture: `furn(name, x, y, z, ry, W, H, D, {tag, brk, fallback})` (world.js) creates the group + collision box
+  now and fits the glTF model into W×H×D when `loadModel` finishes (one cached scene per name, cloned). Without
+  `THREE.GLTFLoader` (test stub) a plain box is drawn instead. Weapons `lamp`, `bin`, `pillow`, `monitor` use
+  `fitModel` in their `mk`.
+
+- **Mocap poses** (`js/anim.js` + baked `js/anim_data.js`, from Mixamo clips — bake tool in `scripts/bake-anim/`):
+  `animPose(f)` returns 14 pose channels for fighting idle, jab/cross, hook, uppercut (attacks with pose `jab`/`hook`
+  or type `combo`, no weapon), hit reactions (`f.react`, picked by `pickReact` from hit strength) and a stunned loop.
+  `animate()` turns them into torso lean/twist/roll, hip bob, leg swing (when standing still) and head nod/tilt;
+  `glovePose()` uses `animHand()` (shoulder + stretched arm vector, kept clear of the big head). Anything else falls
+  back to the procedural poses. `ANIM_ON.v=false` switches mocap off. Poses travel online through `snap()` as before.
+- **3D body** (`js/body3d.js`, `assets/models/fighter.glb` = Mixamo "Boy01" + 29 clips, built by
+  `scripts/bake-anim/export_char.js`): a character with `body:'3d'` (per-character card button, saved in
+  `officeFight.v2` `bodies`; Dear defaults to 3D; "🧍 ร่าง 3D ทุกคน" switches all) gets the skinned model inside
+  `f.body`, recoloured per character (greyscaled textures × hair/shirt/shorts/accent colours, skin tint on head/hands),
+  wearing the character's own `buildHair()` hairstyle on the head bone, team-colour gloves on the hand bones, and
+  held items in the right hand (`handObj`/`handScale`). The chibi rig still runs invisibly underneath (physics,
+  `headPos`, `snap`). `pick3D` chooses clip + time from the fighter state (attacks are time-warped with `B3ATK` so
+  the impact frame lands at the end of startup; kicks/swings/throws/grab-throw/hurricane/flip-kick have their own
+  clips); `upd3D` plays it with cross-fades. Online/replay: clip index + time ride in `legs[0|1].rotation.x` of
+  `snap()` (invisible on a 3D fighter) and `apply3D` plays them; the slot tuple gains `s[6]` = 3D flag, presence `bd`.
+  Test pages strip `SkeletonUtils`/`GLTFLoader`, so fighters stay chibi there.
 - Fighters are chibi: `S = ch.size × 0.84`, short legs (hip 0.72), bean torso, head group `this.head` scaled 1.26
   (head-relative coordinates, radius 0.5). Hair is real geometry from `buildHair()` (cap + fringe + curtains/locks for
   long hair, bun, spikes…); fringes are skipped when a face photo is used. Arms are 2-bone IK (`updArms`, `seg`):
@@ -135,7 +201,8 @@ Everything goes through **presence only** (no event topics), because presence is
 
 ## Publishing as a claude.ai Artifact
 
-The Artifact is multi-file: `index.html` + `js/*.js` (not `test/` or `scripts/`), with the `room` capability declared
+The Artifact is multi-file: `index.html` + `js/*.js` + `js/vendor/GLTFLoader.js` + everything in `assets/`
+(not `test/` or `scripts/`), with the `room` capability declared
 (`{room: {}}`). Artifact pages may only load scripts from cdnjs/jsdelivr/unpkg and their own files; no fetch to
 other hosts; `alert/confirm/prompt` and downloads are blocked (photo mode shows an `<img>` to long-press instead).
 
