@@ -123,6 +123,12 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
   `THREE.GLTFLoader` (test stub) a plain box is drawn instead. Weapons `lamp`, `bin`, `pillow`, `monitor` use
   `fitModel` in their `mk`.
 
+- **Mocap poses** (`js/anim.js` + baked `js/anim_data.js`, from Mixamo clips — bake tool in `scripts/bake-anim/`):
+  `animPose(f)` returns 14 pose channels for fighting idle, jab/cross, hook, uppercut (attacks with pose `jab`/`hook`
+  or type `combo`, no weapon), hit reactions (`f.react`, picked by `pickReact` from hit strength) and a stunned loop.
+  `animate()` turns them into torso lean/twist/roll, hip bob, leg swing (when standing still) and head nod/tilt;
+  `glovePose()` uses `animHand()` (shoulder + stretched arm vector, kept clear of the big head). Anything else falls
+  back to the procedural poses. `ANIM_ON.v=false` switches mocap off. Poses travel online through `snap()` as before.
 - Fighters are chibi: `S = ch.size × 0.84`, short legs (hip 0.72), bean torso, head group `this.head` scaled 1.26
   (head-relative coordinates, radius 0.5). Hair is real geometry from `buildHair()` (cap + fringe + curtains/locks for
   long hair, bun, spikes…); fringes are skipped when a face photo is used. Arms are 2-bone IK (`updArms`, `seg`):
