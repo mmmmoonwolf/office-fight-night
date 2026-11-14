@@ -80,6 +80,7 @@ npm test        # node test/e2e.js — offline flow + host/2 clients online flow
 | `assets/models/char_*.glb`, `assets/portraits/*.png` | the cast's Mixamo models and their card portraits (`scripts/bake-anim/portraits.js`) |
 | `js/vendor/GLTFLoader.js` | three.js r128 `examples/js` GLTFLoader (MIT), vendored; test pages strip it |
 | `assets/sfx/*.mp3` | Kenney **Impact Sounds** (CC0): punches, soft/wood/metal/plate/glass impacts, bell, footsteps on wood/concrete/carpet |
+| `assets/music/*.mp3` | BGM from Pixabay (Content License): `menu` (menu/lobby), `fight` (rounds, ×1.08 in the last 15 s), `train` (training room), `win` (end screen stinger, once, then `menu`) — played by `SFX.bgm(name, rate)` from the main loop; the procedural `music` loop is only the fallback. `assets/sfx/scream*`, `rocket0`, `stepToon*` are Pixabay too (KO scream via `voice(…,'ko')`, `koWhoosh`, cartoon footsteps in `step`) |
 | `assets/voice/*.mp3` | Kenney **Voiceover Pack** (CC0) announcer lines (`f_` = female voice) |
 | `assets/models/*.glb` | Kenney **Furniture Kit** (CC0) models used in the shop and as weapons |
 | `scripts/serve.js` | zero-dependency static server with the three page variants |
@@ -150,7 +151,8 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
   colour shows on the ring and name tag); held items sit on an anchor on the right hand bone (`handObj`/`handScale`). The chibi rig still runs invisibly underneath (physics,
   `headPos`, `snap`). `pick3D` chooses clip + time from the fighter state (attacks are time-warped with `B3ATK` so
   the impact frame lands at the end of startup; kicks/swings/throws/grab-throw/hurricane/flip-kick have their own
-  clips); `upd3D` plays it with cross-fades. Online/replay: clip index + time ride in `legs[0|1].rotation.x` of
+  clips; locomotion = `walk` / `run` with the clip speed following the real ground speed, `runDrunk` only for the Party
+  Animal style; the winner plays `win` (Victory Idle) or `whatever` at random, kept in `f.winClip`); `upd3D` plays it with cross-fades. Online/replay: clip index + time ride in `legs[0|1].rotation.x` of
   `snap()` (invisible on a 3D fighter) and `apply3D` plays them; the slot tuple gains `s[6]` = 3D flag, presence `bd`.
   Test pages strip `SkeletonUtils`/`GLTFLoader`, so fighters stay chibi there.
 - Fighters are chibi: `S = ch.size × 0.84`, short legs (hip 0.72), bean torso, head group `this.head` scaled 1.26

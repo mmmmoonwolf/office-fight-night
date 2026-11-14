@@ -337,7 +337,7 @@ class Fighter{
   }
   reset(x,y,z,face){
     this.pos={x,z};this.vel={x:0,z:0};this.mv={x:0,z:0};this.y=y;this.vy=0;this.hp=this.maxHp;this.lagHp=this.maxHp;
-    this.state='idle';this.atk=null;this.stunT=0;this.koT=0;this.downT=0;this.recT=0;this.win=false;this.queued=null;this.jabHand=0;this.t=Math.random()*5;this.walk=0;this.moving=0;this.wallCd=0;this.invT=0;
+    this.state='idle';this.atk=null;this.stunT=0;this.koT=0;this.downT=0;this.recT=0;this.win=false;this.winClip=null;this.queued=null;this.jabHand=0;this.t=Math.random()*5;this.walk=0;this.moving=0;this.wallCd=0;this.invT=0;
     this.face=this.faceT=face;this.spinA=0;this.seq=[];this.lastAtkEnd=-9;this.comboN=0;this.lastHitT=-9;this.knockdown=false;
     this.stream=null;this.dashing=null;this.pulled=null;this.victim=null;this.grabbedBy=null;
     this.fx={dizzy:0,slow:0,buff:0,immune:0,parry:0};this.react=null;this.ap=null;if(this.head)this.head.rotation.set(0,0,0);this.wind=null;this.koFly=false;this.dusted=false;this.superGrab=false;
@@ -479,7 +479,7 @@ class Fighter{
       this.koFly=true;this.vy=Math.max(this.vy,9+rand(0,3));this.y+=0.05;this.vel.x=nx*rand(15,19);this.vel.z=nz*rand(15,19);
       this.knockdown=false;this.dropHeld();this.stream=null;this.dashing=null;this.wind=null;G.hitStop=Math.max(G.hitStop,0.14);
       burst(hp.clone(),0xffffff,14,6);ringFx(this.pos.x,this.y+1,this.pos.z,2.6,0xffe14d,0.4);popup(pick(['บ๊ายบาย~ 👋','ลาออก!!','ปลิวววว!','ไปไกลๆ!']),hp.clone().add(V(0,1.6,0)),'combo',1.2);
-      popup('K.O.!',hp.clone().add(V(0,1,0)),'crit',1.4);SFX.voice(this.vp,'ko');SFX.koBell();onKO(this,att);}
+      popup('K.O.!',hp.clone().add(V(0,1,0)),'crit',1.4);SFX.voice(this.vp,'ko');SFX.koWhoosh();SFX.koBell();onKO(this,att);}
     else{if(Math.random()<(heavy?0.6:0.3))SFX.voice(this.vp,'hurt');if(Math.random()<(heavy?0.4:0.15)){if(Math.random()<0.55)say(this,pick(HURT));else if(att)say(att,pick(att.ch.quotes));}}
     return true;
   }

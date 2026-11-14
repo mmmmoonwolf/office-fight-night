@@ -585,6 +585,7 @@ function loop(now){
   if(NET.role==='host')netHostFrame(raw);
   updSmoke(raw*(G.phase==='replay'?0.5:G.timeScale||1));updRain(raw,CAM.focus);updCamera(raw);updFades(raw,CAM.focus);for(const f of G.f)f.hairFade(raw);updTags();updPops(raw);updPrompts();
   SFX.amb(G.phase==='menu'?0.4:(CAM.focus.z>3?1:CAM.focus.y>2?0.15:0.35));SFX.musicTempo(G.phase==='fight'&&G.timer<=15?132:G.phase==='end'?108:96);
+  SFX.bgm(G.phase==='menu'||!G.f.length?'menu':G.phase==='end'?'win':G.mode==='train'?'train':'fight',G.phase==='fight'&&G.mode!=='train'&&G.timer<=15?1.08:1);
   renderer.render(scene,camera);
   pressed.clear();
 }
@@ -594,5 +595,5 @@ G.baseDiff=G.diff;
 loadSave();
 $('#ctrlHelp').innerHTML=ctrlHTML();
 buildCards();resetWorld();buildFromSlots();
-if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>{textTex.forEach(o=>{const g=o.c.getContext('2d');g.clearRect(0,0,o.c.width,o.c.height);o.draw(g,o.c.width,o.c.height);o.t.needsUpdate=true;});updateCards();});}
+if(document.fonts&&document.fonts.ready){Promise.all(['400 96px "Luckiest Guy"','600 40px Fredoka','800 100px Kanit'].map(f=>document.fonts.load(f).catch(()=>0))).then(()=>document.fonts.ready).then(()=>{textTex.forEach(o=>{const g=o.c.getContext('2d');g.clearRect(0,0,o.c.width,o.c.height);o.draw(g,o.c.width,o.c.height);o.t.needsUpdate=true;});updateCards();});}
 requestAnimationFrame(loop);
