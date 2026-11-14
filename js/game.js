@@ -435,6 +435,7 @@ $('#loadGo').addEventListener('click',()=>{
 });
 function showMoves(on){if(on)buildMoves();$('#movesP').classList.toggle('hidden',!on);}
 $('#movesBtn').addEventListener('click',()=>showMoves(true));
+$('#body3dAll').addEventListener('click',()=>{const all=ROSTER.every(c=>c.body==='3d');ROSTER.forEach(c=>c.body=all?'chibi':'3d');saveAll();updateCards();buildFromSlots();$('#body3dAll').textContent=all?'🧍 ร่าง 3D ทุกคน':'🧸 การ์ตูนทุกคน';});
 $('#movesBtn2').addEventListener('click',()=>showMoves(true));
 $('#movesClose').addEventListener('click',()=>showMoves(false));
 $('#quitBtn').addEventListener('click',()=>{if(NET.role!=='off')netQuitMatch();else toMenu();});
@@ -465,13 +466,14 @@ function buildCards(){
     const el=document.createElement('div');el.className='card';el.dataset.i=i;
     el.innerHTML=`<div class="badges"></div><canvas width="180" height="180"></canvas><input class="nmIn" maxlength="18"><div class="role"></div>
       <div class="ttl"></div>
-      <div class="pbtns"><label class="btn sm">📷 รูปหน้า<input type="file" accept="image/*" hidden></label><button class="btn sm ghost rm">ลบรูป</button><button class="btn sm ghost glv"></button></div>`;
+      <div class="pbtns"><label class="btn sm">📷 รูปหน้า<input type="file" accept="image/*" hidden></label><button class="btn sm ghost rm">ลบรูป</button><button class="btn sm ghost glv"></button><button class="btn sm ghost bd"></button></div>`;
     el.querySelector('.role').textContent=c.role;
     const inp=el.querySelector('.nmIn');inp.value=c.name;
     inp.addEventListener('input',()=>{c.name=inp.value.trim()||c.name;buildSlots();saveAll();G.f.forEach(f=>{if(f.ch===c&&f.tagEl&&f.human==null)f.tagEl.textContent=c.name;});});
     inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();e.stopPropagation();});
     el.querySelector('input[type=file]').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)loadPhoto(f,c);e.target.value='';});
     el.querySelector('.rm').addEventListener('click',()=>{c.photoImg=null;c.photoData=null;saveAll();refreshFaces();});
+    el.querySelector('.bd').addEventListener('click',()=>{c.body=c.body==='3d'?'chibi':'3d';saveAll();updateCards();buildFromSlots();});
     el.querySelector('.glv').addEventListener('click',()=>{const w=winsOf(c);let g=c.glove||0;for(let k=1;k<=GLOVES.length;k++){const n=(g+k)%GLOVES.length;if(GLOVES[n].need<=w){g=n;break;}}c.glove=g;saveAll();updateCards();buildFromSlots();});
     el.addEventListener('click',e=>{if(e.target.closest('input,label,button'))return;SFX.init();G.slots[G.slotSel]=i;const n=G.mode==='arcade'?1:slotCount();G.slotSel=(G.slotSel+1)%n;buildSlots();updateCards();buildFromSlots();});
     grid.appendChild(el);
@@ -495,6 +497,7 @@ function updateCards(){
     const w=winsOf(c);const nextG=GLOVES.find(g=>g.need>w);
     el.querySelector('.ttl').textContent='ชนะ '+w+' · '+titleOf(w)+(nextG?' · อีก '+(nextG.need-w)+' ชนะปลดถุงมือ'+nextG.name:'');
     el.querySelector('.glv').textContent='🥊 '+GLOVES[c.glove||0].name;
+    el.querySelector('.bd').textContent=c.body==='3d'?'🧍 ร่าง 3D':'🧸 การ์ตูน';
   });
   buildSlots();
 }

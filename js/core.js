@@ -45,7 +45,7 @@ const ROSTER=[
   quotes:['ขาเดย์วันนี้!','เวย์ยังไม่กิน!','ตัดต่อเสร็จแล้ว!','อีกเซ็ต!','กล้ามมาแล้ว!']},
 ];
 // everyone is equal: characters only differ in looks — fighting style + special are picked separately (LOADOUT)
-ROSTER.forEach(c=>Object.assign(c,{hp:100,pow:1,spd:1,aspd:1,size:1}));
+ROSTER.forEach(c=>Object.assign(c,{hp:100,pow:1,spd:1,aspd:1,size:1,body:c.id==='dear'?'3d':'chibi'})); // body: 'chibi' cartoon rig or '3d' rigged model (body3d.js)
 // the arcade's final boss — not selectable
 const BOSS_CH={id:'boss',name:'หัวหน้า',role:'ผู้จัดการร้าน',skin:'#e9b98f',hair:'#2a2a2a',hairStyle:'bald',shirt:'#2d3240',shorts:'#1b1e26',sleeves:true,acc:['tie','glasses'],mustache:true,
   hp:125,pow:1.2,spd:0.86,aspd:0.92,size:1.1,sp:'files',emote:'point',
@@ -67,16 +67,16 @@ const STATS={wins:{},lo:[null,null]}; // lo = last fighting style + special pick
 function loadSave(){
   try{
     const s=JSON.parse(localStorage.getItem(SAVE_KEY)||localStorage.getItem('officeFight.v1')||'{}');
-    if(s.wins)STATS.wins=s.wins;if(Array.isArray(s.lo))STATS.lo=[s.lo[0]||null,s.lo[1]||null];
+    if(s.wins)STATS.wins=s.wins;const bodies=s.bodies||{};if(Array.isArray(s.lo))STATS.lo=[s.lo[0]||null,s.lo[1]||null];
     ROSTER.forEach(c=>{
       if(s.names&&s.names[c.id])c.name=s.names[c.id];
-      c.glove=(s.gloves&&s.gloves[c.id])||0;
+      c.glove=(s.gloves&&s.gloves[c.id])||0;if(bodies[c.id])c.body=bodies[c.id];
       if(s.photos&&s.photos[c.id]){c.photoData=s.photos[c.id];const im=new Image();im.onload=()=>{c.photoImg=im;if(window.refreshFaces)refreshFaces();};im.src=c.photoData;}
     });
   }catch(e){ROSTER.forEach(c=>c.glove=c.glove||0);}
 }
 function saveAll(){
-  try{const s={names:{},photos:{},gloves:{},wins:STATS.wins,lo:STATS.lo};ROSTER.forEach(c=>{s.names[c.id]=c.name;s.gloves[c.id]=c.glove||0;if(c.photoData)s.photos[c.id]=c.photoData;});localStorage.setItem(SAVE_KEY,JSON.stringify(s));}catch(e){}
+  try{const s={names:{},photos:{},gloves:{},bodies:{},wins:STATS.wins,lo:STATS.lo};ROSTER.forEach(c=>{s.names[c.id]=c.name;s.bodies[c.id]=c.body||'chibi';s.gloves[c.id]=c.glove||0;if(c.photoData)s.photos[c.id]=c.photoData;});localStorage.setItem(SAVE_KEY,JSON.stringify(s));}catch(e){}
 }
 const winsOf=c=>STATS.wins[c.id]||0;
 

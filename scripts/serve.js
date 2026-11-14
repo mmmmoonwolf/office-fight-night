@@ -10,7 +10,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 const CDN = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>';
 function page(kind) {
   let html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  if (kind === 'test' || kind === 'test-p2p') html = html.split(CDN).join('<script src="test/three_stub.js"></script>').split('<script src="js/vendor/GLTFLoader.js"></script>').join('');
+  if (kind === 'test' || kind === 'test-p2p') html = html.split(CDN).join('<script src="test/three_stub.js"></script>').split('<script src="js/vendor/GLTFLoader.js"></script>').join('').split('<script src="js/vendor/SkeletonUtils.js"></script>').join('');
   if (kind === 'test' || kind === 'mp') html = html.split('<script src="js/core.js">').join('<script src="test/room_mock.js"></script>\n<script src="js/core.js">');
   if (kind === 'test-p2p') html = html.split('<script src="js/core.js">').join('<script src="test/peer_mock.js"></script>\n<script src="js/core.js">');
   // test pages: no web fonts

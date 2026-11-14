@@ -15,16 +15,19 @@ function animRel(p,key){const b=animSample(key,0);p[7]-=b[7];p[11]-=b[11];p[12]-
 const lerpArr=(a,b,k)=>a.map((v,q)=>v+(b[q]-v)*k);
 // attack moves → clip window: anticipation a → impact i is squeezed into the move's startup, i → e into active+recover;
 // back = blend from the impact pose to the fighting stance instead of playing the clip's own follow-through
-const ATK_CLIP={jab:{L:'jab',R:'cross',a:4,i:18,e:30,ri:12},hook:{L:'hook',a:3,i:13,e:36},combo:{L:'upper',a:4,i:16,e:20,back:1}};
+// side = which hand/leg the clip uses (mirrored for the other one); mirror = always mirror (weapon is in the left glove)
+const ATK_CLIP={jab:{L:'jab',R:'cross',a:4,i:18,e:30,ri:12},hook:{L:'hook',a:3,i:13,e:36},combo:{L:'upper',a:4,i:16,e:20,back:1},
+  kick:{L:'kick1',R:'kick2',a:8,i:18,e:34,ri:20},kickH:{L:'mmaKick',side:'R',a:10,i:21,e:40},
+  swingL:{L:'melee',mirror:1,a:12,i:30,e:38},swingH:{L:'melee',mirror:1,a:36,i:48,e:60}};
 const HIT_CLIPS={light:['hitL','hitBody'],mid:['hitM','hitFace','hitHead'],big:['hitBig','hitUpper']};
 function idlePose(f){const c=ANIM_DATA.idle;return animRel(animSample('idle',(f.t*AFPS*0.9)%(c.n-1)),'idle');}
 function animPose(f){
   if(!ANIM_ON.v||typeof ANIM_DATA==='undefined'||f.win)return null;
   const S=f.state,A=f.atk;
-  if(S==='attack'&&A&&!f.held&&A.type!=='swingL'&&A.type!=='swingH'){
-    const m=ATK_CLIP[A.def.pose||A.type];if(!m)return null;
-    // the punching hand: use the clip recorded with that hand, or mirror the other one
-    let key=m.L,mir=A.hand===1,imp=m.i;if(mir&&m.R){key=m.R;mir=false;imp=m.ri;}
+  if(S==='attack'&&A){
+    const m=ATK_CLIP[A.type==='swingL'||A.type==='swingH'?A.type:A.def.pose||A.type];if(!m)return null;
+    // the punching hand / kicking leg: use the clip recorded with that side, or mirror the other one
+    let key=m.L,mir=m.mirror?true:m.side==='R'?A.hand===0:A.hand===1,imp=m.i;if(!m.mirror&&mir&&m.R){key=m.R;mir=false;imp=m.ri;}
     const d=A.def,t=A.t,a=m.a*(imp/m.i);let p;
     if(t<d.startup)p=animSample(key,a+(imp-a)*(t/d.startup));
     else if(t<d.startup+d.active)p=animSample(key,imp);
@@ -33,6 +36,9 @@ function animPose(f){
       return{p:mir?animMirror(p):p,legs:true};}
     animRel(p,key);return{p:mir?animMirror(p):p,legs:true};
   }
+  // throwing a held item (mirrored: the item sits in the left glove) and grab → throw (both hands)
+  if(S==='recover'&&f.t-(f.throwAt||-9)<0.5){const k=(f.t-f.throwAt)/0.5,fr=k<0.25?54+(72-54)*k/0.25:72+(90-72)*(k-0.25)/0.75;return{p:animMirror(animRel(animSample('throw',fr),'throw')),legs:true};}
+  if(S==='grab'){const T=f.superGrab?0.55:0.32,k=Math.min(1,f.grabT/T);return{p:animRel(animSample('throwBig',20+(46-20)*k),'throwBig'),legs:true};}
   if(S==='stun'&&f.react){
     const r=f.react,c=ANIM_DATA[r.c],fr=r.t*AFPS*1.25;
     if(fr<c.n-1)return{p:animRel(animSample(r.c,fr),r.c),legs:true};
@@ -56,6 +62,6 @@ function animHand(f,h,p){
   c=Math.cos(-tr.z);s=Math.sin(-tr.z);[x,y]=[x*c-y*s,x*s+y*c];
   const g=V(sx*0.52*f.bulk+x,0.76+y,z);
   const dx=g.x,dy=g.y-1.38,dz=g.z,d=Math.hypot(dx,dy,dz),MIN=0.84;
-  if(d<MIN){let nx=dx/(d||1),ny=dy/(d||1),nz=dz/(d||1)+0.7;const l=Math.hypot(nx,ny,nz)||1;g.set(nx/l*MIN,1.38+ny/l*MIN,nz/l*MIN);}
+  if(d<MIN&&g.z<0.9){let nx=dx/(d||1),ny=dy/(d||1),nz=dz/(d||1)+0.7;const l=Math.hypot(nx,ny,nz)||1;g.set(nx/l*MIN,1.38+ny/l*MIN,nz/l*MIN);}
   return g;
 }
