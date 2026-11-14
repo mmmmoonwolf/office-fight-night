@@ -20,17 +20,37 @@ async function openPage(ctx, errs, url = BASE + '/test.html') {
 async function offline(browser) {
   console.log('\n[offline] duel vs CPU, specials, items, rounds, arcade');
   const errs = []; const ctx = await browser.newContext(); const pg = await openPage(ctx, errs); const ev = s => pg.evaluate(s);
-  ok(await ev("document.querySelectorAll('.card').length") === 14, '14 character cards');
+  ok(await ev("document.querySelectorAll('.card').length") === 8, '8 character cards');
+  ok(await ev("ROSTER.every(c=>c.hp===100&&c.pow===1&&c.spd===1&&c.aspd===1&&c.size===1)"), 'every character has the same stats');
+  ok(await ev("ROSTER.find(c=>c.id==='dear').body==='3d' && ROSTER.filter(c=>c.body==='3d').length===1"), 'Dear uses the 3D body by default');
+  await pg.click('#body3dAll'); ok(await ev("ROSTER.every(c=>c.body==='3d')"), 'one button switches everyone to the 3D body');
+  await pg.click('#body3dAll'); await pg.click('.card[data-i="3"] .bd');
+  ok(await ev("ROSTER.every(c=>c.body==='chibi'||c.id==='dear') && document.querySelector('.card[data-i=\"3\"] .bd').textContent.includes('3D')"), 'per-character body button toggles and shows the choice');
   await pg.click('.card[data-i="2"]'); await pg.click('.card[data-i="0"]');
-  await pg.click('#startBtn'); await sleep(1700);
+  await pg.click('#startBtn'); await sleep(150);
+  ok(await ev("!$('#loadP').classList.contains('hidden') && document.querySelectorAll('#stlGrid .opt').length===Object.keys(STYLES).length && document.querySelectorAll('#spGrid .opt').length>=20"), 'start opens the style + special picker');
+  await pg.click('#stlGrid .opt[data-k="kick"]'); await pg.click('#spGrid .opt[data-k="superKick"]');
+  await pg.click('#loadGo'); await sleep(1700); await ev('G.evT=999');
+  ok(await ev("Object.keys(SFX.SMP).length") >= 30 && await ev("!!SFX.SMP.punchH && !!SFX.SMP.vo_round"), 'recorded hit sounds and announcer lines load');
+  ok(await ev("Object.keys(MODELS).length>=20 && BRK.some(b=>b.brk.name==='โซฟารับแขก') && 'pillow' in WEAPONS"), 'furniture models are placed, breakable and throwable');
+  ok(await ev("G.f[0].lo.st==='kick' && G.f[0].lo.sp==='superKick' && STATS.lo[0].st==='kick'"), 'picked style + special are used and remembered');
   ok(await ev('G.phase') === 'fight', 'duel reaches fight phase');
   for (let i = 0; i < 20; i++) { await pg.keyboard.down('KeyD'); await pg.keyboard.press('KeyJ'); await pg.keyboard.press('KeyK'); await pg.keyboard.up('KeyD'); await pg.keyboard.press('Space'); await sleep(80); }
-  for (const sp of ['files', 'chat', 'books', 'trap', 'fork', 'chord', 'drop', 'audit', 'flash', 'dash', 'pull', 'cloud', 'buff', 'finisher', 'random']) {
-    await ev(`G.f[0].ch.sp='${sp}';G.f[0].rage=100;G.f[0].state='idle';G.f[1].pos.x=G.f[0].pos.x+1.5;G.f[1].pos.z=G.f[0].pos.z;G.f[1].hp=Math.max(G.f[1].hp,60);G.f[1].state='idle';G.f[1].invT=0;G.f[0].tryAttack('special')`);
+  for (const sp of ['files', 'chat', 'books', 'trap', 'fork', 'chord', 'drop', 'audit', 'flash', 'dash', 'pull', 'cloud', 'buff', 'finisher', 'random', 'rush', 'superKick', 'skyUpper', 'quake', 'megaSlap', 'suplex', 'wind', 'parry']) {
+    await ev(`G.f[0].lo.sp='${sp}';G.f[0].rage=100;G.f[0].state='idle';G.f[1].pos.x=G.f[0].pos.x+1.5;G.f[1].pos.z=G.f[0].pos.z;G.f[1].hp=Math.max(G.f[1].hp,60);G.f[1].state='idle';G.f[1].invT=0;G.f[0].tryAttack('special')`);
     await sleep(350);
   }
   await sleep(1200);
   ok(await ev('G.f[1].hp < G.f[1].maxHp'), 'specials deal damage');
+  await ev("window.__ai=aiThink;aiThink=()=>({mx:0,mz:0,atk:null,block:false,jump:false,grab:false})"); // CPU stands still for the scripted checks
+  await ev("G.f[1].lo={st:'box',sp:'rush'};G.f[1].style=STYLES.box");
+  for (const st of Object.keys(await ev('STYLES'))) {
+    await ev(`G.f[0].lo.st='${st}';G.f[0].style=STYLES['${st}'];G.f[0].state='idle';G.f[0].pos.y=0;G.f[1].state='idle';G.f[1].invT=0;G.f[1].hp=G.f[1].maxHp;G.f[1].pos.x=G.f[0].pos.x+1.2;G.f[1].pos.z=G.f[0].pos.z;G.f[0].face=G.f[0].faceT=Math.atan2(1.2,0);G.f[0].lastAtkEnd=-9;G.f[1].fx.parry=0;G.f[1].vel.x=G.f[1].vel.z=0;G.f[0].vel.x=G.f[0].vel.z=0`);
+    for (const k of ['jab', 'jab', 'hook']) { await ev(`G.f[0].state='idle';G.f[0].tryAttack('${k}')`); await sleep(160); }
+    await sleep(1100);
+    ok(await ev('G.f[1].hp < G.f[1].maxHp'), `style ${st}: jab-jab-hook combo connects`);
+  }
+  await ev("G.f.forEach(f=>{f.lo.st='box';f.style=STYLES.box;f.wind=null;f.fx.parry=0;f.state='idle';f.atk=null;})");
   await ev("G.f[0].pos.x=2.6;G.f[0].pos.z=-9.5;G.f[0].y=0;CAM.yaw=-Math.PI/2");
   await pg.keyboard.down('KeyW'); await sleep(1800); await pg.keyboard.up('KeyW');
   ok(await ev('onMezz(G.f[0])'), 'stairs lead up to the mezzanine');
@@ -39,7 +59,7 @@ async function offline(browser) {
   await ev("G.f[0].state='idle';G.f[0].pos.x=14.6;G.f[0].pos.z=-10.6;G.f[0].y=2.4;G.f[0].vel.x=0;G.f[0].vel.z=0");
   await sleep(200);
   ok((await ev("document.querySelector('#prompts').textContent")).includes('หยิบ'), 'button prompt shows next to a weapon');
-  await ev("G.f[1].state='idle';G.f[1].invT=0;G.f[1].hp=G.f[1].maxHp;G.f[1].pos.x=16.6;G.f[1].pos.z=1.8;G.f[1].y=2.4;G.f[1].vy=0;G.f[1].vel.z=0");
+  await ev("G.f[1].state='idle';G.f[1].invT=0;G.f[1].hp=G.f[1].maxHp;G.f[1].pos.x=16.6;G.f[1].pos.z=1.8;G.f[1].y=2.4;G.f[1].vy=0;G.f[1].vel.x=0;G.f[1].vel.z=0;G.f[1].fx.dizzy=0");
   await sleep(150);
   const hpBefore = await ev('G.f[1].hp');
   await ev("G.f[1].takeHit(null,{dmg:1,knock:12,stun:1,launch:3,kd:1,unblockable:1,dir:{x:0,z:1}})");
@@ -47,26 +67,54 @@ async function offline(browser) {
   ok(await ev("PANES.some(p=>p.b.broken)"), '2nd-floor glass breaks when someone is knocked into it');
   ok(await ev("G.f[1].pos.z>3 && G.f[1].y<0.5"), 'fighter falls out of the window onto the street');
   ok(await ev('G.f[1].hp') < hpBefore - 5, 'fall damage applied');
+  // bigger map: the road behind the store is reachable through the back door and counts as outside
+  await ev("G.f[0].state='idle';G.f[0].pos.x=-8;G.f[0].pos.z=-10.4;G.f[0].y=0;G.f[0].vel.x=G.f[0].vel.z=0;CAM.yaw=0");
+  await pg.keyboard.down('KeyW'); await sleep(1600); await pg.keyboard.up('KeyW');
+  ok(await ev("G.f[0].pos.z<-13 && zoneOf(G.f[0].pos)==='out'"), 'back door leads out to the road behind the store');
+  ok(await ev("WORLD.x1-WORLD.x0>60 && WORLD.z0<-20"), 'map is wider and loops behind the store');
+  await ev("G.f[1].state='idle';G.f[1].invT=0;G.f[1].hp=G.f[1].maxHp;G.f[1].pos.x=-19.3;G.f[1].pos.z=1.8;G.f[1].y=0;G.f[1].vy=0;G.f[1].vel.x=0;G.f[1].vel.z=0;G.f[1].takeHit(null,{dmg:1,knock:14,stun:1,unblockable:1,dir:{x:0,z:1}})");
+  await sleep(1200);
+  ok(await ev("BRK.some(b=>b.brk.kind==='glass'&&b.brk.broken)"), 'knocking someone into the shop window smashes it');
+  ok(await ev("G.f[1].pos.z>3.1"), '...and they fly out onto the sidewalk');
+  ok(await ev("(()=>{const b=BRK.find(b=>b.brk.kind==='wall'&&!b.brk.broken);for(let i=0;i<3;i++)hitBreakable(b,1);return b.brk.broken&&b.y1<0&&BILL>0;})()"), 'a wall panel cracks then breaks open after 3 hits, and the damage bill goes up');
+  ok(await ev("(()=>{const b=BRK.find(b=>b.brk.kind==='piano');hitBreakable(b,5);return b.brk.broken&&b.y1<0.5&&b.y1>0;})()"), 'a smashed piano becomes low rubble');
+  await ev("restoreBreakables()");
+  ok(await ev("BRK.every(b=>!b.brk.broken&&b.brk.hp===b.brk.max) && BILL===0"), 'the store is repaired for the next round');
+  await ev("G.forceEvent='flood';G.evT=0;FLOOD.lvl=0"); await sleep(4500);
+  ok(await ev("FLOOD.t>0 && FLOOD.lvl>0.15"), 'flood event raises the water');
+  ok(await ev("(()=>{const f=G.f[0];f.y=0;return inWater(f);})()"), 'fighters on the ground wade in the flood');
+  await ev("resetEvents();G.forceEvent='van';G.evT=0"); await sleep(300);
+  ok(await ev("!!NPC.van"), 'delivery van event starts a lap around the store');
+  await ev("resetEvents();G.forceEvent='blackout';G.evT=0"); await sleep(300);
+  ok(await ev("EV.blackout>0"), 'blackout event turns the lights off');
+  await ev("resetEvents();G.forceEvent='storm';G.evT=0"); await sleep(300);
+  ok(await ev("EV.storm>0"), 'storm event starts gusts');
+  await ev("resetEvents();G.evT=999");
+  await ev("aiThink=window.__ai");
   for (let k = 0; k < 2; k++) {
     await ev("G.f[1].hp=1;G.f[1].state='idle';G.f[1].invT=0;G.f[1].takeHit(G.f[0],{dmg:5,knock:1,stun:.3})");
     await sleep(2200); await pg.keyboard.press('KeyX'); await sleep(2600);
   }
   await sleep(1800);
   ok(await ev("!document.querySelector('#endP').classList.contains('hidden')"), 'end panel after 2 round wins');
+  await ev("G.f[1].state='idle';G.f[1].invT=0;G.f[1].hp=1;G.f[1].pos.x=G.f[0].pos.x+1;G.f[1].pos.z=G.f[0].pos.z;G.f[1].takeHit(G.f[0],{dmg:50,knock:4,stun:.5,unblockable:1})");
+  ok(await ev("G.f[1].state==='ko' && G.f[1].koFly"), 'KO sends the loser flying');
+  await sleep(2200);
+  ok(await ev("G.f[1].dusted"), 'KO\'d fighter bursts into dust');
   await ev('toMenu()'); await pg.click('#movesBtn'); await sleep(100);
-  ok(await ev("document.querySelectorAll('#mvList .mv').length") === 14 && await ev("[...document.querySelectorAll('#mvList .ds')].every(d=>d.textContent.length>5)"), 'move list shows every special with a description');
+  ok(await ev("document.querySelectorAll('#mvList .mv').length===SP_LIST.length") && await ev("[...document.querySelectorAll('#mvList .ds')].every(d=>d.textContent.length>5)") && await ev("document.querySelectorAll('#mvStyles .mv').length") === 6, 'move list shows every style and special with a description');
   await pg.keyboard.press('Escape'); ok(await ev("$('#movesP').classList.contains('hidden')"), 'Esc closes the move list');
-  await pg.click('#modeSeg button[data-m="train"]'); await pg.click('#startBtn'); await sleep(1700);
+  await pg.click('#modeSeg button[data-m="train"]'); await pg.click('#startBtn'); await pg.click('#loadGo'); await sleep(1700);
   ok(await ev("G.phase==='fight' && $('#timer').textContent==='∞'"), 'training room: fight with no timer');
   await ev("G.f[1].pos.x=G.f[0].pos.x+1.2;G.f[1].pos.z=G.f[0].pos.z;G.f[1].hp=3;G.f[1].invT=0;G.f[1].state='idle';G.f[1].takeHit(G.f[0],{dmg:20,knock:1,stun:.3})");
   ok(await ev("G.f[1].state!=='ko' && G.f[1].hp>=1"), 'training dummy cannot be KO\'d');
   await sleep(2600);
   ok(await ev("G.f[1].hp===G.f[1].maxHp && G.f[0].rage===100 && G.phase==='fight'"), 'dummy heals and special gauge refills');
   await pg.keyboard.press('KeyT'); ok(await ev('TR.dummy') === 1, 'T cycles the dummy behaviour');
-  await ev('toMenu()'); await pg.click('#modeSeg button[data-m="arcade"]'); await pg.click('#startBtn'); await sleep(300);
+  await ev('toMenu()'); await pg.click('#modeSeg button[data-m="arcade"]'); await pg.click('#startBtn'); await pg.click('#loadGo'); await sleep(300);
   for (let st = 0; st < 6; st++) {
     await pg.click('#interGo'); await sleep(1600);
-    await ev("G.f[1].hp=0.5;G.f[1].invT=0;G.f[1].state='idle';G.f[1].takeHit(G.f[0],{dmg:5,knock:1,stun:.3})");
+    await ev("G.f[1].hp=0.5;G.f[1].invT=0;G.f[1].fx.parry=0;G.f[1].state='idle';G.f[1].takeHit(G.f[0],{dmg:5,knock:1,stun:.3,unblockable:1})");
     await sleep(1700); await pg.keyboard.press('KeyX'); await sleep(1700);
   }
   await sleep(1500);
@@ -104,6 +152,9 @@ async function online(browser, page, label) {
   ok(await H('G.f[1].hp') < hpB && Math.abs(await C1('G.f[1].hp') - await H('G.f[1].hp')) < 2, 'damage shows on both screens');
   await H("breakPane(PANES[2].b,null)"); await sleep(600);
   ok(await C1("PANES[2].mesh.visible===false"), 'broken glass is synced to clients');
+  await H("breakIt(BRK.find(b=>b.brk.kind==='wall'),true);FLOOD.t=20;FLOOD.lvl=0.4;EV.blackout=5"); await sleep(700);
+  ok(await C1("BRK.find(b=>b.brk.kind==='wall').brk.broken && FLOOD.lvl>0.3 && EV.blackout>0"), 'smashed wall, flood and blackout are synced to clients');
+  await H("resetEvents()");
   for (let k = 0; k < 2; k++) {
     for (let w = 0; w < 40 && await H('G.phase') !== 'fight'; w++) { await host.keyboard.press('KeyX'); await sleep(250); }
     await H("G.f[1].hp=1;G.f[1].state='idle';G.f[1].invT=0;G.f[1].takeHit(G.f[0],{dmg:5,knock:1,stun:.3})");
