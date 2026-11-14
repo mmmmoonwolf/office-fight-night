@@ -25,7 +25,20 @@ someone is knocked into them — they drop onto the sidewalk and take fall damag
 - `ATK` move fields: `pose` (arm/leg/body animation in `glovePose`/`animate`), `lunge {sp,a,b}`, `sweep` (hits whatever it
   touches while active, stops on hit), `multi {n,iv,last}`, `jumpV`(+`jumpAt`), `onLand` (hits on landing → `landQuake`),
   `arc` (360°), `unblockable`, `dizzy`, `bigGlove`, `noCrit`, `call` (popup text for combos).
-- Hit feel: 12 % crits (`CRIT`, `critFx`), combo damage bonus + escalating `comboPop`, KO = the loser is launched
+- **Hats** (`HATS`/`makeHat` in fighter.js) replace the old glove unlocks: unlocked by total wins (`totalWins`,
+  `hatOk`), picked per character on the loadout screen (`#hatGrid`, online `#onHat`), saved as `ch.hat` (save key
+  `hats`). Online the hat index rides in the old glove slot (`gl` presence / slot `s[3]`). 3D: fitted on top of the
+  model's head in bind pose in `finish3D` (bigger over big hair); chibi: on `this.head`. The boss wears `hatKey:'crown'`.
+  `GLOVES` is only the chibi fallback's team-colour glove now.
+- **Gamepads**: `pollPads()` (core.js, top of the main loop) turns standard-mapping buttons into virtual codes
+  `G<pad><btn>` in `held`/`pressed`; `PADMAP` adds them to every `SCH` scheme (pad 0 → P1/solo, pad 1 → P2); left stick
+  analog in `readPlayer`, right stick orbits the camera, Start/A/B drive menus via `padMenus()`; key prompts show pad
+  labels (`PADLAB`) while `padUsed(n)`.
+- **Loading screen** (`#loadScr`, game.js): boot progress from `THREE.DefaultLoadingManager` (furniture + fighter.glb);
+  `preloadFighters(chs, cb)` loads only the chosen fighters' `char_*.glb` before a match (arcade: the whole ladder);
+  the online lobby fetches every cast model in the background.
+- Hit feel: hit-stop, camera shake and a victim squash (`squashT`/`squashK`, held through the freeze) scale with the
+  damage in `takeHit`; 12 % crits (`CRIT`, `critFx`), combo damage bonus + escalating `comboPop`, KO = the loser is launched
   tumbling (`koFly`) and bursts into dust + a ghost when it hits a wall/floor or after 1.6 s (`koPoof` → `koDust`;
   `dusted` shrinks the body to scale 0, which travels in `snap()` so clients and the KO replay see it too).
 - Smoke/wind: `puff` (soft spheres), `windFx` (streaks), ghosts — updated by `updSmoke` every frame (also in replays and
@@ -182,7 +195,8 @@ top-level page without `window.claude` (GitHub Pages: https://mmmmoonwolf.github
 PeerJS 1.5.4 is lazy-loaded from unpkg (jsDelivr fallback) and uses the free `0.peerjs.com` broker + public STUN.
 The room creator takes peer id `ofn-<code>` and relays every member's presence (star topology); `p2pRoom()` exposes
 the same `presence()`/`peers()` surface as the claude.ai room, so everything below is shared. In P2P the lobby host
-is always the creator. No TURN server: some strict NATs / mobile carriers cannot connect (the lobby says so).
+is always the creator. TURN relay: `TURN_CFG` (metered.ca app name + front-end API key) or localStorage `ofn.ice` (JSON iceServers) are added by
+`p2pIce()` before the Peer is created; with neither, it is STUN only and some strict NATs / mobile carriers cannot connect.
 
 
 Everything goes through **presence only** (no event topics), because presence is allowed for every viewer:

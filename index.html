@@ -79,6 +79,13 @@ body.touch #hint{display:none}
 @keyframes slam{from{opacity:0;transform:scale(2.4)}to{opacity:1;transform:scale(1)}}
 @keyframes fadeIn{to{opacity:1}}
 #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+#loadScr{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,#3a1e4f,#120a18);color:#fff;font-family:Fredoka,Kanit,sans-serif;text-align:center;padding:16px}
+#loadScr.hidden{display:none}
+#loadScr h2{font-family:'Luckiest Guy',Fredoka,sans-serif;font-weight:400;letter-spacing:2px;font-size:clamp(30px,7vw,56px);color:#ffd23d;margin:0 0 14px;text-shadow:0 4px 0 #7a3b00}
+.ldBox{width:min(520px,100%)}
+.ldTrack{height:18px;border-radius:9px;background:rgba(255,255,255,.12);overflow:hidden;margin:12px 0 14px;border:2px solid rgba(255,255,255,.18)}
+#loadBar{height:100%;width:0;background:linear-gradient(90deg,#ff4fa3,#ffd23d);border-radius:9px;transition:width .25s}
+#loadScr small{opacity:.7}
 #replayLab{position:fixed;top:16px;left:16px;font-weight:800;font-size:22px;background:#e0303a;padding:4px 14px;border-radius:8px;letter-spacing:2px;animation:blink 1s infinite;pointer-events:none}
 #replayLab small{font-size:12px;letter-spacing:0;font-weight:600;margin-left:8px;opacity:.9}
 @keyframes blink{50%{opacity:.6}}
@@ -161,6 +168,7 @@ kbd{background:#fff;color:#222;border-radius:5px;padding:0 5px;font-family:inher
 .opt{display:flex;gap:10px;align-items:flex-start;text-align:left;background:rgba(255,255,255,.06);border:2px solid transparent;border-radius:12px;padding:8px 10px;color:#fff;font-family:inherit;cursor:pointer}
 .opt:hover{background:rgba(255,255,255,.12)}
 .opt.on{border-color:#ffd23d;background:rgba(255,210,61,.16)}
+.opts.hats{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}.opt.lock{opacity:.4;cursor:not-allowed}.opt.lock:hover{background:rgba(255,255,255,.06)}
 .opt .ic,.mv .ic{font-size:28px;line-height:1;flex:none;width:36px;text-align:center}
 .opt b{display:block;font-size:15px}.opt small{display:block;font-size:12px;opacity:.9;line-height:1.45}.opt .mvs2{color:#ffd23d;opacity:1}
 .opt em{font-style:normal;font-size:10.5px;font-weight:800;border-radius:6px;padding:0 6px;margin-left:4px}.opt em.melee{background:#e0303a}.opt em.toy{background:#2f6fe0}
@@ -215,6 +223,7 @@ body.touch.fighting #touch{display:block}
 <div id="pops"></div>
 <div id="center"><h1 id="cH"></h1><p id="cP"></p></div>
 <div id="flash"></div>
+<div id="loadScr" class="hidden"><div class="ldBox"><h2>OFFICE FIGHT NIGHT</h2><div id="loadTxt">Loading…</div><div class="ldTrack"><div id="loadBar"></div></div><small>🥊 Tip: jab, jab, hook = combo · grab beats block</small></div></div>
 <div id="replayLab" class="hidden">● REPLAY<small>press any key to skip</small></div>
 
 <div id="menu" class="overlay">
@@ -241,7 +250,7 @@ body.touch.fighting #touch{display:block}
   <div class="panel" style="max-width:640px">
     <h2>Play online 🌐</h2>
     <p id="onMsg" class="onmsg"></p>
-    <div class="onrow"><canvas id="onPic" width="168" height="168"></canvas><div style="text-align:left"><div>Your fighter</div><select id="onChar"></select><div>Fighting style</div><select id="onStyle"></select><div>Special move</div><select id="onSp"></select><div class="small">Rename fighters or add a face photo on the cards in the main menu</div></div></div>
+    <div class="onrow"><canvas id="onPic" width="168" height="168"></canvas><div style="text-align:left"><div>Your fighter</div><select id="onChar"></select><div>Fighting style</div><select id="onStyle"></select><div>Special move</div><select id="onSp"></select><div>Hat</div><select id="onHat"></select><div class="small">Rename fighters or add a face photo on the cards in the main menu</div></div></div>
     <div id="onJoinBox">
       <div class="onrow"><button class="btn big" id="onCreate">Create room</button></div>
       <div class="onrow"><input id="onCode" maxlength="6" placeholder="Room code" autocomplete="off"><button class="btn blue" id="onEnter">Join</button></div>
@@ -273,10 +282,11 @@ body.touch.fighting #touch{display:block}
 
 <div id="loadP" class="overlay hidden">
   <div class="panel load">
-    <h2 id="loadT">Pick your style & special</h2>
+    <h2 id="loadT">Pick your style, special & hat</h2>
     <div class="loadWho"><canvas id="loadPic" width="160" height="160"></canvas><div><b id="loadName"></b><div id="loadSum"></div><small>Everyone has equal stats — only your style and special differ</small></div></div>
     <h3>Fighting style <small>(jab / hook / jab-jab-hook)</small></h3><div class="opts" id="stlGrid"></div>
     <h3>Special move <small>(when the purple bar is full)</small></h3><div class="opts" id="spGrid"></div>
+    <h3>Hat <small id="hatInfo"></small></h3><div class="opts hats" id="hatGrid"></div>
     <div class="btns sticky"><button class="btn ghost" id="loadBack">Back</button><button class="btn ghost" id="loadRand">🎲 Random</button><button class="btn big" id="loadGo">Ready! 🥊</button></div>
   </div>
 </div>
