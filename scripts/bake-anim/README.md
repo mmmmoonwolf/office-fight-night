@@ -29,3 +29,12 @@ node scripts/bake-anim/export_char.js <three package dir> <folder of .fbx> asset
 
 Clip timings (wind-up / impact / follow-through, seconds) live in `B3ATK` in `js/body3d.js`; re-check them when a
 clip is swapped. New clips for the chibi body go into `js/anim_data.js` with `bake.js`.
+
+## Cast models and portraits
+
+Each cast member is exported on its own (mesh + one skeleton, no clips — they reuse fighter.glb's):
+
+```bash
+node scripts/bake-anim/export_model.js <three pkg> <fbx dir> <character>.fbx assets/models/char_<name>.glb
+node scripts/bake-anim/portraits.js <three pkg> .     # re-renders assets/portraits/*.png from the char_*.glb files
+```

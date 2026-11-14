@@ -1,24 +1,24 @@
 'use strict';
 /* ================= GAME STATE ================= */
-const G={phase:'menu',mode:'duel',humans:1,diff:1,loc:'in',slots:[2,1,4,6],slotSel:0,f:[],round:1,wins:{},timer:99,phaseT:0,clock:0,timeScale:1,slowT:0,shake:0,hitStop:0,paused:false,photo:false,watch:0,rain:0,evT:12,arc:null,roundWinner:-1,lastKO:null,replayPending:false};
+const G={phase:'menu',mode:'duel',humans:1,diff:1,loc:'in',slots:[0,1,2,3],slotSel:0,f:[],round:1,wins:{},timer:99,phaseT:0,clock:0,timeScale:1,slowT:0,shake:0,hitStop:0,paused:false,photo:false,watch:0,rain:0,evT:12,arc:null,roundWinner:-1,lastKO:null,replayPending:false};
 const SLOTCOL=['#e0303a','#2f6fe0','#2bb673','#f1b31c'];
 const TEAMCOL=[['#e0303a','#ff8a5c'],['#2f6fe0','#36c5f0']];
 const chOf=i=>i<0?BOSS_CH:ROSTER[i]; // -1 = arcade boss
 function humanLo(h,ch){const l=STATS.lo[h];return l&&STYLES[l.st]&&SPECIALS[l.sp]?l:{st:'box',sp:ch.sp};}
 const slotCount=()=>(G.mode==='ffa'||G.mode==='team')?4:2;
 function slotInfo(i){
-  const m=G.mode,two=G.humans===2;let human=null,team=i,color=SLOTCOL[i],label='คอม';
+  const m=G.mode,two=G.humans===2;let human=null,team=i,color=SLOTCOL[i],label='CPU';
   if(i===0)human=0;else if(i===1&&two&&m!=='arcade')human=1;
   if(m==='team'){team=i<2?0:1;color=TEAMCOL[team][i%2];}
   if(m==='arcade'&&i===1){team=1;}
-  if(human!=null)label='P'+(human+1);else if(slotCount()>2)label='คอม'+(m==='team'?(team===0?' (ทีมแดง)':' (ทีมฟ้า)'):'');
-  if(m==='team'&&human!=null)label+=' ทีมแดง';
+  if(human!=null)label='P'+(human+1);else if(slotCount()>2)label='CPU'+(m==='team'?(team===0?' (Red)':' (Blue)'):'');
+  if(m==='team'&&human!=null)label+=' Red';
   return{human,team,color,label};
 }
 
 /* ================= TRAINING ROOM ================= */
 const TR={dummy:0,last:-9,hits:0,dmg:0,best:0};
-const DUMMY_MODES=['ยืนเฉย','กันตลอด','สู้กลับ'];
+const DUMMY_MODES=['stand still','always block','fight back'];
 function dummyThink(f,dt){
   if(TR.dummy===2)return aiThink(f,dt);
   const e=nearestEnemy(f,99);
@@ -36,9 +36,9 @@ function trainTick(dt){
     if(f.human!=null)f.rage=Math.min(100,f.rage+40*dt);
     if(G.clock-(f.trHurt||-9)>2&&f.hp<f.maxHp&&f.state!=='down'&&f.state!=='ko')f.hp=f.maxHp;
   }
-  $('#roundLab').textContent='ห้องซ้อม · หุ่น: '+DUMMY_MODES[TR.dummy]+' [T]';
+  $('#roundLab').textContent='Training · dummy: '+DUMMY_MODES[TR.dummy]+' [T]';
 }
-function cycleDummy(){TR.dummy=(TR.dummy+1)%DUMMY_MODES.length;banner('หุ่นซ้อม: '+DUMMY_MODES[TR.dummy],1.5);}
+function cycleDummy(){TR.dummy=(TR.dummy+1)%DUMMY_MODES.length;banner('Dummy: '+DUMMY_MODES[TR.dummy],1.5);}
 
 /* ================= SPAWNS ================= */
 function spawnList(n,loc){
@@ -60,7 +60,7 @@ function refreshFaces(){G.f.forEach(f=>f.redraw());updateCards();}
 
 /* ================= TAGS ================= */
 function buildTags(){const box=$('#tags');box.innerHTML='';G.f.forEach(f=>{const el=document.createElement('div');el.className='ftag';el.style.setProperty('--c',f.color);el.textContent=tagText(f);box.appendChild(el);f.tagEl=el;});}
-function tagText(f){if(NET.role!=='off')return f.human===0?'คุณ':(f.player?f.label+' '+f.ch.name:f.ch.name);return f.human!=null?f.label:f.ch.name;}
+function tagText(f){if(NET.role!=='off')return f.human===0?'YOU':(f.player?f.label+' '+f.ch.name:f.ch.name);return f.human!=null?f.label:f.ch.name;}
 function updTags(){
   const show=G.phase!=='menu'&&G.phase!=='replay'&&!G.photo&&G.phase!=='end';
   const W=innerWidth,H=innerHeight;
@@ -91,8 +91,8 @@ function updHUD(dt){
     h.lag.style.transform=`scaleX(${f.lagHp/f.maxHp})`;h.rg.style.transform=`scaleX(${f.rage/100})`;
     const full=f.rage>=100;h.rgw.classList.toggle('full',full);h.el.classList.toggle('dead',f.state==='ko');
     const w=G.mode==='arcade'||G.mode==='train'?'':('🥊'.repeat(Math.min(2,G.wins[f.team]||0))+'⚪'.repeat(Math.max(0,2-(G.wins[f.team]||0))));
-    let st=[];if(full)st.push('<b>ไม้ตายพร้อม'+(spKeyOf(f)?' ['+spKeyOf(f)+']':'')+'</b>');if(f.held)st.push('ถือ'+WEAPONS[f.held.type].name+' ('+f.held.dur+')');
-    if(G.mode==='train'&&f.human==null&&TR.hits)st.push('<b>'+TR.hits+' hit · '+Math.round(TR.dmg)+' ดาเมจ</b> (สูงสุด '+TR.best+')');
+    let st=[];if(full)st.push('<b>SPECIAL READY'+(spKeyOf(f)?' ['+spKeyOf(f)+']':'')+'</b>');if(f.held)st.push('holding '+WEAPONS[f.held.type].en+' ('+f.held.dur+')');
+    if(G.mode==='train'&&f.human==null&&TR.hits)st.push('<b>'+TR.hits+' hit · '+Math.round(TR.dmg)+' dmg</b> (best '+TR.best+')');
     if(f.fx.dizzy>0)st.push('💫');if(f.fx.slow>0)st.push('🐌OT');if(f.fx.buff>0)st.push('💪');if(f.fx.immune>0)st.push('🌿');
     const html=w+' '+st.join(' · ');if(h._s!==html){h.sub.innerHTML=html;h._s=html;}
   }
@@ -182,7 +182,7 @@ function enterFightUI(){
   try{if(document.activeElement&&document.activeElement!==document.body)document.activeElement.blur();}catch(_){}
   $('#menu').classList.add('hidden');$('#endP').classList.add('hidden');$('#interP').classList.add('hidden');$('#pause').classList.add('hidden');
   $('#hud').classList.add('on');document.body.classList.add('fighting');buildHUD();
-  $('#hint').textContent=G.mode==='train'?'T เปลี่ยนหุ่น (ยืนเฉย/กันตลอด/สู้กลับ) · Esc พัก/ดูท่า/ออก':G.humans===1?'Q/E หมุนกล้อง · ลากเมาส์หมุน · ล้อเมาส์ซูม · P ถ่ายรูป · Esc พัก':'ลากเมาส์หมุนกล้อง · Esc พัก';
+  $('#hint').textContent=G.mode==='train'?'T switch dummy (stand / block / fight back) · Esc pause / moves / quit':G.humans===1?'Q/E orbit camera · drag to orbit · wheel to zoom · P photo · Esc pause':'Drag to orbit · Esc pause';
 }
 function startRound(loc){
   G.matchWinner=-1;
@@ -190,12 +190,12 @@ function startRound(loc){
   placeFighters(loc||G.roundLoc||G.loc);
   G.timer=99;G.phase='intro';G.phaseT=0;G.roundWinner=-1;G.replayPending=false;G.lastKO=null;REC.length=0;hype=0;G.paused=false;G.timeScale=1;G.slowT=0;
   const p=G.f.find(f=>f.human===0)||G.f[0];CAM.yaw=(loc||G.roundLoc||G.loc)==='boss'?0.5:0;CAM.focus.set(p.pos.x,p.y,p.pos.z);
-  const vs=G.f.length===2?G.f[0].ch.name+' VS '+G.f[1].ch.name:(G.mode==='team'?'ทีมแดง VS ทีมฟ้า':'ตะลุมบอน 4 คน!');
-  $('#roundLab').textContent=G.mode==='arcade'?('ด่าน '+(G.arc.stage+1)+'/'+G.arc.list.length):G.mode==='train'?'ห้องซ้อม · หุ่น: '+DUMMY_MODES[TR.dummy]+' [T]':('ROUND '+G.round);
+  const vs=G.f.length===2?G.f[0].ch.name+' VS '+G.f[1].ch.name:(G.mode==='team'?'RED VS BLUE':'4-WAY BRAWL!');
+  $('#roundLab').textContent=G.mode==='arcade'?('STAGE '+(G.arc.stage+1)+'/'+G.arc.list.length):G.mode==='train'?'Training · dummy: '+DUMMY_MODES[TR.dummy]+' [T]':('ROUND '+G.round);
   G.hurry=0;
-  if(G.mode==='train'){SFX.vo('ready');Object.assign(TR,{last:-9,hits:0,dmg:0});showCenter('ห้องซ้อม 🥋','ไม่จำกัดเวลา · เกจไม้ตายเติมเอง · กด T เปลี่ยนหุ่น',1.6);return;}
+  if(G.mode==='train'){SFX.vo('ready');Object.assign(TR,{last:-9,hits:0,dmg:0});showCenter('TRAINING 🥋','No timer · special refills itself · T switches the dummy',1.6);return;}
   if(G.mode==='arcade'?G.arc.stage===G.arc.list.length-1:G.round>=3)SFX.vo('final_round');else SFX.voRound(G.mode==='arcade'?G.arc.stage+1:G.round);
-  showCenter(G.mode==='arcade'?('ด่าน '+(G.arc.stage+1)):(G.round>=3?'ยกตัดสิน!':'ROUND '+G.round),G.round===1||G.mode==='arcade'?vs:'',1.3);
+  showCenter(G.mode==='arcade'?('STAGE '+(G.arc.stage+1)):(G.round>=3?'FINAL ROUND!':'ROUND '+G.round),G.round===1||G.mode==='arcade'?vs:'',1.3);
 }
 function aliveTeams(){const s=new Set();G.f.forEach(f=>{if(f.state!=='ko')s.add(f.team);});return[...s];}
 function onKO(f,att){
@@ -203,17 +203,17 @@ function onKO(f,att){
   if(G.phase!=='fight')return;
   const at=aliveTeams();
   if(at.length<=1)endRoundBy(at.length?at[0]:-1,'ko');
-  else{G.slowT=0.5;banner(f.ch.name+' หมดสภาพ! 😵',2);}
+  else{G.slowT=0.5;banner(f.ch.name+' is out! 😵',2);}
 }
 function endRoundBy(team,how){
   G.phase='ko';G.phaseT=0;G.roundWinner=team;
   if(team>=0)G.wins[team]=(G.wins[team]||0)+1;
   const ws=G.f.filter(f=>f.team===team&&f.state!=='ko');ws.forEach(f=>{f.win=true;f.setExpr('win',0,true);});
   if(ws[0])say(ws[0],pick(ws[0].ch.quotes),true);
-  const wname=team<0?'':(G.mode==='team'?(team===0?'ทีมแดง':'ทีมฟ้า'):(G.f.find(f=>f.team===team).ch.name));
+  const wname=team<0?'':(G.mode==='team'?(team===0?'Red team':'Blue team'):(G.f.find(f=>f.team===team).ch.name));
   if(team<0)SFX.vo('its_a_tie',0.8);
-  if(how==='ko'){G.slowT=1.0;showCenter('K.O.!!',wname?wname+' ชนะยกนี้!':'เสมอ!',2.2);G.replayPending=REC.length>40;}
-  else{SFX.bell();SFX.vo('time_over',0.4);showCenter('หมดเวลา!',wname?wname+' ชนะคะแนน!':'เสมอ! ไปทำงานต่อ',2.4);}
+  if(how==='ko'){G.slowT=1.0;showCenter('K.O.!!',wname?wname+' wins the round!':'DRAW!',2.2);G.replayPending=REC.length>40;}
+  else{SFX.bell();SFX.vo('time_over',0.4);showCenter('TIME!',wname?wname+' wins on points!':'Draw! Back to work',2.4);}
 }
 function timeUp(){
   const score={};G.f.forEach(f=>{score[f.team]=(score[f.team]||0)+Math.max(0,f.hp)/f.maxHp;});
@@ -227,27 +227,27 @@ function endRound(){
   if(champ!==undefined||G.round>=5){let t=champ!==undefined?+champ:+Object.keys(G.wins).sort((a,b)=>G.wins[b]-G.wins[a])[0];if(isNaN(t))t=0;endMatch(t);}
   else{G.round++;startRound();}
 }
-function locName(f){if(lvlOf(f)==='f2')return'ร้านไวโอลินชั้น 2';if(onMezz(f))return'ห้องหัวหน้า';if(zoneOf(f.pos)==='in')return f.pos.x<-15.3?'โซนกลอง & แอมป์':'กลางโชว์รูม';if(f.pos.z>3)return'ริมถนนหน้าร้าน';if(f.pos.z<-12.3)return'ถนนหลังร้าน';return'ซอยข้างร้าน';}
+function locName(f){if(lvlOf(f)==='f2')return'the violin shop (2F)';if(onMezz(f))return"the boss's office";if(zoneOf(f.pos)==='in')return f.pos.x<-15.3?'the drum wing':'the showroom';if(f.pos.z>3)return'the front street';if(f.pos.z<-12.3)return'the back alley';return'the side street';}
 function endMatch(team){
   G.matchWinner=team;G.phase='end';G.phaseT=0;hideCenter();SFX.crowd();hype=1;
   const winners=G.f.filter(f=>f.team===team),losers=G.f.filter(f=>f.team!==team);
   G.f.forEach(f=>{f.win=f.team===team;if(f.win){if(f.state==='ko'){f.state='idle';f.hp=1;}f.setExpr('win',0,true);}});
   const unlocks=[];
-  if(winners.some(f=>f.human!=null))winners.filter(f=>f.human!=null).forEach(f=>{const before=winsOf(f.ch);STATS.wins[f.ch.id]=before+1;GLOVES.forEach(g=>{if(g.need===before+1&&g.need>0)unlocks.push(f.ch.name+' ปลดล็อกถุงมือ'+g.name+'!');});});
+  if(winners.some(f=>f.human!=null))winners.filter(f=>f.human!=null).forEach(f=>{const before=winsOf(f.ch);STATS.wins[f.ch.id]=before+1;});
   saveAll();
   {const me=G.f.find(f=>f.human===0),hw=winners.some(f=>f.human!=null);const mine=G.humans===2?hw:(me&&me.team===team);
     SFX.voLocal(mine?(G.humans===2&&winners.some(f=>f.human===1)&&!winners.some(f=>f.human===0)?'f_you_win':'you_win'):'you_lose',1.2);
     if(unlocks.length)SFX.voLocal('level_up',2.6);}
   setTimeout(()=>{if(G.phase!=='end')return;
     const hw=winners.find(f=>f.human!=null);
-    $('#endTitle').textContent=G.mode==='team'?((team===0?'ทีมแดง':'ทีมฟ้า')+' ชนะ! 🏆'):(hw?(G.humans===2?hw.label+' ชนะ! 🏆':'คุณชนะ! 🏆'):(winners[0].ch.name+' ชนะ... 😵'));
+    $('#endTitle').textContent=G.mode==='team'?((team===0?'Red team':'Blue team')+' WINS! 🏆'):(hw?(G.humans===2?hw.label+' WINS! 🏆':'YOU WIN! 🏆'):(winners[0].ch.name+' wins… 😵'));
     const pics=$('#endPics');pics.innerHTML='';winners.forEach(f=>{const c=document.createElement('canvas');c.width=c.height=260;portrait(f.ch,c,'win');pics.appendChild(c);});
     const w0=winners[0];$('#endSub').innerHTML='';const q=document.createElement('div');q.textContent=w0.ch.name+' : "'+pick(w0.ch.quotes)+'" · '+titleOf(winsOf(w0.ch));$('#endSub').appendChild(q);
-    if(G.matchBill>0){const d=document.createElement('div');d.style.color='#ff8a8a';d.style.fontWeight='800';d.textContent='💸 ร้านเสียหายรวม '+baht(G.matchBill)+' — หักเงินเดือนทุกคน!';$('#endSub').appendChild(d);}
+    if(G.matchBill>0){const d=document.createElement('div');d.style.color='#ff8a8a';d.style.fontWeight='800';d.textContent='💸 Shop damage: '+baht(G.matchBill)+' — coming out of everyone\'s paycheck!';$('#endSub').appendChild(d);}
     unlocks.forEach(u=>{const d=document.createElement('div');d.style.color='#ffd23d';d.style.fontWeight='800';d.textContent='🎉 '+u;$('#endSub').appendChild(d);});
     drawSickNote(losers,w0);
-    if(NET.role==='host')setEndBtns([['เล่นอีกตา','btn',()=>netHostStart()],['📸 ถ่ายรูป','btn ghost',()=>enterPhoto()],['กลับห้อง','btn ghost',()=>netQuitMatch()]]);
-    else setEndBtns([['รีแมตช์','btn',()=>startMatch()],['📸 ถ่ายรูป','btn ghost',()=>enterPhoto()],['เลือกตัวใหม่','btn ghost',toMenu]]);
+    if(NET.role==='host')setEndBtns([['Play again','btn',()=>netHostStart()],['📸 Photo','btn ghost',()=>enterPhoto()],['Back to room','btn ghost',()=>netQuitMatch()]]);
+    else setEndBtns([['Rematch','btn',()=>startMatch()],['📸 Photo','btn ghost',()=>enterPhoto()],['New fighters','btn ghost',toMenu]]);
     $('#endP').classList.remove('hidden');document.body.classList.remove('fighting');$('#hud').classList.remove('on');
   },1700);
 }
@@ -255,12 +255,12 @@ function setEndBtns(list){const b=$('#endBtns');b.innerHTML='';list.forEach(([t,
 function drawSickNote(losers,winner){
   const c=$('#sickNote'),g=c.getContext('2d'),w=c.width,h=c.height;
   g.fillStyle='#fffdf4';g.fillRect(0,0,w,h);g.strokeStyle='rgba(80,120,200,.25)';g.lineWidth=2;for(let y=120;y<h;y+=42){g.beginPath();g.moveTo(30,y);g.lineTo(w-30,y);g.stroke();}
-  g.fillStyle='#222';g.textAlign='center';g.font='800 46px Kanit, sans-serif';g.fillText('ใบลาป่วย',w/2,70);
-  g.textAlign='left';g.font='26px Kanit, sans-serif';
+  g.fillStyle='#222';g.textAlign='center';g.font="46px 'Luckiest Guy', Kanit, sans-serif";g.fillText('SICK NOTE',w/2,70);
+  g.textAlign='left';g.font="500 26px Fredoka, Kanit, sans-serif";
   const names=losers.map(f=>f.ch.name).join(', ');
-  const lines=['เรียน '+(winner.ch.id==='boss'?'คุณหัวหน้า (ผู้ชนะ)':'หัวหน้างาน'),'ข้าพเจ้า '+names,'ขอลาป่วย 1 วัน เนื่องจากโดน '+winner.ch.name+' ต่อยจนน็อก','ที่'+(losers[0]?locName(losers[0]):'ร้าน')+' อาการ: มึนหัว เห็นดาว ⭐ อยากกินส้มตำ','ลงชื่อ ......................... (ผู้ป่วย)'];
+  const lines=['Dear '+(winner.ch.id==='boss'?winner.ch.name+' (the winner)':'Boss'),'I, '+names,'need 1 day off after '+winner.ch.name+' knocked me out','in '+(losers[0]?locName(losers[0]):'the shop')+'. Symptoms: dizzy, seeing stars ⭐, craving som tam','Signed ......................... (patient)'];
   lines.forEach((l,i)=>g.fillText(l,46,112+i*42));
-  g.save();g.translate(w-150,h-90);g.rotate(-0.25);g.strokeStyle='#d0202a';g.lineWidth=6;g.strokeRect(-100,-36,200,72);g.fillStyle='#d0202a';g.font='800 40px Kanit, sans-serif';g.textAlign='center';g.fillText('อนุมัติ',0,14);g.restore();
+  g.save();g.translate(w-150,h-90);g.rotate(-0.25);g.strokeStyle='#d0202a';g.lineWidth=6;g.strokeRect(-100,-36,200,72);g.fillStyle='#d0202a';g.font="40px 'Luckiest Guy', Kanit, sans-serif";g.textAlign='center';g.fillText('APPROVED',0,14);g.restore();
   c.style.display=losers.length?'':'none';
 }
 
@@ -275,8 +275,8 @@ function arcadeLoc(stage,list){return stage===list.length-1?'boss':['in','out','
 function showInter(){
   G.phase='between';$('#hud').classList.remove('on');document.body.classList.remove('fighting');$('#menu').classList.add('hidden');$('#endP').classList.add('hidden');
   const A=G.arc,opp=chOf(A.list[A.stage]),me=ROSTER[A.me],loc=arcadeLoc(A.stage,A.list),final=A.stage===A.list.length-1;
-  $('#interT').textContent=final?'ด่านสุดท้าย: บอสใหญ่! 👑':'ด่าน '+(A.stage+1)+' / '+A.list.length;
-  $('#interLoc').textContent='สถานที่: '+({in:'กลางโชว์รูม',out:'ริมถนนหน้าร้าน',up:'ร้านไวโอลินชั้น 2',back:'ถนนหลังร้าน',wing:'โซนกลอง & แอมป์',boss:'ห้องหัวหน้า (ชั้นลอย)'}[loc])+' · คู่ต่อสู้: '+opp.name+' — '+opp.role;
+  $('#interT').textContent=final?'FINAL STAGE: THE BIG BOSS! 👑':'STAGE '+(A.stage+1)+' / '+A.list.length;
+  $('#interLoc').textContent='Where: '+({in:'the showroom',out:'the front street',up:'the violin shop (2F)',back:'the back alley',wing:'the drum wing',boss:"the boss's office (mezzanine)"}[loc])+' · Opponent: '+opp.name+' — '+opp.role;
   portrait(me,$('#interA'));portrait(opp,$('#interB'),'attack');
   $('#interQ').textContent='"'+pick(opp.quotes)+'"';
   $('#interP').classList.remove('hidden');
@@ -286,7 +286,7 @@ $('#interGo').addEventListener('click',()=>{
   const prevRage=G.f.find(f=>f.human===0)?G.f.find(f=>f.human===0).rage:0;
   clearFighters();const final=A.stage===A.list.length-1;
   G.f.push(new Fighter(ROSTER[A.me],0,{human:0,team:0,color:SLOTCOL[0],label:'P1',lo:humanLo(0,ROSTER[A.me])}));
-  G.f.push(new Fighter(chOf(A.list[A.stage]),1,{human:null,team:1,color:SLOTCOL[1],label:'คอม',hpMul:final?1.45:1+A.stage*0.05,sizeMul:final?1.12:1,lo:final?{st:'wrestle',sp:'quake'}:randLoadout()}));
+  G.f.push(new Fighter(chOf(A.list[A.stage]),1,{human:null,team:1,color:SLOTCOL[1],label:'CPU',hpMul:final?1.45:1+A.stage*0.05,sizeMul:final?1.12:1,lo:final?{st:'wrestle',sp:'quake'}:randLoadout()}));
   G.f[0].rage=Math.min(prevRage,50);buildTags();
   G.roundLoc=arcadeLoc(A.stage,A.list);G.diff=Math.min(2,Math.max(G.baseDiff,Math.floor(A.stage/2)));
   enterFightUI();startRound(G.roundLoc);
@@ -295,20 +295,20 @@ function arcadeClear(){SFX.voLocal('congratulations',0.6);
   G.phase='end';const me=G.f[0];me.win=true;me.setExpr('win',0,true);
   const before=winsOf(me.ch);STATS.wins[me.ch.id]=before+2;saveAll();
   setTimeout(()=>{
-    $('#endTitle').textContent='เคลียร์บันได! 🏆';const pics=$('#endPics');pics.innerHTML='';const c=document.createElement('canvas');c.width=c.height=260;portrait(me.ch,c,'win');pics.appendChild(c);
-    $('#endSub').textContent=me.ch.name+' ได้ตำแหน่ง "พนักงานดีเด่นประจำเดือน" 🎖️ (+2 ชนะ)';
+    $('#endTitle').textContent='LADDER CLEARED! 🏆';const pics=$('#endPics');pics.innerHTML='';const c=document.createElement('canvas');c.width=c.height=260;portrait(me.ch,c,'win');pics.appendChild(c);
+    $('#endSub').textContent=me.ch.name+' is Employee of the Month! 🎖️ (+2 wins)';
     drawSickNote(G.arc.list.map(i=>({ch:chOf(i),pos:{x:0,z:0},y:0})),me);
-    setEndBtns([['เล่นบันไดอีกรอบ','btn',()=>{G.diff=G.baseDiff;startArcade();}],['📸 ถ่ายรูป','btn ghost',()=>enterPhoto()],['กลับเมนู','btn ghost',toMenu]]);
+    setEndBtns([['Climb again','btn',()=>{G.diff=G.baseDiff;startArcade();}],['📸 Photo','btn ghost',()=>enterPhoto()],['Main menu','btn ghost',toMenu]]);
     $('#endP').classList.remove('hidden');$('#hud').classList.remove('on');document.body.classList.remove('fighting');
   },1500);
 }
 function arcadeLose(){SFX.voLocal('game_over',0.6);
   G.phase='end';
   setTimeout(()=>{
-    const A=G.arc;$('#endTitle').textContent='แพ้ที่ด่าน '+(A.stage+1)+' 😵';const pics=$('#endPics');pics.innerHTML='';const c=document.createElement('canvas');c.width=c.height=260;portrait(chOf(A.list[A.stage]),c,'win');pics.appendChild(c);
+    const A=G.arc;$('#endTitle').textContent='Lost at stage '+(A.stage+1)+' 😵';const pics=$('#endPics');pics.innerHTML='';const c=document.createElement('canvas');c.width=c.height=260;portrait(chOf(A.list[A.stage]),c,'win');pics.appendChild(c);
     $('#endSub').textContent=chOf(A.list[A.stage]).name+' : "'+pick(chOf(A.list[A.stage]).quotes)+'"';
     drawSickNote([G.f[0]],G.f[1]);
-    setEndBtns([['สู้ใหม่ (ด่านเดิม)','btn',()=>{$('#endP').classList.add('hidden');showInter();}],['📸 ถ่ายรูป','btn ghost',()=>enterPhoto()],['กลับเมนู','btn ghost',toMenu]]);
+    setEndBtns([['Retry this stage','btn',()=>{$('#endP').classList.add('hidden');showInter();}],['📸 Photo','btn ghost',()=>enterPhoto()],['Main menu','btn ghost',toMenu]]);
     $('#endP').classList.remove('hidden');$('#hud').classList.remove('on');document.body.classList.remove('fighting');
   },1500);
 }
@@ -355,9 +355,9 @@ function takeShot(){
   SFX.shutter();renderer.render(scene,camera);const src=renderer.domElement;
   const c=document.createElement('canvas');c.width=src.width;c.height=src.height;const g=c.getContext('2d');g.drawImage(src,0,0);
   const s=c.width/1280;g.fillStyle='rgba(0,0,0,.45)';g.fillRect(0,c.height-64*s,c.width,64*s);
-  g.fillStyle='#ffd23d';g.font=`800 ${34*s}px Kanit, sans-serif`;g.textBaseline='middle';g.fillText('ศึกออฟฟิศ 🥊',20*s,c.height-32*s);
-  g.fillStyle='#fff';g.font=`600 ${22*s}px Kanit, sans-serif`;g.textAlign='right';g.fillText('PETERSON SUKHUMVIT26 · '+new Date().toLocaleDateString('th-TH'),c.width-20*s,c.height-32*s);
-  lastShot=c;$('#shotImg').src=c.toDataURL('image/jpeg',0.92);$('#copyShot').textContent='คัดลอกรูป';$('#shotP').classList.remove('hidden');flashScreen();
+  g.fillStyle='#ffd23d';g.font=`${34*s}px 'Luckiest Guy', Kanit, sans-serif`;g.textBaseline='middle';g.fillText('OFFICE FIGHT NIGHT 🥊',20*s,c.height-32*s);
+  g.fillStyle='#fff';g.font=`600 ${22*s}px Fredoka, Kanit, sans-serif`;g.textAlign='right';g.fillText('PETERSON SUKHUMVIT26 · '+new Date().toLocaleDateString('en-GB'),c.width-20*s,c.height-32*s);
+  lastShot=c;$('#shotImg').src=c.toDataURL('image/jpeg',0.92);$('#copyShot').textContent='Copy picture';$('#shotP').classList.remove('hidden');flashScreen();
 }
 $('#snapBtn').addEventListener('click',takeShot);
 $('#photoExit').addEventListener('click',exitPhoto);
@@ -365,12 +365,12 @@ $('#zIn').addEventListener('click',()=>CAM.pdist=clamp(CAM.pdist*0.85,2,20));
 $('#zOut').addEventListener('click',()=>CAM.pdist=clamp(CAM.pdist*1.18,2,20));
 $('#shotBack').addEventListener('click',()=>$('#shotP').classList.add('hidden'));
 $('#shotDone').addEventListener('click',()=>{$('#shotP').classList.add('hidden');exitPhoto();});
-$('#copyShot').addEventListener('click',()=>{const b=$('#copyShot');try{lastShot.toBlob(bl=>{navigator.clipboard.write([new ClipboardItem({'image/png':bl})]).then(()=>b.textContent='คัดลอกแล้ว ✓').catch(()=>b.textContent='คัดลอกไม่ได้ ใช้กดค้างที่รูปแทน');});}catch(e){b.textContent='คัดลอกไม่ได้ ใช้กดค้างที่รูปแทน';}});
+$('#copyShot').addEventListener('click',()=>{const b=$('#copyShot');try{lastShot.toBlob(bl=>{navigator.clipboard.write([new ClipboardItem({'image/png':bl})]).then(()=>b.textContent='Copied ✓').catch(()=>b.textContent='Can\'t copy — long-press the picture instead');});}catch(e){b.textContent='Can\'t copy — long-press the picture instead';}});
 $('#photoBtn').addEventListener('click',enterPhoto);
 
 /* ================= PAUSE ================= */
-function togglePause(force){if(NET.role!=='off'){const show=force!==undefined?force:$('#pause').classList.contains('hidden');$('#pause').classList.toggle('hidden',!show);$('#ctrlHelp2').innerHTML=ctrlHTML();$('#quitBtn').textContent='ออกจากแมตช์';return;}
-  $('#quitBtn').textContent='กลับเมนู';const p=force!==undefined?force:!G.paused;G.paused=p;$('#pause').classList.toggle('hidden',!p);$('#ctrlHelp2').innerHTML=ctrlHTML();held.clear();}
+function togglePause(force){if(NET.role!=='off'){const show=force!==undefined?force:$('#pause').classList.contains('hidden');$('#pause').classList.toggle('hidden',!show);$('#ctrlHelp2').innerHTML=ctrlHTML();$('#quitBtn').textContent='Leave match';return;}
+  $('#quitBtn').textContent='Main menu';const p=force!==undefined?force:!G.paused;G.paused=p;$('#pause').classList.toggle('hidden',!p);$('#ctrlHelp2').innerHTML=ctrlHTML();held.clear();}
 $('#resumeBtn').addEventListener('click',()=>togglePause(false));
 /* ================= MOVE LIST ================= */
 function keyName(c){return c==='Space'?'Space':c.startsWith('Shift')?'Shift':c.replace(/^Key|^Digit/,'');}
@@ -378,45 +378,45 @@ function keysOf(list){return list.filter(k=>!/^(T[A-Z]|Numpad|Arrow|Enter)/.test
 function buildMoves(){
   const S=G.humans===2?SCH.p1:SCH.solo,me=G.f.find(f=>f.human===0),meId=me?me.ch.id:null;
   const rows=[
-    [keysOf(S.jab),'จ็อบ','ต่อยเร็ว ดาเมจน้อย เอาไว้ขัดจังหวะ'],
-    [keysOf(S.hook),'ฮุก','ช้ากว่าแต่แรงกว่า กระเด็นไกลกว่า'],
-    [keysOf(S.jab)+' '+keysOf(S.jab)+' '+keysOf(S.hook),'คอมโบ','จ็อบ จ็อบ แล้วฮุกให้ทัน (ไม่เกิน 0.45 วิ) → ปลิวลอยแล้วล้ม'],
-    [keysOf(S.blk),'กัน','กันด้านหน้า โดนแค่ 15% · กันโดนจับทุ่มไม่ได้'],
-    [keysOf(S.grab),'จับ / หยิบ / ขว้าง','ใกล้คน = จับทุ่ม (ทะลุการ์ด) · ใกล้ของ = หยิบ · ถือของอยู่ = ขว้าง'],
-    [keysOf(S.jump),'โดด','หลบของที่ปามา ขึ้นที่สูง'],
-    [keysOf(S.sp),'ไม้ตาย','ใช้ได้เมื่อเกจม่วงใต้หลอดเลือดเต็ม (เกจขึ้นทั้งตอนตีโดนและตอนโดนตี)'],
-    ['','COUNTER','ต่อยเข้าตอนอีกฝ่ายกำลังง้างหมัด'],
+    [keysOf(S.jab),'Jab','Fast, light — great for interrupting'],
+    [keysOf(S.hook),'Hook','Slower but harder, knocks further'],
+    [keysOf(S.jab)+' '+keysOf(S.jab)+' '+keysOf(S.hook),'Combo','Jab, jab, hook within 0.45 s → launches and knocks down'],
+    [keysOf(S.blk),'Block','From the front you take only 15% · grabs beat blocks'],
+    [keysOf(S.grab),'Grab / pick up / throw','Near someone = throw them (beats block) · near an item = pick it up · holding one = throw it'],
+    [keysOf(S.jump),'Jump','Dodge thrown stuff, climb things'],
+    [keysOf(S.sp),'Special','When the purple bar under your health is full (it fills when you hit and when you get hit)'],
+    ['','COUNTER','Hit someone while they are winding up'],
   ];
-  let h='<h3>ท่าพื้นฐาน'+(G.humans===2?' (ปุ่มของ P1)':'')+'</h3><div class="mvb">'+rows.map(r=>'<b>'+r[1]+(r[0]?' '+r[0]:'')+'</b><span>'+r[2]+'</span>').join('')+'</div>';
-  h+='<h3>ของในร้าน</h3><div style="font-size:14px;line-height:1.7">ฟาดได้: '+Object.values(WEAPONS).map(w=>w.name).join(' · ')+' (ฟาดไม่กี่ทีก็พัง ขว้างใส่หน้าได้)<br>ของกิน/ซอง: '+Object.values(POWER).map(p=>p.bad?p.name+' (ลุ้นเอาเอง)':p.txt).join(' · ')+'</div>';
+  let h='<h3>Basics'+(G.humans===2?' (P1 keys)':'')+'</h3><div class="mvb">'+rows.map(r=>'<b>'+r[1]+(r[0]?' '+r[0]:'')+'</b><span>'+r[2]+'</span>').join('')+'</div>';
+  h+='<h3>Stuff in the shop</h3><div style="font-size:14px;line-height:1.7">Swing it: '+Object.values(WEAPONS).map(w=>w.en).join(' · ')+' (breaks after a few hits — or throw it)<br>Snacks & envelopes: '+Object.values(POWER).map(p=>p.bad?p.en+' (feeling lucky?)':p.enTxt).join(' · ')+'</div>';
   const myLo=me?me.lo:STATS.lo[0]||{st:'box',sp:'rush'};
-  h+='<h3>สไตล์ต่อสู้ (เลือกตอนเริ่มเกม)</h3><div class="mvs" id="mvStyles"></div><h3>ท่าไม้ตาย (เลือกได้ 1 ท่า)</h3><div class="mvs" id="mvList"></div>';
+  h+='<h3>Fighting styles (pick before a match)</h3><div class="mvs" id="mvStyles"></div><h3>Specials (pick one)</h3><div class="mvs" id="mvList"></div>';
   $('#movesBody').innerHTML=h;
   const card=(box,icon,name,sub,desc,mine)=>{const el=document.createElement('div');el.className='mv'+(mine?' me':'');
     el.innerHTML='<div class="ic"></div><div><div class="nm"></div><div class="sp"></div><div class="ds"></div></div>';
-    el.querySelector('.ic').textContent=icon;el.querySelector('.nm').textContent=name+(mine?' (ของคุณ)':'');el.querySelector('.sp').textContent=sub;el.querySelector('.ds').textContent=desc;box.appendChild(el);};
-  STYLE_KEYS.forEach(k=>{const S=STYLES[k];card($('#mvStyles'),S.icon,S.name,'จ็อบ: '+S.mv[0]+' · ฮุก: '+S.mv[1]+' · คอมโบ: '+S.mv[2],S.desc,k===myLo.st);});
-  SP_LIST.slice().sort((a,b)=>(b===myLo.sp)-(a===myLo.sp)).forEach(k=>card($('#mvList'),SP_ICON[k]||'⭐',SPECIALS[k].name,SP_MELEE.has(k)?'ประชิด':'ของเล่น',SP_DESC[k]||'',k===myLo.sp));
+    el.querySelector('.ic').textContent=icon;el.querySelector('.nm').textContent=name+(mine?' (yours)':'');el.querySelector('.sp').textContent=sub;el.querySelector('.ds').textContent=desc;box.appendChild(el);};
+  STYLE_KEYS.forEach(k=>{const S=STYLES[k];card($('#mvStyles'),S.icon,S.name,'Jab: '+S.mv[0]+' · Hook: '+S.mv[1]+' · Combo: '+S.mv[2],S.desc,k===myLo.st);});
+  SP_LIST.slice().sort((a,b)=>(b===myLo.sp)-(a===myLo.sp)).forEach(k=>card($('#mvList'),SP_ICON[k]||'⭐',spName(k),SP_MELEE.has(k)?'MELEE':'GADGET',SP_DESC[k]||'',k===myLo.sp));
 }
 /* ================= LOADOUT (fighting style + special, picked after the character) ================= */
 const LD={who:0,cur:null};
 function loadoutHumans(){return G.mode==='arcade'?1:G.humans;}
 function openLoadout(h){
   LD.who=h;const ch=ROSTER[G.slots[h]];LD.cur=Object.assign({},humanLo(h,ch));
-  $('#loadT').textContent=(loadoutHumans()>1?'P'+(h+1)+' · ':'')+'เลือกสไตล์ต่อสู้ & ท่าไม้ตาย';
+  $('#loadT').textContent=(loadoutHumans()>1?'P'+(h+1)+' · ':'')+'Pick your style & special';
   portrait(ch,$('#loadPic'));$('#loadName').textContent=ch.name;
-  $('#loadGo').textContent=h+1<loadoutHumans()?'ต่อไป: P'+(h+2)+' ▶':'พร้อม! 🥊';
+  $('#loadGo').textContent=h+1<loadoutHumans()?'Next: P'+(h+2)+' ▶':'Ready! 🥊';
   const sg=$('#stlGrid');sg.innerHTML='';
   STYLE_KEYS.forEach(k=>{const S=STYLES[k],el=document.createElement('button');el.className='opt';el.dataset.k=k;
     el.innerHTML='<span class="ic"></span><span><b></b><small class="ds"></small><small class="mvs2"></small></span>';
     el.querySelector('.ic').textContent=S.icon;el.querySelector('b').textContent=S.name;el.querySelector('.ds').textContent=S.desc;
-    el.querySelector('.mvs2').textContent='จ็อบ: '+S.mv[0]+' · ฮุก: '+S.mv[1]+' · คอมโบ: '+S.mv[2];
+    el.querySelector('.mvs2').textContent='Jab: '+S.mv[0]+' · Hook: '+S.mv[1]+' · Combo: '+S.mv[2];
     el.addEventListener('click',()=>{LD.cur.st=k;SFX.pickup();paintLoadout();});sg.appendChild(el);});
   const pg=$('#spGrid');pg.innerHTML='';
   SP_LIST.forEach(k=>{const el=document.createElement('button');el.className='opt sp';el.dataset.k=k;
     el.innerHTML='<span class="ic"></span><span><b></b><em></em><small class="ds"></small></span>';
-    el.querySelector('.ic').textContent=SP_ICON[k]||'⭐';el.querySelector('b').textContent=SPECIALS[k].name;
-    el.querySelector('em').textContent=SP_MELEE.has(k)?'ประชิด':'ของเล่น';el.querySelector('em').className=SP_MELEE.has(k)?'melee':'toy';
+    el.querySelector('.ic').textContent=SP_ICON[k]||'⭐';el.querySelector('b').textContent=spName(k);
+    el.querySelector('em').textContent=SP_MELEE.has(k)?'MELEE':'GADGET';el.querySelector('em').className=SP_MELEE.has(k)?'melee':'toy';
     el.querySelector('.ds').textContent=SP_DESC[k]||'';
     el.addEventListener('click',()=>{LD.cur.sp=k;SFX.pickup();paintLoadout();});pg.appendChild(el);});
   paintLoadout();$('#loadP').classList.remove('hidden');$('#loadP').scrollTop=0;
@@ -424,7 +424,7 @@ function openLoadout(h){
 function paintLoadout(){
   document.querySelectorAll('#stlGrid .opt').forEach(b=>b.classList.toggle('on',b.dataset.k===LD.cur.st));
   document.querySelectorAll('#spGrid .opt').forEach(b=>b.classList.toggle('on',b.dataset.k===LD.cur.sp));
-  $('#loadSum').textContent=STYLES[LD.cur.st].icon+' '+STYLES[LD.cur.st].name+' + '+(SP_ICON[LD.cur.sp]||'')+' '+SPECIALS[LD.cur.sp].name;
+  $('#loadSum').textContent=STYLES[LD.cur.st].icon+' '+STYLES[LD.cur.st].name+' + '+(SP_ICON[LD.cur.sp]||'')+' '+spName(LD.cur.sp);
 }
 $('#loadRand').addEventListener('click',()=>{LD.cur=randLoadout();SFX.pickup();paintLoadout();});
 $('#loadBack').addEventListener('click',()=>{$('#loadP').classList.add('hidden');});
@@ -435,7 +435,6 @@ $('#loadGo').addEventListener('click',()=>{
 });
 function showMoves(on){if(on)buildMoves();$('#movesP').classList.toggle('hidden',!on);}
 $('#movesBtn').addEventListener('click',()=>showMoves(true));
-$('#body3dAll').addEventListener('click',()=>{const all=ROSTER.every(c=>c.body==='3d');ROSTER.forEach(c=>c.body=all?'chibi':'3d');saveAll();updateCards();buildFromSlots();$('#body3dAll').textContent=all?'🧍 ร่าง 3D ทุกคน':'🧸 การ์ตูนทุกคน';});
 $('#movesBtn2').addEventListener('click',()=>showMoves(true));
 $('#movesClose').addEventListener('click',()=>showMoves(false));
 $('#quitBtn').addEventListener('click',()=>{if(NET.role!=='off')netQuitMatch();else toMenu();});
@@ -444,9 +443,9 @@ $('#muteBtn').addEventListener('click',()=>{SFX.setMuted(!SFX.muted);$('#muteBtn
 
 /* ================= MENU ================= */
 function ctrlHTML(){
-  const t='<span style="opacity:.8">จ็อบ จ็อบ ฮุก = คอมโบ · จับ = ทุ่มคน/หยิบของ/ขว้างของ (ทะลุการ์ด) · ต่อยตอนอีกฝ่ายง้าง = COUNTER · ลูกค้าเข้าร้านห้ามต่อยในร้าน!</span>';
-  if(G.humans===2)return'<b>P1</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> เดิน · <kbd>Space</kbd> โดด · <kbd>Q</kbd> จ็อบ · <kbd>E</kbd> ฮุก · <kbd>R</kbd> ไม้ตาย · <kbd>F</kbd> จับ/หยิบ · <kbd>Shift</kbd> กัน<br><b>P2</b> <kbd>I</kbd><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd> เดิน · <kbd>M</kbd> โดด · <kbd>U</kbd> จ็อบ · <kbd>O</kbd> ฮุก · <kbd>P</kbd> ไม้ตาย · <kbd>H</kbd> จับ/หยิบ · <kbd>N</kbd> กัน<br>'+t;
-  return'<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> เดิน · <kbd>Space</kbd> โดด · <kbd>J</kbd> จ็อบ · <kbd>K</kbd> ฮุก · <kbd>L</kbd> ไม้ตาย · <kbd>U</kbd> จับ/หยิบ/ขว้าง · <kbd>I</kbd> กัน · <kbd>Q</kbd>/<kbd>E</kbd> หมุนกล้อง · <kbd>P</kbd> ถ่ายรูป<br>'+t;
+  const t='<span style="opacity:.8">Jab jab hook = combo · grab = throw people / pick up / throw items (beats block) · hit them mid-windup = COUNTER · no punching inside while a customer is in the shop!</span>';
+  if(G.humans===2)return'<b>P1</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Space</kbd> jump · <kbd>Q</kbd> jab · <kbd>E</kbd> hook · <kbd>R</kbd> special · <kbd>F</kbd> grab · <kbd>Shift</kbd> block<br><b>P2</b> <kbd>I</kbd><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd> move · <kbd>M</kbd> jump · <kbd>U</kbd> jab · <kbd>O</kbd> hook · <kbd>P</kbd> special · <kbd>H</kbd> grab · <kbd>N</kbd> block<br>'+t;
+  return'<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Space</kbd> jump · <kbd>J</kbd> jab · <kbd>K</kbd> hook · <kbd>L</kbd> special · <kbd>U</kbd> grab / pick up / throw · <kbd>I</kbd> block · <kbd>Q</kbd>/<kbd>E</kbd> camera · <kbd>P</kbd> photo<br>'+t;
 }
 function buildSlots(){
   const box=$('#slots');box.innerHTML='';const n=G.mode==='arcade'?1:slotCount();
@@ -455,9 +454,9 @@ function buildSlots(){
     el.addEventListener('click',()=>{G.slotSel=i;buildSlots();});box.appendChild(el);
     if(n===2&&i===0){const v=document.createElement('div');v.className='vs';v.textContent='VS';box.appendChild(v);}
     if(G.mode==='team'&&i===1){const v=document.createElement('div');v.className='vs';v.textContent='VS';box.appendChild(v);}}
-  if(G.mode!=='arcade'){const r=document.createElement('button');r.className='btn ghost';r.textContent='🎲 สุ่มคอม';r.addEventListener('click',()=>{for(let i=0;i<slotCount();i++)if(slotInfo(i).human==null)G.slots[i]=Math.floor(Math.random()*ROSTER.length);buildSlots();updateCards();buildFromSlots();});box.appendChild(r);}
-  const hints={duel:'ดวลตัวต่อตัว ชนะ 2 ยกก่อนชนะ',ffa:'4 คนตะลุมบอน ใครยืนคนสุดท้ายชนะยก',team:'2 ต่อ 2 · ทีมเดียวกันต่อยกันไม่เข้า'+(G.humans===2?' · P1+P2 อยู่ทีมเดียวกัน':''),train:'ห้องซ้อม: ลองท่ากับหุ่นได้ไม่จำกัดเวลา เลือดเต็มเองเมื่อไม่โดนตี 2 วินาที',arcade:'เลือกตัวเอง แล้วไต่บันได 5 คน + บอสใหญ่ที่ห้องหัวหน้า (โหมดนี้เล่นคนเดียว)'};
-  $('#menuHint').textContent=hints[G.mode]+' · กดช่องด้านบนเพื่อเลือกว่ากำลังเลือกตัวให้ใคร แล้วกดการ์ด · แก้ชื่อ/ใส่รูปหน้าเพื่อนได้';
+  if(G.mode!=='arcade'){const r=document.createElement('button');r.className='btn ghost';r.textContent='🎲 Random CPUs';r.addEventListener('click',()=>{for(let i=0;i<slotCount();i++)if(slotInfo(i).human==null)G.slots[i]=Math.floor(Math.random()*ROSTER.length);buildSlots();updateCards();buildFromSlots();});box.appendChild(r);}
+  const hints={duel:'One on one — first to 2 rounds',ffa:'Four-way free-for-all — last one standing takes the round',team:'2 vs 2 · no friendly fire'+(G.humans===2?' · P1 + P2 are on the same team':''),train:'Training: practise on a dummy, no timer, health refills after 2 s without a hit',arcade:'Pick a fighter and climb a ladder of 5 + the big boss (single player)'};
+  $('#menuHint').textContent=hints[G.mode]+' · click a slot above, then a card · names and face photos can be edited';
   $('#humSeg').style.display=G.mode==='arcade'?'none':'';$('#locSeg').style.display=G.mode==='arcade'?'none':'';
 }
 function buildCards(){
@@ -466,15 +465,13 @@ function buildCards(){
     const el=document.createElement('div');el.className='card';el.dataset.i=i;
     el.innerHTML=`<div class="badges"></div><canvas width="180" height="180"></canvas><input class="nmIn" maxlength="18"><div class="role"></div>
       <div class="ttl"></div>
-      <div class="pbtns"><label class="btn sm">📷 รูปหน้า<input type="file" accept="image/*" hidden></label><button class="btn sm ghost rm">ลบรูป</button><button class="btn sm ghost glv"></button><button class="btn sm ghost bd"></button></div>`;
+      <div class="pbtns"><label class="btn sm">📷 Face photo<input type="file" accept="image/*" hidden></label><button class="btn sm ghost rm">Remove photo</button></div>`;
     el.querySelector('.role').textContent=c.role;
     const inp=el.querySelector('.nmIn');inp.value=c.name;
     inp.addEventListener('input',()=>{c.name=inp.value.trim()||c.name;buildSlots();saveAll();G.f.forEach(f=>{if(f.ch===c&&f.tagEl&&f.human==null)f.tagEl.textContent=c.name;});});
     inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();e.stopPropagation();});
     el.querySelector('input[type=file]').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)loadPhoto(f,c);e.target.value='';});
     el.querySelector('.rm').addEventListener('click',()=>{c.photoImg=null;c.photoData=null;saveAll();refreshFaces();});
-    el.querySelector('.bd').addEventListener('click',()=>{c.body=c.body==='3d'?'chibi':'3d';saveAll();updateCards();buildFromSlots();});
-    el.querySelector('.glv').addEventListener('click',()=>{const w=winsOf(c);let g=c.glove||0;for(let k=1;k<=GLOVES.length;k++){const n=(g+k)%GLOVES.length;if(GLOVES[n].need<=w){g=n;break;}}c.glove=g;saveAll();updateCards();buildFromSlots();});
     el.addEventListener('click',e=>{if(e.target.closest('input,label,button'))return;SFX.init();G.slots[G.slotSel]=i;const n=G.mode==='arcade'?1:slotCount();G.slotSel=(G.slotSel+1)%n;buildSlots();updateCards();buildFromSlots();});
     grid.appendChild(el);
   });
@@ -494,10 +491,8 @@ function updateCards(){
     el.classList.toggle('sel',mine.length>0);if(mine.length)el.style.setProperty('--c',slotInfo(mine[0]).color);
     el.querySelector('.rm').style.display=c.photoImg?'':'none';
     const b=el.querySelector('.badges');b.innerHTML='';mine.forEach(s=>{const t=document.createElement('span');t.className='tag';t.style.setProperty('--c',slotInfo(s).color);t.textContent=slotInfo(s).label.split(' ')[0];b.appendChild(t);});
-    const w=winsOf(c);const nextG=GLOVES.find(g=>g.need>w);
-    el.querySelector('.ttl').textContent='ชนะ '+w+' · '+titleOf(w)+(nextG?' · อีก '+(nextG.need-w)+' ชนะปลดถุงมือ'+nextG.name:'');
-    el.querySelector('.glv').textContent='🥊 '+GLOVES[c.glove||0].name;
-    el.querySelector('.bd').textContent=c.body==='3d'?'🧍 ร่าง 3D':'🧸 การ์ตูน';
+    const w=winsOf(c);
+    el.querySelector('.ttl').textContent='Wins '+w+' · '+titleOf(w);
   });
   buildSlots();
 }
@@ -530,7 +525,7 @@ function promptAt(wp,html,cls){const v=wp.clone().project(camera);if(v.z>1||v.x<
 function keyCap(f,act,hot){
   const touchUI=document.body.classList.contains('touch')&&f.human===0;
   const S=f.human===1?SCH.p2:(G.humans===2&&NET.role==='off'?SCH.p1:SCH.solo);
-  const txt=touchUI?{grab:'หยิบ/จับ',jab:'จ็อบ',sp:'ไม้ตาย'}[act]:S[act][0].replace(/^Key|^Digit/,'').replace('ShiftLeft','Shift');
+  const txt=touchUI?{grab:'GRAB',jab:'JAB',sp:'SP'}[act]:S[act][0].replace(/^Key|^Digit/,'').replace('ShiftLeft','Shift');
   return `<b class="${touchUI?'tb2':''}${hot?' hot':''}">${txt}</b>`;
 }
 function weaponsNear(f,d){
@@ -548,12 +543,12 @@ function updPrompts(){
     const locals=G.f.filter(f=>f.human!=null&&f.state!=='ko');const seenP=new Set();
     for(const f of locals){
       const top=f.y+2.95*f.S;let off=0;
-      if(f.rage>=100){promptAt(V(f.pos.x,top+0.42,f.pos.z),keyCap(f,'sp',true)+'ไม้ตาย!');off=0.42;}
-      if(f.held){const W=WEAPONS[f.held.type];promptAt(V(f.pos.x,top+off,f.pos.z),keyCap(f,'grab')+'ขว้าง<span class="sep"></span>'+keyCap(f,'jab')+'ฟาด'+(W?' ('+f.held.dur+')':''));}
+      if(f.rage>=100){promptAt(V(f.pos.x,top+0.42,f.pos.z),keyCap(f,'sp',true)+'SPECIAL!');off=0.42;}
+      if(f.held){const W=WEAPONS[f.held.type];promptAt(V(f.pos.x,top+off,f.pos.z),keyCap(f,'grab')+'throw<span class="sep"></span>'+keyCap(f,'jab')+'swing'+(W?' ('+f.held.dur+')':''));}
       else if(!['stun','down','grabbed'].includes(f.state)){
         const w=weaponsNear(f,1.7);
-        if(w&&WEAPONS[w.type])promptAt(V(w.x,w.y+1.05,w.z),keyCap(f,'grab')+'หยิบ '+WEAPONS[w.type].name);
-        else{const e=nearestEnemy(f,1.55);if(e&&!['down','grabbed','ko'].includes(e.state)&&Math.abs(e.y-f.y)<0.9)promptAt(V(e.pos.x,e.y+2.95*e.S+0.32,e.pos.z),keyCap(f,'grab')+'จับทุ่ม');}
+        if(w&&WEAPONS[w.type])promptAt(V(w.x,w.y+1.05,w.z),keyCap(f,'grab')+'pick up '+WEAPONS[w.type].en);
+        else{const e=nearestEnemy(f,1.55);if(e&&!['down','grabbed','ko'].includes(e.state)&&Math.abs(e.y-f.y)<0.9)promptAt(V(e.pos.x,e.y+2.95*e.S+0.32,e.pos.z),keyCap(f,'grab')+'throw');}
       }
       for(const p of powersNear(f,5)){const k=p.x+','+p.z;if(seenP.has(k)||!POWER[p.type])continue;seenP.add(k);promptAt(V(p.x,p.y+1.0,p.z),POWER[p.type].name,'item');}
     }
@@ -578,7 +573,7 @@ function loop(now){
       separateAll();
       if(fighting&&G.mode==='train')trainTick(dt);
       else if(fighting){G.timer-=raw;if(G.timer<=10&&!G.hurry){G.hurry=1;SFX.vo('hurry_up');}if(G.timer<=0){G.timer=0;timeUp();}}
-      if(G.phase==='intro'&&G.phaseT>1.4){G.phase='fight';showCenter('ชก!!','',0.8);SFX.bell();SFX.vo('go',0.15);}
+      if(G.phase==='intro'&&G.phaseT>1.4){G.phase='fight';showCenter('FIGHT!','',0.8);SFX.bell();SFX.vo('go',0.15);}
       else if(G.phase==='ko'){if(G.replayPending&&G.phaseT>1.5){G.replayPending=false;startReplay();}else if(!G.replayPending&&G.phaseT>3.0)endRound();}
       else if(G.phase==='post'&&G.phaseT>0.7)endRound();
       if(G.phase==='fight'||G.phase==='ko')record();

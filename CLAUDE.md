@@ -4,16 +4,18 @@ Handoff notes for Claude Code. Read this first.
 
 ## What this is
 
-A silly 3D brawler in the browser (three.js r128 from cdnjs, no bundler). Fighters are the owner's coworkers at a
+A silly 3D brawler in the browser (three.js r128 from cdnjs, no bundler). Set in a
 piano/guitar shop (Peterson Sukhumvit26). One continuous map: the showroom (grand-piano podium, upright row, guitar
 wall, book shelf, counter, mezzanine "ห้องหัวหน้า" with stairs) opens through a glass door onto the sidewalk and the
 street (motorbike-taxi stand, som-tam cart, pickup truck, poles with tangled cables). A doorway on the mezzanine leads
 into the 2nd-floor violin & book shop (built above the right-hand neighbour) whose 4 front glass panes break when
 someone is knocked into them — they drop onto the sidewalk and take fall damage. GetAmped-style chase camera.
 
-- 8 characters (`ROSTER` in `js/core.js`: Bomb, Oat, March, Dear, KunJae, Eye, TeeMee, Sing). **Everyone has the same
-  stats** (normalised right after `ROSTER`); they only differ in looks. หัวหน้า lives on as `BOSS_CH`, the arcade's final
-  boss only (arcade list index `-1`, resolved by `chOf`).
+- 7 original cartoon characters (`ROSTER` in `js/core.js`): Kip Kaboom, Momo Mellow, Ruby Rumble, Grumbo, Nana Nitro,
+  Duke Jiggly, Pippa Pop — each a rigged Mixamo model (`model` → `assets/models/char_<model>.glb`) with a pre-rendered card
+  portrait (`assets/portraits/<id>.png`, drawn by `portrait()`). **Everyone has the same stats**; they only differ in
+  looks. Their chibi fields are only the fallback when a model can't load (and on the stubbed test pages). The arcade's
+  final boss is `BOSS_CH` "Boss Bonkers" (the original fighter.glb character, recoloured; arcade list index `-1`).
 - **Loadout** = fighting style + special, picked after the character on the `#loadP` screen (`openLoadout` in game.js;
   online: `#onStyle`/`#onSp` → presence `lo`, slot tuple `[peer,char,name,glove,style,special]`). Humans' last picks are
   saved in `STATS.lo[0|1]`; CPUs get `randLoadout()`. A fighter keeps it in `f.lo` and `f.style`.
@@ -39,7 +41,12 @@ someone is knocked into them — they drop onto the sidewalk and take fall damag
 - Weapons to pick up/throw, power-ups, combos (jab-jab-hook), grabs/throws, stage hazards, random events
   (customer walks in → no punching inside, piano movers, rain makes the street slippery, motorbikes, stray dog),
   KO replay, photo mode, glove unlocks/titles stored in `localStorage`, sick-leave note for the loser
-- All UI text is **Thai**. Keep new UI copy in Thai, identifiers in English.
+- **UI text is English** (menus, cards, loadout, move list, lobby, pause, HUD, centre announcements, event banners, key
+  prompts, end screen, sick note), set in **Fredoka** (body) and **Luckiest Guy** (titles, big buttons, timer, banners)
+  from Google Fonts, with Kanit as the Thai fallback. **In-game text stays Thai**: floating popups over people and
+  objects (damage jokes like หักเงินเดือน, ชนเปียโน!, คริ!!…), speech bubbles (`quotes`, `HURT`), the special-move shout
+  (`SPECIALS[k].name`) and the salary-damage banner. For the UI use `spName(k)` (`SP_EN`), `WEAPONS[t].en`,
+  `POWER[t].en`/`enTxt`; the Thai `name`/`txt` fields feed the popups.
 - Original names only — no other game's names, logos, characters or assets.
 
 ## Commands
@@ -69,7 +76,8 @@ npm test        # node test/e2e.js — offline flow + host/2 clients online flow
 | `js/anim.js`, `js/anim_data.js` | mocap poses for the chibi rig (see "Mocap poses") |
 | `js/body3d.js` | rigged 3D body option (see "3D body") |
 | `js/vendor/SkeletonUtils.js` | three.js r128 SkeletonUtils (MIT), vendored to clone skinned characters |
-| `assets/models/fighter.glb` | Mixamo character + animations (used only inside this game) |
+| `assets/models/fighter.glb` | Mixamo character + all animation clips (used only inside this game) |
+| `assets/models/char_*.glb`, `assets/portraits/*.png` | the cast's Mixamo models and their card portraits (`scripts/bake-anim/portraits.js`) |
 | `js/vendor/GLTFLoader.js` | three.js r128 `examples/js` GLTFLoader (MIT), vendored; test pages strip it |
 | `assets/sfx/*.mp3` | Kenney **Impact Sounds** (CC0): punches, soft/wood/metal/plate/glass impacts, bell, footsteps on wood/concrete/carpet |
 | `assets/voice/*.mp3` | Kenney **Voiceover Pack** (CC0) announcer lines (`f_` = female voice) |
@@ -134,11 +142,12 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
   `glovePose()` uses `animHand()` (shoulder + stretched arm vector, kept clear of the big head). Anything else falls
   back to the procedural poses. `ANIM_ON.v=false` switches mocap off. Poses travel online through `snap()` as before.
 - **3D body** (`js/body3d.js`, `assets/models/fighter.glb` = Mixamo "Boy01" + 29 clips, built by
-  `scripts/bake-anim/export_char.js`): a character with `body:'3d'` (per-character card button, saved in
-  `officeFight.v2` `bodies`; Dear defaults to 3D; "🧍 ร่าง 3D ทุกคน" switches all) gets the skinned model inside
+  `scripts/bake-anim/export_char.js`): every fighter has `body:'3d'`. A cast member with `model` loads its own
+  `char_<model>.glb` (mesh + skeleton only, made by `export_model.js`; `loadCharModel` scales the clips' hips track
+  to that skeleton) and keeps its own textures. Without `model` (the boss) it gets the fighter.glb character inside
   `f.body`, recoloured per character (greyscaled textures × hair/shirt/shorts/accent colours, skin tint on head/hands),
-  wearing the character's own `buildHair()` hairstyle on the head bone, team-colour gloves on the hand bones, and
-  held items in the right hand (`handObj`/`handScale`). The chibi rig still runs invisibly underneath (physics,
+  wearing the character's own `buildHair()` hairstyle on the head bone. 3D fighters are bare-handed (no gloves; team
+  colour shows on the ring and name tag); held items sit on an anchor on the right hand bone (`handObj`/`handScale`). The chibi rig still runs invisibly underneath (physics,
   `headPos`, `snap`). `pick3D` chooses clip + time from the fighter state (attacks are time-warped with `B3ATK` so
   the impact frame lands at the end of startup; kicks/swings/throws/grab-throw/hurricane/flip-kick have their own
   clips); `upd3D` plays it with cross-fades. Online/replay: clip index + time ride in `legs[0|1].rotation.x` of

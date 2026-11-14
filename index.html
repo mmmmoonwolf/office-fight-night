@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>ศึกออฟฟิศ: Office Fight Night</title>
+<title>Office Fight Night</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Luckiest+Guy&family=Kanit:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden;background:#140f17;font-family:'Kanit','Sukhumvit Set',sans-serif;color:#fff;-webkit-user-select:none;user-select:none;touch-action:none;-webkit-text-size-adjust:100%;text-size-adjust:100%;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+html,body{height:100%;overflow:hidden;background:#140f17;font-family:'Fredoka','Kanit','Sukhumvit Set',sans-serif;color:#fff;-webkit-user-select:none;user-select:none;touch-action:none;-webkit-text-size-adjust:100%;text-size-adjust:100%;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
 button,label,select,.card,.slot{touch-action:manipulation}
 #game{position:fixed;inset:0}
 #game canvas{display:block;touch-action:none}
@@ -142,6 +142,9 @@ body.touch #hint{display:none}
 kbd{background:#fff;color:#222;border-radius:5px;padding:0 5px;font-family:inherit;font-weight:800;font-size:11px;box-shadow:0 2px 0 #888;margin:0 1px}
 .panel{max-width:520px;margin:9vh auto 30px;background:rgba(30,18,40,.96);border:3px solid #ffd23d;border-radius:20px;padding:22px;text-align:center}
 .panel h2{font-size:32px;font-weight:800;color:#ffd23d;line-height:1.2}
+/* display font for big titles, announcements and the main buttons (Thai falls back to Kanit) */
+.title h1,#center h1,.panel h2,.btn.big,#timer,.panel.load h3,.panel.moves h3,#banner{font-family:'Luckiest Guy','Fredoka','Kanit',sans-serif;font-weight:400;letter-spacing:1.5px}
+.title h1{letter-spacing:3px}
 .panel .pics{display:flex;justify-content:center;gap:10px;margin:12px 0}
 .panel .pics canvas{width:130px;height:130px;border-radius:14px;background:#3b2b45}
 .panel .btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
@@ -201,7 +204,7 @@ body.touch.fighting #touch{display:block}
   <div class="mid">
     <div id="timer">99</div>
     <div id="roundLab">ROUND 1</div>
-    <div id="topBtns"><button class="ib" id="pauseBtn" title="พัก">⏸</button><button class="ib" id="muteBtn" title="เสียง">🔊</button></div>
+    <div id="topBtns"><button class="ib" id="pauseBtn" title="Pause">⏸</button><button class="ib" id="muteBtn" title="Sound">🔊</button></div>
   </div>
   <div class="grp r" id="hudR"></div>
 </div>
@@ -211,93 +214,93 @@ body.touch.fighting #touch{display:block}
 <div id="pops"></div>
 <div id="center"><h1 id="cH"></h1><p id="cP"></p></div>
 <div id="flash"></div>
-<div id="replayLab" class="hidden">● REPLAY<small>กดปุ่มใดก็ได้เพื่อข้าม</small></div>
+<div id="replayLab" class="hidden">● REPLAY<small>press any key to skip</small></div>
 
 <div id="menu" class="overlay">
   <div class="wrap">
-    <div class="title"><h1>ศึกออฟฟิศ 🥊</h1><div class="sub2">OFFICE FIGHT NIGHT · ตะลุมบอนกันทั้งในโชว์รูมและริมถนนหน้าร้าน</div></div>
+    <div class="title"><h1>OFFICE FIGHT NIGHT 🥊</h1><div class="sub2">Brawl through the piano shop, out the door and round the block!</div></div>
     <div class="row">
-      <div class="seg" id="modeSeg"><button data-m="duel" class="on">ดวล 1v1</button><button data-m="ffa">ตะลุมบอน 4 คน</button><button data-m="team">ทีม 2v2</button><button data-m="train">ห้องซ้อม 🥋</button><button data-m="arcade">ไต่บันได 🏆</button></div>
+      <div class="seg" id="modeSeg"><button data-m="duel" class="on">Duel 1v1</button><button data-m="ffa">4-Way Brawl</button><button data-m="team">Team 2v2</button><button data-m="train">Training 🥋</button><button data-m="arcade">Arcade 🏆</button></div>
     </div>
     <div class="row">
-      <div class="seg" id="humSeg"><span class="lab">ผู้เล่น</span><button data-h="1" class="on">1 คน</button><button data-h="2">2 คน (เครื่องเดียวกัน)</button></div>
-      <div class="seg" id="diffSeg"><span class="lab">คอม</span><button data-d="0">ง่าย</button><button data-d="1" class="on">กลาง</button><button data-d="2">โหด</button></div>
-      <div class="seg" id="locSeg"><span class="lab">เริ่มที่</span><button data-l="in" class="on">ในโชว์รูม</button><button data-l="out">ริมถนนหน้าร้าน</button><button data-l="wing">โซนกลอง</button><button data-l="back">หลังร้าน</button><button data-l="up">ชั้น 2 ไวโอลิน</button></div>
+      <div class="seg" id="humSeg"><span class="lab">Players</span><button data-h="1" class="on">1 player</button><button data-h="2">2 players (same keyboard)</button></div>
+      <div class="seg" id="diffSeg"><span class="lab">CPU</span><button data-d="0">Easy</button><button data-d="1" class="on">Normal</button><button data-d="2">Brutal</button></div>
+      <div class="seg" id="locSeg"><span class="lab">Start at</span><button data-l="in" class="on">Showroom</button><button data-l="out">Front street</button><button data-l="wing">Drum wing</button><button data-l="back">Back alley</button><button data-l="up">Violin shop 2F</button></div>
     </div>
     <div class="slots" id="slots"></div>
     <div class="hint" id="menuHint"></div>
     <div class="grid" id="grid"></div>
-    <div class="startRow"><button id="startBtn" class="btn big">เริ่มชก! 🥊</button> <button id="onlineBtn" class="btn big blue">🌐 เล่นออนไลน์กับเพื่อน</button></div>
+    <div class="startRow"><button id="startBtn" class="btn big">FIGHT! 🥊</button> <button id="onlineBtn" class="btn big blue">🌐 Play online</button></div>
     <div class="ctrl" id="ctrlHelp"></div>
-    <div class="startRow"><button class="btn ghost" id="movesBtn">📖 ดูท่าทั้งหมด</button> <button class="btn ghost" id="body3dAll">🧍 ร่าง 3D ทุกคน</button></div>
+    <div class="startRow"><button class="btn ghost" id="movesBtn">📖 Move list</button></div>
   </div>
 </div>
 
 <div id="onlineP" class="overlay hidden">
   <div class="panel" style="max-width:640px">
-    <h2>เล่นออนไลน์กับเพื่อน 🌐</h2>
+    <h2>Play online 🌐</h2>
     <p id="onMsg" class="onmsg"></p>
-    <div class="onrow"><canvas id="onPic" width="168" height="168"></canvas><div style="text-align:left"><div>ตัวละครของคุณ</div><select id="onChar"></select><div>สไตล์ต่อสู้</div><select id="onStyle"></select><div>ท่าไม้ตาย</div><select id="onSp"></select><div class="small">แก้ชื่อหรือใส่รูปหน้าได้ที่การ์ดในเมนูหลัก</div></div></div>
+    <div class="onrow"><canvas id="onPic" width="168" height="168"></canvas><div style="text-align:left"><div>Your fighter</div><select id="onChar"></select><div>Fighting style</div><select id="onStyle"></select><div>Special move</div><select id="onSp"></select><div class="small">Rename fighters or add a face photo on the cards in the main menu</div></div></div>
     <div id="onJoinBox">
-      <div class="onrow"><button class="btn big" id="onCreate">สร้างห้องใหม่</button></div>
-      <div class="onrow"><input id="onCode" maxlength="6" placeholder="รหัสห้อง" autocomplete="off"><button class="btn blue" id="onEnter">เข้าห้อง</button></div>
+      <div class="onrow"><button class="btn big" id="onCreate">Create room</button></div>
+      <div class="onrow"><input id="onCode" maxlength="6" placeholder="Room code" autocomplete="off"><button class="btn blue" id="onEnter">Join</button></div>
     </div>
     <div id="onLobby" class="hidden">
-      <div class="roomcode">รหัสห้อง <b id="onCodeShow"></b><button class="btn sm ghost" id="onCopy" style="flex:none">คัดลอก</button></div>
+      <div class="roomcode">Room code <b id="onCodeShow"></b><button class="btn sm ghost" id="onCopy" style="flex:none">Copy</button></div>
       <div id="onPlayers" class="onplayers"></div>
       <div id="onHostBox">
-        <div class="onseg seg" id="onMode"><button data-v="duel">ดวล 1v1</button><button data-v="ffa">ตะลุมบอน 4 คน</button><button data-v="team">ทีม 2v2</button></div>
-        <div class="onseg"><div class="seg" id="onDiff"><span class="lab">คอม</span><button data-v="0">ง่าย</button><button data-v="1">กลาง</button><button data-v="2">โหด</button></div><div class="seg" id="onLoc"><span class="lab">เริ่มที่</span><button data-v="in">ในโชว์รูม</button><button data-v="out">หน้าร้าน</button><button data-v="up">ชั้น 2</button></div></div>
-        <div class="onrow"><button class="btn big" id="onStart">เริ่มเกม! 🥊</button></div>
+        <div class="onseg seg" id="onMode"><button data-v="duel">Duel 1v1</button><button data-v="ffa">4-Way Brawl</button><button data-v="team">Team 2v2</button></div>
+        <div class="onseg"><div class="seg" id="onDiff"><span class="lab">CPU</span><button data-v="0">Easy</button><button data-v="1">Normal</button><button data-v="2">Brutal</button></div><div class="seg" id="onLoc"><span class="lab">Start at</span><button data-v="in">Showroom</button><button data-v="out">Street</button><button data-v="up">2nd floor</button></div></div>
+        <div class="onrow"><button class="btn big" id="onStart">Start match! 🥊</button></div>
       </div>
-      <p id="onWait" class="hidden">รอโฮสต์กดเริ่มเกม...</p>
-      <div class="onrow"><button class="btn hidden" id="onRejoin">กลับเข้าแมตช์ที่กำลังเล่น</button><button class="btn ghost" id="onLeave">ออกจากห้อง</button></div>
+      <p id="onWait" class="hidden">Waiting for the host to start…</p>
+      <div class="onrow"><button class="btn hidden" id="onRejoin">Back to the match</button><button class="btn ghost" id="onLeave">Leave room</button></div>
     </div>
-    <div class="btns"><button class="btn ghost" id="onBack">กลับเมนูหลัก</button></div>
+    <div class="btns"><button class="btn ghost" id="onBack">Main menu</button></div>
     <p class="small" id="onVia"></p>
-    <p class="small">ห้องละไม่เกิน 4 คน ช่องที่ว่างให้คอมเล่นแทน · โฮสต์ (👑) ห้ามสลับแท็บหรือปิดจอระหว่างเล่น</p>
+    <p class="small">Up to 4 per room, CPUs fill empty slots · the host (👑) must keep this tab open and visible while playing</p>
   </div>
 </div>
 
 <div id="pause" class="overlay hidden">
   <div class="panel">
-    <h2>พักเบรก ☕</h2>
+    <h2>Coffee break ☕</h2>
     <div class="ctrl" id="ctrlHelp2"></div>
-    <div class="btns"><button class="btn" id="resumeBtn">ชกต่อ</button><button class="btn ghost" id="movesBtn2">📖 ดูท่า</button><button class="btn ghost" id="photoBtn">📸 โหมดถ่ายรูป</button><button class="btn ghost" id="quitBtn">กลับเมนู</button></div>
+    <div class="btns"><button class="btn" id="resumeBtn">Resume</button><button class="btn ghost" id="movesBtn2">📖 Moves</button><button class="btn ghost" id="photoBtn">📸 Photo mode</button><button class="btn ghost" id="quitBtn">Main menu</button></div>
   </div>
 </div>
 
 <div id="loadP" class="overlay hidden">
   <div class="panel load">
-    <h2 id="loadT">เลือกสไตล์ต่อสู้ & ท่าไม้ตาย</h2>
-    <div class="loadWho"><canvas id="loadPic" width="160" height="160"></canvas><div><b id="loadName"></b><div id="loadSum"></div><small>ทุกคนพลังเท่ากัน ต่างกันแค่สไตล์กับท่าที่เลือก</small></div></div>
-    <h3>สไตล์ต่อสู้ <small>(ปุ่มจ็อบ / ฮุก / จ็อบ-จ็อบ-ฮุก)</small></h3><div class="opts" id="stlGrid"></div>
-    <h3>ท่าไม้ตาย <small>(ใช้ได้เมื่อเกจม่วงเต็ม)</small></h3><div class="opts" id="spGrid"></div>
-    <div class="btns sticky"><button class="btn ghost" id="loadBack">กลับ</button><button class="btn ghost" id="loadRand">🎲 สุ่ม</button><button class="btn big" id="loadGo">พร้อม! 🥊</button></div>
+    <h2 id="loadT">Pick your style & special</h2>
+    <div class="loadWho"><canvas id="loadPic" width="160" height="160"></canvas><div><b id="loadName"></b><div id="loadSum"></div><small>Everyone has equal stats — only your style and special differ</small></div></div>
+    <h3>Fighting style <small>(jab / hook / jab-jab-hook)</small></h3><div class="opts" id="stlGrid"></div>
+    <h3>Special move <small>(when the purple bar is full)</small></h3><div class="opts" id="spGrid"></div>
+    <div class="btns sticky"><button class="btn ghost" id="loadBack">Back</button><button class="btn ghost" id="loadRand">🎲 Random</button><button class="btn big" id="loadGo">Ready! 🥊</button></div>
   </div>
 </div>
 
 <div id="movesP" class="overlay hidden">
   <div class="panel moves">
-    <h2>ท่าทั้งหมด 📖</h2>
+    <h2>Move list 📖</h2>
     <div id="movesBody"></div>
-    <div class="btns"><button class="btn" id="movesClose">ปิด</button></div>
+    <div class="btns"><button class="btn" id="movesClose">Close</button></div>
   </div>
 </div>
 
 <div id="interP" class="overlay hidden">
   <div class="panel">
-    <h2 id="interT">ด่าน 1 / 6</h2>
+    <h2 id="interT">Stage 1 / 6</h2>
     <p id="interLoc"></p>
     <div class="vsrow"><canvas id="interA" width="280" height="280"></canvas><div class="vs">VS</div><canvas id="interB" width="280" height="280"></canvas></div>
     <p id="interQ" style="font-size:18px"></p>
-    <div class="btns"><button class="btn big" id="interGo">ลุย!</button></div>
+    <div class="btns"><button class="btn big" id="interGo">Go!</button></div>
   </div>
 </div>
 
 <div id="endP" class="overlay hidden">
   <div class="panel">
-    <h2 id="endTitle">ชนะ!</h2>
+    <h2 id="endTitle">Win!</h2>
     <div class="pics" id="endPics"></div>
     <p id="endSub"></p>
     <canvas id="sickNote" width="760" height="460"></canvas>
@@ -307,24 +310,24 @@ body.touch.fighting #touch{display:block}
 
 <div id="shotP" class="overlay hidden">
   <div class="panel">
-    <h2>ได้รูปแล้ว! 📸</h2>
-    <p style="font-size:13px">กดค้างที่รูป (มือถือ) หรือคลิกขวา → บันทึกรูปภาพ แล้วส่งเข้ากลุ่ม LINE ได้เลย</p>
-    <img id="shotImg" alt="ภาพจากเกม">
-    <div class="btns"><button class="btn" id="copyShot">คัดลอกรูป</button><button class="btn ghost" id="shotBack">ถ่ายต่อ</button><button class="btn ghost" id="shotDone">เสร็จ</button></div>
+    <h2>Snap! 📸</h2>
+    <p style="font-size:13px">Long-press the picture (phone) or right-click → Save image, then share it with your friends</p>
+    <img id="shotImg" alt="Game screenshot">
+    <div class="btns"><button class="btn" id="copyShot">Copy picture</button><button class="btn ghost" id="shotBack">Take another</button><button class="btn ghost" id="shotDone">Done</button></div>
   </div>
 </div>
 
-<div id="photoBar" class="hidden"><span>ลากเพื่อหมุนกล้อง · ล้อเมาส์/ปุ่ม ± ซูม</span><button class="ib" id="zIn">＋</button><button class="ib" id="zOut">－</button><button class="btn" id="snapBtn">📸 ถ่าย!</button><button class="btn ghost" id="photoExit">ออก</button></div>
+<div id="photoBar" class="hidden"><span>Drag to orbit · wheel / ± to zoom</span><button class="ib" id="zIn">＋</button><button class="ib" id="zOut">－</button><button class="btn" id="snapBtn">📸 Snap!</button><button class="btn ghost" id="photoExit">Exit</button></div>
 
 <div id="touch">
   <div id="stick"><div id="knob"></div></div>
   <div id="tbtns">
-    <button class="tb" data-k="TSpec">ไม้ตาย</button>
-    <button class="tb" data-k="TJab">จ็อบ</button>
-    <button class="tb" data-k="THook">ฮุก</button>
-    <button class="tb" data-k="TJump">โดด</button>
-    <button class="tb" data-k="TGrab">หยิบ/จับ</button>
-    <button class="tb" data-k="TBlock">กัน</button>
+    <button class="tb" data-k="TSpec">Special</button>
+    <button class="tb" data-k="TJab">Jab</button>
+    <button class="tb" data-k="THook">Hook</button>
+    <button class="tb" data-k="TJump">Jump</button>
+    <button class="tb" data-k="TGrab">Grab</button>
+    <button class="tb" data-k="TBlock">Block</button>
   </div>
 </div>
 
