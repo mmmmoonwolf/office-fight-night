@@ -192,7 +192,9 @@ function startRound(loc){
   const p=G.f.find(f=>f.human===0)||G.f[0];CAM.yaw=(loc||G.roundLoc||G.loc)==='boss'?0.5:0;CAM.focus.set(p.pos.x,p.y,p.pos.z);
   const vs=G.f.length===2?G.f[0].ch.name+' VS '+G.f[1].ch.name:(G.mode==='team'?'ทีมแดง VS ทีมฟ้า':'ตะลุมบอน 4 คน!');
   $('#roundLab').textContent=G.mode==='arcade'?('ด่าน '+(G.arc.stage+1)+'/'+G.arc.list.length):G.mode==='train'?'ห้องซ้อม · หุ่น: '+DUMMY_MODES[TR.dummy]+' [T]':('ROUND '+G.round);
-  if(G.mode==='train'){Object.assign(TR,{last:-9,hits:0,dmg:0});showCenter('ห้องซ้อม 🥋','ไม่จำกัดเวลา · เกจไม้ตายเติมเอง · กด T เปลี่ยนหุ่น',1.6);return;}
+  G.hurry=0;
+  if(G.mode==='train'){SFX.vo('ready');Object.assign(TR,{last:-9,hits:0,dmg:0});showCenter('ห้องซ้อม 🥋','ไม่จำกัดเวลา · เกจไม้ตายเติมเอง · กด T เปลี่ยนหุ่น',1.6);return;}
+  if(G.mode==='arcade'?G.arc.stage===G.arc.list.length-1:G.round>=3)SFX.vo('final_round');else SFX.voRound(G.mode==='arcade'?G.arc.stage+1:G.round);
   showCenter(G.mode==='arcade'?('ด่าน '+(G.arc.stage+1)):(G.round>=3?'ยกตัดสิน!':'ROUND '+G.round),G.round===1||G.mode==='arcade'?vs:'',1.3);
 }
 function aliveTeams(){const s=new Set();G.f.forEach(f=>{if(f.state!=='ko')s.add(f.team);});return[...s];}
@@ -209,8 +211,9 @@ function endRoundBy(team,how){
   const ws=G.f.filter(f=>f.team===team&&f.state!=='ko');ws.forEach(f=>{f.win=true;f.setExpr('win',0,true);});
   if(ws[0])say(ws[0],pick(ws[0].ch.quotes),true);
   const wname=team<0?'':(G.mode==='team'?(team===0?'ทีมแดง':'ทีมฟ้า'):(G.f.find(f=>f.team===team).ch.name));
+  if(team<0)SFX.vo('its_a_tie',0.8);
   if(how==='ko'){G.slowT=1.0;showCenter('K.O.!!',wname?wname+' ชนะยกนี้!':'เสมอ!',2.2);G.replayPending=REC.length>40;}
-  else{SFX.bell();showCenter('หมดเวลา!',wname?wname+' ชนะคะแนน!':'เสมอ! ไปทำงานต่อ',2.4);}
+  else{SFX.bell();SFX.vo('time_over',0.4);showCenter('หมดเวลา!',wname?wname+' ชนะคะแนน!':'เสมอ! ไปทำงานต่อ',2.4);}
 }
 function timeUp(){
   const score={};G.f.forEach(f=>{score[f.team]=(score[f.team]||0)+Math.max(0,f.hp)/f.maxHp;});
@@ -232,6 +235,9 @@ function endMatch(team){
   const unlocks=[];
   if(winners.some(f=>f.human!=null))winners.filter(f=>f.human!=null).forEach(f=>{const before=winsOf(f.ch);STATS.wins[f.ch.id]=before+1;GLOVES.forEach(g=>{if(g.need===before+1&&g.need>0)unlocks.push(f.ch.name+' ปลดล็อกถุงมือ'+g.name+'!');});});
   saveAll();
+  {const me=G.f.find(f=>f.human===0),hw=winners.some(f=>f.human!=null);const mine=G.humans===2?hw:(me&&me.team===team);
+    SFX.voLocal(mine?(G.humans===2&&winners.some(f=>f.human===1)&&!winners.some(f=>f.human===0)?'f_you_win':'you_win'):'you_lose',1.2);
+    if(unlocks.length)SFX.voLocal('level_up',2.6);}
   setTimeout(()=>{if(G.phase!=='end')return;
     const hw=winners.find(f=>f.human!=null);
     $('#endTitle').textContent=G.mode==='team'?((team===0?'ทีมแดง':'ทีมฟ้า')+' ชนะ! 🏆'):(hw?(G.humans===2?hw.label+' ชนะ! 🏆':'คุณชนะ! 🏆'):(winners[0].ch.name+' ชนะ... 😵'));
@@ -285,7 +291,7 @@ $('#interGo').addEventListener('click',()=>{
   G.roundLoc=arcadeLoc(A.stage,A.list);G.diff=Math.min(2,Math.max(G.baseDiff,Math.floor(A.stage/2)));
   enterFightUI();startRound(G.roundLoc);
 });
-function arcadeClear(){
+function arcadeClear(){SFX.voLocal('congratulations',0.6);
   G.phase='end';const me=G.f[0];me.win=true;me.setExpr('win',0,true);
   const before=winsOf(me.ch);STATS.wins[me.ch.id]=before+2;saveAll();
   setTimeout(()=>{
@@ -296,7 +302,7 @@ function arcadeClear(){
     $('#endP').classList.remove('hidden');$('#hud').classList.remove('on');document.body.classList.remove('fighting');
   },1500);
 }
-function arcadeLose(){
+function arcadeLose(){SFX.voLocal('game_over',0.6);
   G.phase='end';
   setTimeout(()=>{
     const A=G.arc;$('#endTitle').textContent='แพ้ที่ด่าน '+(A.stage+1)+' 😵';const pics=$('#endPics');pics.innerHTML='';const c=document.createElement('canvas');c.width=c.height=260;portrait(chOf(A.list[A.stage]),c,'win');pics.appendChild(c);
@@ -568,8 +574,8 @@ function loop(now){
       for(const f of G.f){let it=null;if(fighting)it=f.human!=null?readPlayer(f.human):(f.net?netInput(f):G.mode==='train'?dummyThink(f,dt):aiThink(f,dt));f.update(dt,it);}
       separateAll();
       if(fighting&&G.mode==='train')trainTick(dt);
-      else if(fighting){G.timer-=raw;if(G.timer<=0){G.timer=0;timeUp();}}
-      if(G.phase==='intro'&&G.phaseT>1.4){G.phase='fight';showCenter('ชก!!','',0.8);SFX.bell();}
+      else if(fighting){G.timer-=raw;if(G.timer<=10&&!G.hurry){G.hurry=1;SFX.vo('hurry_up');}if(G.timer<=0){G.timer=0;timeUp();}}
+      if(G.phase==='intro'&&G.phaseT>1.4){G.phase='fight';showCenter('ชก!!','',0.8);SFX.bell();SFX.vo('go',0.15);}
       else if(G.phase==='ko'){if(G.replayPending&&G.phaseT>1.5){G.replayPending=false;startReplay();}else if(!G.replayPending&&G.phaseT>3.0)endRound();}
       else if(G.phase==='post'&&G.phaseT>0.7)endRound();
       if(G.phase==='fight'||G.phase==='ko')record();

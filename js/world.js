@@ -77,9 +77,9 @@ function breakIt(b,fx){
   const k=b.brk;k.hp=0;brkVisual(b,true);if(!fx)return;
   const c=V((b.x0+b.x1)/2,Math.min(k.oy1,(k.oy0+k.oy1)/2+0.2),(b.z0+b.z1)/2);
   if(k.kind==='glass'){SFX.glassBreak();for(let i=0;i<2;i++)burst(V(c.x+rand(-1,1),rand(0.6,2.4),c.z),0xbfe3ff,10,4);}
-  else if(k.kind==='wall'){SFX.crash();puff(c.x,0.9,c.z,0xd8cbb0,16,1.1,3.2);burst(c,0xb5651d,14,5);ringFx(c.x,0,c.z,2.5,0xd8cbb0,0.5);}
+  else if(k.kind==='wall'){SFX.wood();SFX.thud();puff(c.x,0.9,c.z,0xd8cbb0,16,1.1,3.2);burst(c,0xb5651d,14,5);ringFx(c.x,0,c.z,2.5,0xd8cbb0,0.5);}
   else if(k.kind==='piano'){SFX.piano();SFX.crash();burst(c,0xffffff,10,4);burst(c,0x111111,10,4);puff(c.x,c.y,c.z,0xd8cbb0,8,0.8,2);}
-  else{SFX.thud();burst(c,k.color||0x8a6a4a,14,4);puff(c.x,c.y,c.z,0xd8cbb0,7,0.7,2);}
+  else{SFX[k.sfx||'thud']();burst(c,k.color||0x8a6a4a,14,4);puff(c.x,c.y,c.z,0xd8cbb0,7,0.7,2);}
   G.shake=Math.max(G.shake,0.5);hype=Math.min(1,hype+0.5);
   const msg=k.kind==='wall'?'กำแพงพัง!! 🧱':k.kind==='glass'?'กระจกแตก!! 💥':(k.name||'ของ')+' พัง!';
   if(k.cost){BILL+=k.cost;G.matchBill=(G.matchBill||0)+k.cost;popup(msg+' -'+baht(k.cost),c.clone().add(V(0,1,0)),'crit',1.4);}else popup(msg,c.clone().add(V(0,1,0)),'crit',1.2);
@@ -125,6 +125,32 @@ const roadTex=canvasTex(1024,256,(g,w,h)=>{g.fillStyle='#3d3f44';g.fillRect(0,0,
   g.fillStyle='rgba(255,255,255,.85)';for(let i=0;i<8;i++)g.fillRect(w/2-90+i*24,20,14,h-40);});
 const keysTex=canvasTex(512,48,(g,w,h)=>{g.fillStyle='#f6f3ea';g.fillRect(0,0,w,h);const n=36,kw=w/n;g.fillStyle='#999';for(let i=0;i<=n;i++)g.fillRect(i*kw,0,1.5,h);g.fillStyle='#111';const pat=[1,1,0,1,1,1,0];for(let i=0;i<n;i++){if(pat[i%7])g.fillRect((i+1)*kw-kw*0.3,0,kw*0.6,h*0.6);}});
 const bookTex=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#5a3a24';g.fillRect(0,0,w,h);for(let r=0;r<4;r++){let x=6;while(x<w-10){const bw=8+Math.random()*12,bh=40+Math.random()*16;g.fillStyle=`hsl(${Math.random()*360},50%,${35+Math.random()*25}%)`;g.fillRect(x,r*64+60-bh,bw,bh);x+=bw+1;}g.fillStyle='#3a2414';g.fillRect(0,r*64+58,w,6);}});
+
+/* ================= FURNITURE MODELS (Kenney Furniture Kit, CC0 — assets/models/*.glb) ================= */
+// loadModel caches one glTF scene per name; fitModel puts a clone inside a W×H×D box (local axes, bottom at y = 0).
+// The parent group exists straight away (collision, breakables and tilt use it); the mesh pops in once loaded.
+const MODELS={};
+const REAL_THREE=typeof THREE.REVISION==='string';
+function loadModel(name,cb){let m=MODELS[name];
+  if(!m){m=MODELS[name]={scene:null,wait:[],failed:false};
+    try{if(!REAL_THREE||!THREE.GLTFLoader)throw 0;
+      new THREE.GLTFLoader().load('assets/models/'+name+'.glb',g=>{m.scene=g.scene;m.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});const w=m.wait;m.wait=[];w.forEach(f=>f(m.scene));},
+        undefined,()=>{m.failed=true;const w=m.wait;m.wait=[];w.forEach(f=>f(null));});}
+    catch(e){m.failed=true;}}
+  if(m.scene)cb(m.scene);else if(m.failed)cb(null);else m.wait.push(cb);}
+function fitModel(g,name,W,H,D,fallback){
+  loadModel(name,src=>{
+    if(!src){if(fallback)vbox(W,H,D,M(fallback,{roughness:.6}),0,H/2,0,g);return;}
+    const m=src.clone(true);const bb=new THREE.Box3().setFromObject(m),sz=bb.getSize(new THREE.Vector3());
+    const s=Math.min(W/Math.max(sz.x,1e-3),H/Math.max(sz.y,1e-3),D/Math.max(sz.z,1e-3));m.scale.setScalar(s);
+    bb.setFromObject(m);const c=bb.getCenter(new THREE.Vector3());m.position.set(-c.x,-bb.min.y,-c.z);g.add(m);});
+  return g;}
+// a piece of furniture in the world: model + (optional) collision box + (optional) breakable
+function furn(name,x,y,z,ry,W,H,D,o={}){
+  const g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=ry||0;scene.add(g);fitModel(g,name,W,H,D,o.fallback||'#8a7a6a');
+  if(o.tag){const sw=Math.abs(Math.sin(ry||0))>0.7,hw=(sw?D:W)/2,hd=(sw?W:D)/2;const b=solid(x-hw,x+hw,z-hd,z+hd,y,y+H,o.tag);
+    if(o.brk)breakable(b,Object.assign({kind:'prop',hp:1,group:g},o.brk));}
+  return g;}
 
 /* ================= PROP BUILDERS ================= */
 const pianoBlack=M('#0b0b0d',{roughness:.18,metalness:.3});
@@ -228,9 +254,9 @@ const hemiRef=scene.children.find(c=>c.isHemisphereLight);
   const bk2=new THREE.Mesh(new THREE.PlaneGeometry(5.2,2.2),M('#fff',{map:bookTex}));bk2.rotation.y=-Math.PI/2;bk2.position.set(-15.01,1.1,-0.2);scene.add(bk2);
   const bsTex=canvasTex(256,64,(g,w,h)=>{g.fillStyle='#ffd23d';g.fillRect(0,0,w,h);g.fillStyle='#222';g.font='800 34px Kanit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('แผนกหนังสือ',w/2,h/2);});
   const bs=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.4),new THREE.MeshBasicMaterial({map:bsTex}));bs.rotation.y=Math.PI/2;bs.position.set(-14.33,2.45,-0.2);scene.add(bs);
-  breakable(shB,{kind:'shelf',hp:2,meshes:[sh,bk,bk2,bs],name:'ชั้นหนังสือ',cost:15000,color:0xc0392b});
+  breakable(shB,{kind:'shelf',hp:2,meshes:[sh,bk,bk2,bs],name:'ชั้นหนังสือ',cost:15000,color:0xc0392b,sfx:'wood'});
   // guitar stands (center-left)
-  for(const[x,z,r]of[[-8.6,0.2,0.4],[-9.4,1.2,0.6],[-7.8,1.4,0.2]]){const gg=guitar('#d9a35a');gg.position.set(x,0.42,z);gg.rotation.set(-0.25,r,0);scene.add(gg);vbox(0.32,0.06,0.32,M('#111'),x,0.03,z+0.1);breakable(solid(x-0.28,x+0.28,z-0.25,z+0.3,0,1.2,'guitar'),{kind:'prop',hp:1,group:gg,name:'กีตาร์โชว์',cost:12000,tilt:[1.2,0.4],color:0xd9a35a});}
+  for(const[x,z,r]of[[-8.6,0.2,0.4],[-9.4,1.2,0.6],[-7.8,1.4,0.2]]){const gg=guitar('#d9a35a');gg.position.set(x,0.42,z);gg.rotation.set(-0.25,r,0);scene.add(gg);vbox(0.32,0.06,0.32,M('#111'),x,0.03,z+0.1);breakable(solid(x-0.28,x+0.28,z-0.25,z+0.3,0,1.2,'guitar'),{kind:'prop',hp:1,group:gg,name:'กีตาร์โชว์',cost:12000,tilt:[1.2,0.4],color:0xd9a35a,sfx:'guitar'});}
   // digital pianos row near front-left window
   for(const x of[-13.2,-11.2]){const dp=upright(x,1.9,Math.PI,M('#2b2420',{roughness:.35}));dp.scale.set(0.95,0.85,0.7);breakable(solid(x-0.78,x+0.78,1.55,2.45,0,1.25,'piano'),{kind:'piano',hp:2,group:dp,name:'เปียโนไฟฟ้า',cost:35000,low:1,tilt:[-0.6,-0.25]});}
   // mezzanine (boss office) + stairs
@@ -242,12 +268,11 @@ const hemiRef=scene.children.find(c=>c.isHemisphereLight);
   for(let i=0;i<8;i++){const x0=3+0.5*i;solid(x0,7,-10.6,-8.4,0,0.3*(i+1),'stairs');vbox(0.5,0.3*(i+1),2.2,M(i%2?'#7a5a3a':'#86643f'),x0+0.25,0.15*(i+1),-9.5);}
   for(const z of[-10.65,-8.35])vbox(4.4,0.08,0.08,M('#2b2b2b',{metalness:.5}),5,2.15,z).rotation.z=Math.atan2(2.4,4);
   // boss desk upstairs
-  sbox(7.3,9.1,2.4,3.2,-11.8,-10.9,M('#3a2418',{roughness:.4}),'desk');
-  vbox(0.7,0.45,0.05,M('#111'),8.2,3.5,-11.45);
+  furn('desk',8.2,2.4,-11.35,0,1.8,0.8,0.9,{tag:'desk',fallback:'#3a2418'});
+  furn('computerScreen',8.2,3.2,-11.55,0,0.8,0.6,0.22,{fallback:'#111'});furn('lampSquareTable',7.6,3.2,-11.45,0,0.24,0.55,0.24);furn('laptop',8.75,3.2,-11.2,-0.3,0.42,0.26,0.38);
+  furn('chairDesk',8.2,2.4,-10.35,Math.PI,0.7,1.3,0.66);
   const bossTex=canvasTex(320,90,(g,w,h)=>{g.fillStyle='#c0392b';g.fillRect(0,0,w,h);g.fillStyle='#fff';g.font='800 46px Kanit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('ห้องหัวหน้า',w/2,h/2);});
   const bt=new THREE.Mesh(new THREE.PlaneGeometry(1.8,0.5),new THREE.MeshBasicMaterial({map:bossTex}));bt.position.set(8.2,3.05,-11.93);scene.add(bt);
-  // chair
-  vbox(0.6,0.1,0.6,M('#111'),8.2,2.85,-11.95);
   // counter + computer + parcels
   sbox(7.4,8.4,0,1.1,-2.6,1.6,M('#f3efe8',{roughness:.4}),'counter');
   vbox(1.15,0.06,4.35,M('#3a2418',{roughness:.35}),7.9,1.13,-0.5);
@@ -286,18 +311,18 @@ const hemiRef=scene.children.find(c=>c.isHemisphereLight);
     for(const[dx,dz,y]of[[-0.85,-0.1,1.3],[0.85,-0.2,1.45]]){cyl(0.015,0.015,y,ch,dx,y/2,dz,g,6);cyl(0.3,0.02,0.02,M('#d4a017',{metalness:.9,roughness:.2}),dx,y,dz,g,20);}
     vbox(0.4,0.08,0.4,M('#222'),0,0.5,-0.7,g);return g;};
   const dk1=drumKit(-20.6,-8.6,'#b0172a'),dk2=drumKit(-17.8,-10.4,'#1f5fbf');dk2.rotation.y=0.5;
-  breakable(solid(-21.6,-19.6,-9.2,-8.0,0,1.1,'drums'),{kind:'prop',hp:2,group:dk1,name:'กลองชุด',cost:65000,tilt:[0.5,-0.6],color:0xb0172a});
-  breakable(solid(-18.7,-16.9,-11.0,-9.8,0,1.1,'drums'),{kind:'prop',hp:2,group:dk2,name:'กลองชุด',cost:65000,tilt:[-0.4,0.5],color:0x1f5fbf});
+  breakable(solid(-21.6,-19.6,-9.2,-8.0,0,1.1,'drums'),{kind:'prop',hp:2,group:dk1,name:'กลองชุด',cost:65000,tilt:[0.5,-0.6],color:0xb0172a,sfx:'plate'});
+  breakable(solid(-18.7,-16.9,-11.0,-9.8,0,1.1,'drums'),{kind:'prop',hp:2,group:dk2,name:'กลองชุด',cost:65000,tilt:[-0.4,0.5],color:0x1f5fbf,sfx:'plate'});
   const amp=(x,z,ry,h)=>{const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=ry;scene.add(g);const blk=M('#141414',{roughness:.7}),gr=M('#2a2a2a',{roughness:1});
     for(let i=0;i<h;i++){vbox(1.0,0.75,0.55,blk,0,0.38+i*0.78,0,g);vbox(0.86,0.6,0.02,gr,0,0.38+i*0.78,0.28,g);}vbox(1.0,0.22,0.5,M('#222'),0,0.11+h*0.78,0,g);
     const lt=canvasTex(128,32,(c,w,hh)=>{c.fillStyle='#111';c.fillRect(0,0,w,hh);c.fillStyle='#e9c46a';c.font='800 22px Kanit, sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('BOOM',w/2,hh/2);});
     const l=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.12),new THREE.MeshBasicMaterial({map:lt}));l.position.set(0,0.11+h*0.78,0.26);g.add(l);return g;};
   for(const[x,z,ry,h]of[[-22.6,-1.2,Math.PI/2,2],[-22.6,0.4,Math.PI/2,3],[-16.3,-6.6,-Math.PI/2,2]]){const g=amp(x,z,ry,h);
-    breakable(solid(x-0.3,x+0.3,z-0.52,z+0.52,0,0.22+h*0.78,'amp'),{kind:'prop',hp:2,group:g,name:'ตู้แอมป์',cost:28000,tilt:[0,ry>0?-1.1:1.1],color:0x222222});}
+    breakable(solid(x-0.3,x+0.3,z-0.52,z+0.52,0,0.22+h*0.78,'amp'),{kind:'prop',hp:2,group:g,name:'ตู้แอมป์',cost:28000,tilt:[0,ry>0?-1.1:1.1],color:0x222222,sfx:'wood'});}
   // keyboard stand + mic stand + rug
   const kb=new THREE.Group();kb.position.set(-18.6,0,-1.6);scene.add(kb);vbox(1.3,0.12,0.4,M('#1b1b1b'),0,0.95,0,kb);const kk=new THREE.Mesh(new THREE.PlaneGeometry(1.2,0.25),M('#fff',{map:keysTex}));kk.rotation.x=-Math.PI/2;kk.position.set(0,1.015,0.03);kb.add(kk);
   for(const s of[-1,1]){const l=vbox(0.04,1.0,0.04,M('#888',{metalness:.7}),s*0.3,0.47,0,kb);l.rotation.z=s*0.35;}
-  breakable(solid(-19.3,-17.9,-1.85,-1.35,0,1.05,'keyboard'),{kind:'prop',hp:1,group:kb,name:'คีย์บอร์ด',cost:22000,tilt:[0.2,1.2],color:0x1b1b1b});
+  breakable(solid(-19.3,-17.9,-1.85,-1.35,0,1.05,'keyboard'),{kind:'prop',hp:1,group:kb,name:'คีย์บอร์ด',cost:22000,tilt:[0.2,1.2],color:0x1b1b1b,sfx:'plate'});
   const wr=new THREE.Mesh(new THREE.PlaneGeometry(5,3.6),M('#3b4a5a',{roughness:1}));wr.rotation.x=-Math.PI/2;wr.position.set(-19.4,0.006,-9.4);wr.receiveShadow=true;scene.add(wr);
   const wsTex=canvasTex(512,128,(g,w,h)=>{g.fillStyle='#6fd3ff';g.fillRect(0,0,w,h);g.fillStyle='#0d2233';g.font='800 56px Kanit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('ห้องลองกลอง',w/2,h/2);});
   const wsg=new THREE.Mesh(new THREE.PlaneGeometry(2.4,0.6),new THREE.MeshBasicMaterial({map:wsTex}));wsg.position.set(-19.4,2.7,-11.94);scene.add(wsg);fadeGroup([wsg],(c,f)=>c.z<-12.0&&(!f||f.z>-12.3));
@@ -339,14 +364,14 @@ const hemiRef=scene.children.find(c=>c.isHemisphereLight);
     fadeGroup(ms,c=>c.z<OZ0);})();
   // back of the store: air-con units, bins, a back-door sign
   for(const x of[-17,2.5,6.2]){sbox(x-0.5,x+0.5,0.15,0.95,-13.3,-12.35,M('#d9dde0',{roughness:.5}),'ac');const fan=cyl(0.3,0.3,0.03,M('#555'),x,0.55,-13.31,null,16);fan.rotation.x=Math.PI/2;}
-  for(const x of[-12.5,-11.6]){const b=cyl(0.38,0.34,1.0,M(x<-12?'#2e7d32':'#1565c0',{roughness:.6}),x,0.65,-13.6,null,14);solid(x-0.38,x+0.38,-13.98,-13.22,0.15,1.15,'bin');}
+  for(const x of[-12.5,-11.6]){furn('trashcan',x,0.15,-13.6,Math.PI,0.75,1.0,0.7,{fallback:x<-12?'#2e7d32':'#1565c0'});solid(x-0.38,x+0.38,-13.98,-13.22,0.15,1.15,'bin');}
   const bdTex=canvasTex(512,128,(g,w,h)=>{g.fillStyle='#ffd23d';g.fillRect(0,0,w,h);g.fillStyle='#2a1600';g.font='800 50px Kanit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('ประตูหลังร้าน',w/2,h/2);});
   const bd=new THREE.Mesh(new THREE.PlaneGeometry(1.9,0.48),new THREE.MeshBasicMaterial({map:bdTex,side:THREE.DoubleSide}));bd.position.set(-8,2.75,-12.33);bd.rotation.y=Math.PI;scene.add(bd);
   const sdTex=canvasTex(512,128,(g,w,h)=>{g.fillStyle='#6fd3ff';g.fillRect(0,0,w,h);g.fillStyle='#0d2233';g.font='800 50px Kanit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('ประตูข้าง',w/2,h/2);});
   const sd=new THREE.Mesh(new THREE.PlaneGeometry(1.9,0.48),new THREE.MeshBasicMaterial({map:sdTex,side:THREE.DoubleSide}));sd.position.set(-23.63,2.75,-4);sd.rotation.y=-Math.PI/2;scene.add(sd);
   // parked scooters on the left road, a bus stop on the right sidewalk
   for(const z of[-8,-6.6]){const b=mkBike(pick(['#e67e22','#7f8c8d','#c0392b']),false);b.g.position.set(-26.4,0,z);scene.add(b.g);solid(-26.65,-26.15,z-0.75,z+0.75,0,1.0,'bike');}
-  sbox(22.6,23.0,0.15,2.6,-6.5,-6.1,M('#7f8c8d'),'pole');vbox(0.9,0.08,3.2,M('#2c6fb3'),23.0,2.65,-5.0);sbox(22.5,23.2,0.15,0.6,-5.8,-4.2,M('#95a5a6'),'bench');
+  sbox(22.6,23.0,0.15,2.6,-6.5,-6.1,M('#7f8c8d'),'pole');vbox(0.9,0.08,3.2,M('#2c6fb3'),23.0,2.65,-5.0);
   // far shophouses
   const shops=[['ร้านกาแฟ','#7a4a2a'],['ข้าวมันไก่','#c0392b'],['ซ่อมมือถือ','#2c6fb3'],['ร้านตัดผม','#8e44ad'],['ร้านขายยา','#16a085'],['มินิมาร์ท','#e67e22']];
   const far=[];
@@ -465,6 +490,36 @@ function restorePanes(){PANES.forEach(P=>{P.b.broken=false;P.b.y0=P.b.oy0;P.b.y1
   const band=vbox(X1-X0,0.7,0.3,M('#3b1f2b'),(X0+X1)/2,Y+3.15,2.98);
   const bandF=new THREE.Mesh(new THREE.PlaneGeometry(X1-X0,0.7),new THREE.MeshBasicMaterial({map:sTex}));bandF.position.set((X0+X1)/2,Y+3.15,3.14);scene.add(bandF);
   fadeGroup([band,bandF],(c,fo)=>c.z<3&&fo&&fo.z>3);
+})();
+
+/* ================= FURNISHING (models) ================= */
+(function furnish(){
+  const P=(name,x,y,z,ry,W,H,D,o)=>furn(name,x,y,z,ry,W,H,D,o);
+  // showroom: customer waiting corner + plants by the door + TV on the right wall
+  P('loungeSofa',-12.4,0,-4.6,0,2.2,1.0,0.95,{tag:'sofa',brk:{name:'โซฟารับแขก',hp:2,cost:18000,tilt:[-1.2,0],sfx:'thud',color:0x3aa59a}});
+  P('tableCoffee',-12.4,0,-3.1,0,1.3,0.45,0.8,{tag:'table',brk:{name:'โต๊ะกาแฟ',cost:6000,tilt:[0.3,1.0],sfx:'wood'}});
+  P('lampRoundFloor',-14.1,0,-5.7,0,0.4,1.9,0.45,{tag:'lamp',brk:{name:'โคมไฟ',cost:4500,tilt:[1.3,0],sfx:'glass'}});
+  P('rugRound',-12.4,0.004,-3.6,0,3.2,0.02,3.2);
+  for(const x of[-2.95,2.95])P('pottedPlant',x,0,2.3,0,0.65,1.3,0.7,{tag:'planter',brk:{name:'ต้นไม้',cost:1500,tilt:[1.4,0.3],sfx:'thud',color:0x2f7d3a}});
+  P('pottedPlant',10.5,0,-6.4,0,0.65,1.3,0.7,{tag:'planter',brk:{name:'ต้นไม้',cost:1500,tilt:[1.4,0],sfx:'thud',color:0x2f7d3a}});
+  P('televisionModern',10.85,1.25,-5.0,-Math.PI/2,2.2,1.35,0.3,{tag:'tv',brk:{name:'ทีวีโชว์',cost:25000,tilt:[0.6,0],sfx:'glass',color:0x111111}});
+  // counter: keyboard, radio, coffee machine next to the chat screen
+  P('computerKeyboard',7.7,1.16,-1.2,-Math.PI/2,0.55,0.05,0.24);P('radio',7.9,1.16,0.5,-Math.PI/2,0.55,0.38,0.2);P('kitchenCoffeeMachine',7.9,1.16,1.15,-Math.PI/2,0.34,0.36,0.42);
+  // drums & amps wing: tall speakers + a waiting bench
+  P('speaker',-22.75,0,-6.9,Math.PI/2,0.55,1.75,0.55,{tag:'amp',brk:{name:'ลำโพง',hp:2,cost:15000,tilt:[0,-1.2],sfx:'wood',color:0x222222}});
+  P('speaker',-15.95,0,-11.45,0,0.55,1.75,0.55,{tag:'amp',brk:{name:'ลำโพง',hp:2,cost:15000,tilt:[1.2,0],sfx:'wood',color:0x222222}});
+  P('bench',-22.85,0,-10.8,Math.PI/2,1.7,0.85,0.6,{tag:'bench'});
+  P('stoolBar',-20.6,0,-9.55,0,0.5,0.75,0.45);P('stoolBar',-17.6,0,-11.25,0.5,0.5,0.75,0.45);
+  // violin & book shop (2F): chairs at the reading table, plants, a floor lamp, a bookcase
+  const Y=2.4;
+  P('chair',14.85,Y,-5.6,Math.PI/2,0.55,1.15,0.55);P('chair',18.15,Y,-5.6,-Math.PI/2,0.55,1.15,0.55);
+  P('pottedPlant',11.95,Y,-7.0,0,0.6,1.2,0.65,{tag:'planter'});P('lampRoundFloor',21.0,Y,1.9,0,0.38,1.8,0.42,{tag:'lamp'});
+  P('bookcaseClosedWide',12.42,Y,-4.0,Math.PI/2,2.0,1.95,0.55,{tag:'shelf',brk:{name:'ตู้หนังสือ',hp:2,cost:9000,tilt:[0.9,0],sfx:'wood',color:0xc0392b}});
+  // street: benches, boxes behind the store, plants on the sidewalk
+  P('bench',-11.0,0.15,3.95,Math.PI,1.7,0.85,0.6,{tag:'bench',brk:{name:'ม้านั่ง',cost:3500,tilt:[1.3,0],sfx:'wood'}});
+  P('bench',22.85,0.15,-5.0,-Math.PI/2,1.7,0.85,0.6,{tag:'bench'});
+  P('cardboardBoxClosed',-6.4,0.15,-13.6,0.3,0.7,0.85,0.7,{tag:'box'});P('cardboardBoxOpen',-5.4,0.15,-13.7,-0.2,1.0,0.7,0.6);P('cardboardBoxClosed',-6.3,1.0,-13.6,0.9,0.5,0.6,0.5);
+  P('trashcan',11.75,0.15,4.0,0,0.7,0.95,0.65,{tag:'bin'});P('trashcan',-25.0,0.15,-13.2,0,0.7,0.95,0.65,{tag:'bin'});
 })();
 
 /* ================= VEHICLES / NPC ================= */
@@ -630,7 +685,7 @@ function mkVan(){const g=new THREE.Group();const w=M('#f4f4f4',{roughness:.4,met
   for(const[x,z]of[[0.9,1.6],[-0.9,1.6],[0.9,-1.5],[-0.9,-1.5]]){const wh=cyl(0.38,0.38,0.28,M('#151515'),x,0.38,z,g,14);wh.rotation.z=Math.PI/2;}
   return g;}
 const VANPATH=[[38,11.2],[-29.1,11.2],[-29.1,-17.8],[27.8,-17.8],[27.8,11.2],[-38,11.2]];
-function startVan(){const g=mkVan();scene.add(g);NPC.van={g,x:VANPATH[0][0],z:VANPATH[0][1],i:1,cd:new Map(),rot:-Math.PI/2};banner('🚚 รถส่งของซิ่งรอบร้าน! หลบด้วย!',3.5);SFX.horn();}
+function startVan(){const g=mkVan();scene.add(g);NPC.van={g,x:VANPATH[0][0],z:VANPATH[0][1],i:1,cd:new Map(),rot:-Math.PI/2};banner('🚚 รถส่งของซิ่งรอบร้าน! หลบด้วย!',3.5);SFX.horn();SFX.vo('war_look_out',0.3);}
 function updVan(dt){const v=NPC.van;if(!v)return;const wp=VANPATH[v.i];if(!wp){scene.remove(v.g);NPC.van=null;return;}
   const dx=wp[0]-v.x,dz=wp[1]-v.z,d=Math.hypot(dx,dz),sp=11*dt;
   if(d<=sp){v.x=wp[0];v.z=wp[1];v.i++;}else{v.x+=dx/d*sp;v.z+=dz/d*sp;v.rot=lerpAngle(v.rot,Math.atan2(dx,dz),1-Math.exp(-8*dt));}
@@ -655,6 +710,10 @@ const WEAPONS={
   box:{name:'กล่องพัสดุ',dmg:1.1,range:0.2,knock:1,dur:2,throwDmg:14,mk:mkParcel,hold:{p:[0,0,0.25],r:[0,0,0]}},
   violin:{name:'ไวโอลิน',dmg:1.35,range:0.7,knock:2,dur:4,throwDmg:12,mk:()=>{const g=new THREE.Group();const v=mkViolin();v.position.y=0.15;v.rotation.x=-Math.PI/2;g.add(v);return g;},hold:{p:[0,0.05,0.2],r:[1.2,0,0]},sfx:'violin'},
   cello:{name:'เชลโล่',dmg:2.0,range:1.1,knock:5,dur:3,throwDmg:18,mk:()=>{const g=new THREE.Group();const v=mkViolin('#7a3410');v.scale.setScalar(2.3);v.position.y=0.22;v.rotation.x=-Math.PI/2;g.add(v);return g;},hold:{p:[0,0.1,0.35],r:[1.3,0,0]},sfx:'cello'},
+  lamp:{name:'โคมไฟตั้งพื้น',dmg:1.4,range:1.2,knock:3,dur:4,throwDmg:12,mk:()=>fitModel(new THREE.Group(),'lampRoundFloor',0.32,1.5,0.35,'#ddd'),hold:{p:[0,0.05,0.2],r:[1.35,0,0]},sfx:'glass'},
+  bin:{name:'ถังขยะ',dmg:1.7,range:0.5,knock:5,dur:3,throwDmg:16,mk:()=>fitModel(new THREE.Group(),'trashcan',0.55,0.75,0.5,'#2e7d32'),hold:{p:[0,0.1,0.3],r:[0.4,0,0]},sfx:'metal'},
+  pillow:{name:'หมอนอิง',dmg:0.4,range:0.5,knock:9,dur:8,throwDmg:4,mk:()=>fitModel(new THREE.Group(),'pillow',0.55,0.5,0.25,'#f39c12'),hold:{p:[0,0.05,0.25],r:[0.2,0,0]}},
+  monitor:{name:'จอคอม',dmg:1.5,range:0.4,knock:3,dur:2,throwDmg:15,mk:()=>fitModel(new THREE.Group(),'computerScreen',0.7,0.55,0.2,'#111'),hold:{p:[0,0.05,0.3],r:[0.3,0,0]},sfx:'glass'},
   cone:{name:'กรวยจราจร',dmg:1.2,range:0.5,knock:1.5,dur:4,throwDmg:11,mk:mkCone,hold:{p:[0,0,0.2],r:[1.5,0,0]}},
 };
 function powerMesh(type){
@@ -676,6 +735,7 @@ const POWER={
 };
 const WSPOTS=[{x:-3.6,y:0,z:-9.8,t:'chair'},{x:0.6,y:0,z:-9.8,t:'chair'},{x:-12.1,y:0.45,z:-7.75,t:'chair'},{x:-6,y:0,z:-5,t:'chair'},{x:2,y:0,z:-6.5,t:'stand'},{x:-4.8,y:0,z:0.2,t:'stand'},{x:-5.2,y:0,z:2.2,t:'guitar'},{x:6.6,y:0,z:2.2,t:'box'},{x:8.8,y:0,z:0.2,t:'box'},{x:9.6,y:2.4,z:-9,t:'box'},{x:4,y:0,z:-5.4,t:'guitar'},
   {x:-9.5,y:0.15,z:4.2,t:'cone'},{x:5,y:0.15,z:6.9,t:'cone'},{x:-12,y:0,z:10.9,t:'cone'},{x:13,y:0.15,z:6.6,t:'box'},{x:-1.5,y:0.15,z:4.1,t:'stand'},{x:-16,y:1.05,z:9,t:'box'},
+  {x:-10.8,y:0,z:-5.6,t:'lamp'},{x:-11.0,y:0,z:-3.4,t:'pillow'},{x:-13.6,y:0.15,z:-13.0,t:'bin'},{x:12.4,y:0.15,z:4.2,t:'bin'},{x:8.0,y:1.13,z:-0.2,t:'monitor'},{x:-19.0,y:0,z:-6.2,t:'pillow'},
   {x:-27.5,y:0,z:-4,t:'cone'},{x:27.6,y:0,z:-7,t:'cone'},{x:-3,y:0,z:-17.6,t:'cone'},{x:-10,y:0.15,z:-13.3,t:'box'},{x:-20.4,y:0,z:-5,t:'stand'},{x:-17.2,y:0,z:1.6,t:'guitar'},{x:-21.8,y:0,z:-11,t:'chair'},
   {x:14,y:2.4,z:-10.6,t:'violin'},{x:18,y:2.4,z:1.9,t:'violin'},{x:20.4,y:2.4,z:-9.4,t:'cello'},{x:16.5,y:3.15,z:-5.6,t:'box'},{x:12.4,y:2.4,z:1.9,t:'stand'}];
 const PSPOTS=[{x:16.5,y:2.4,z:-1.6},{x:13,y:2.4,z:-6},{x:-6,y:0,z:-7.5},{x:20,y:2.4,z:1.6},{x:0,y:0,z:-2},{x:-4,y:0,z:0.4},{x:4.4,y:0,z:0},{x:9.6,y:2.4,z:-10.2},{x:-12.6,y:0.45,z:-10.6},{x:5,y:0,z:-10.8},
@@ -701,7 +761,7 @@ function updItems(dt){
   for(let i=items.length-1;i>=0;i--){const it=items[i];it.t+=dt;
     if(it.kind==='p'){it.mesh.position.y=it.y+0.25+Math.sin(it.t*3)*0.1;it.mesh.rotation.y+=dt*1.8;it.mesh.userData.ring.position.y=-0.23-Math.sin(it.t*3)*0.1;
       if(G.phase!=='fight')continue;
-      for(const f of G.f){if(f.state==='ko'||f.state==='grabbed')continue;if(Math.hypot(f.pos.x-it.x,f.pos.z-it.z)<0.85&&Math.abs(f.y-it.y)<1.2){const P=POWER[it.type];P.fn(f);SFX[P.snd]();popup(P.txt,f.headPos().add(V(0,0.6,0)),P.bad?'crit':'good',1.3);if(it.spot)it.spot.item=null;scene.remove(it.mesh);items.splice(i,1);break;}}
+      for(const f of G.f){if(f.state==='ko'||f.state==='grabbed')continue;if(Math.hypot(f.pos.x-it.x,f.pos.z-it.z)<0.85&&Math.abs(f.y-it.y)<1.2){const P=POWER[it.type];P.fn(f);SFX[P.snd]();if(!P.bad&&f.human!=null&&Math.random()<0.5)SFX.vo('power_up',0.15);popup(P.txt,f.headPos().add(V(0,0.6,0)),P.bad?'crit':'good',1.3);if(it.spot)it.spot.item=null;scene.remove(it.mesh);items.splice(i,1);break;}}
     }else{it.ring.material.opacity=0.35+0.3*Math.sin(it.t*4);}
   }
 }

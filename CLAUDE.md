@@ -66,6 +66,10 @@ npm test        # node test/e2e.js — offline flow + host/2 clients online flow
 | `js/fighter.js` | effects (projectiles, rings, smoke clouds, coupons, falling grand, tape), `SPECIALS`, `ATK` frame data, `Fighter` class (model, physics, combat, animation, `snap`/`applySnap`), `aiThink` |
 | `js/game.js` | `G` state, slots/modes, HUD, name tags, camera, input schemes, round flow, arcade, KO replay recorder, photo mode, menu/cards, main loop |
 | `js/net.js` | online lobby + host-authoritative sync (see below) |
+| `js/vendor/GLTFLoader.js` | three.js r128 `examples/js` GLTFLoader (MIT), vendored; test pages strip it |
+| `assets/sfx/*.mp3` | Kenney **Impact Sounds** (CC0): punches, soft/wood/metal/plate/glass impacts, bell, footsteps on wood/concrete/carpet |
+| `assets/voice/*.mp3` | Kenney **Voiceover Pack** (CC0) announcer lines (`f_` = female voice) |
+| `assets/models/*.glb` | Kenney **Furniture Kit** (CC0) models used in the shop and as weapons |
 | `scripts/serve.js` | zero-dependency static server with the three page variants |
 | `test/three_stub.js` | Proxy-based fake THREE (real Vector3 math, everything else no-ops) |
 | `test/room_mock.js` | `window.claude.use('room')` stand-in over BroadcastChannel (presence + peers only) |
@@ -108,6 +112,16 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
   every road (`dir` ±1 along x, ±2 along z). Flood level, blackout and van travel in the snapshot (`s.ev`).
 
 ## Characters, sound, prompts
+
+- Recorded audio: `SFX.loadSamples()` (called from `SFX.init`) fetches `SFX_FILES` / `VOICE_FILES` into `SFX.SMP`;
+  `SFX.smp(key, vol, rate, delay)` plays one random variant and returns its length (or `false` → the method falls back
+  to the old synthesized sound). `hit`, `block`, `thud`, `land`, `glass`, `glassBreak`, `bell`, `koBell`, `crash`,
+  `step` (0 wood / 1 concrete / 2 carpet), `metal`, `plate`, `wood` use samples. Announcer: `SFX.vo(name)` /
+  `SFX.voRound(n)` are broadcast like any SFX; `SFX.voLocal` is not (each player hears their own "you win/you lose").
+- Furniture: `furn(name, x, y, z, ry, W, H, D, {tag, brk, fallback})` (world.js) creates the group + collision box
+  now and fits the glTF model into W×H×D when `loadModel` finishes (one cached scene per name, cloned). Without
+  `THREE.GLTFLoader` (test stub) a plain box is drawn instead. Weapons `lamp`, `bin`, `pillow`, `monitor` use
+  `fitModel` in their `mk`.
 
 - Fighters are chibi: `S = ch.size × 0.84`, short legs (hip 0.72), bean torso, head group `this.head` scaled 1.26
   (head-relative coordinates, radius 0.5). Hair is real geometry from `buildHair()` (cap + fringe + curtains/locks for
@@ -166,7 +180,8 @@ Everything goes through **presence only** (no event topics), because presence is
 
 ## Publishing as a claude.ai Artifact
 
-The Artifact is multi-file: `index.html` + `js/*.js` (not `test/` or `scripts/`), with the `room` capability declared
+The Artifact is multi-file: `index.html` + `js/*.js` + `js/vendor/GLTFLoader.js` + everything in `assets/`
+(not `test/` or `scripts/`), with the `room` capability declared
 (`{room: {}}`). Artifact pages may only load scripts from cdnjs/jsdelivr/unpkg and their own files; no fetch to
 other hosts; `alert/confirm/prompt` and downloads are blocked (photo mode shows an `<img>` to long-press instead).
 
