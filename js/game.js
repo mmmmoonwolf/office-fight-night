@@ -1,6 +1,6 @@
 'use strict';
 /* ================= GAME STATE ================= */
-const G={phase:'menu',mode:'duel',humans:1,diff:1,loc:'in',slots:[2,1,4,6],slotSel:0,f:[],round:1,wins:{},timer:99,phaseT:0,clock:0,timeScale:1,slowT:0,shake:0,hitStop:0,paused:false,photo:false,watch:0,rain:0,evT:12,arc:null,roundWinner:-1,lastKO:null,replayPending:false};
+const G={phase:'menu',mode:'duel',humans:1,diff:1,loc:'in',slots:[0,1,2,3],slotSel:0,f:[],round:1,wins:{},timer:99,phaseT:0,clock:0,timeScale:1,slowT:0,shake:0,hitStop:0,paused:false,photo:false,watch:0,rain:0,evT:12,arc:null,roundWinner:-1,lastKO:null,replayPending:false};
 const SLOTCOL=['#e0303a','#2f6fe0','#2bb673','#f1b31c'];
 const TEAMCOL=[['#e0303a','#ff8a5c'],['#2f6fe0','#36c5f0']];
 const chOf=i=>i<0?BOSS_CH:ROSTER[i]; // -1 = arcade boss
@@ -258,7 +258,7 @@ function drawSickNote(losers,winner){
   g.fillStyle='#222';g.textAlign='center';g.font='800 46px Kanit, sans-serif';g.fillText('ใบลาป่วย',w/2,70);
   g.textAlign='left';g.font='26px Kanit, sans-serif';
   const names=losers.map(f=>f.ch.name).join(', ');
-  const lines=['เรียน '+(winner.ch.id==='boss'?'คุณหัวหน้า (ผู้ชนะ)':'หัวหน้างาน'),'ข้าพเจ้า '+names,'ขอลาป่วย 1 วัน เนื่องจากโดน '+winner.ch.name+' ต่อยจนน็อก','ที่'+(losers[0]?locName(losers[0]):'ร้าน')+' อาการ: มึนหัว เห็นดาว ⭐ อยากกินส้มตำ','ลงชื่อ ......................... (ผู้ป่วย)'];
+  const lines=['เรียน '+(winner.ch.id==='boss'?winner.ch.name+' (ผู้ชนะ)':'หัวหน้างาน'),'ข้าพเจ้า '+names,'ขอลาป่วย 1 วัน เนื่องจากโดน '+winner.ch.name+' ต่อยจนน็อก','ที่'+(losers[0]?locName(losers[0]):'ร้าน')+' อาการ: มึนหัว เห็นดาว ⭐ อยากกินส้มตำ','ลงชื่อ ......................... (ผู้ป่วย)'];
   lines.forEach((l,i)=>g.fillText(l,46,112+i*42));
   g.save();g.translate(w-150,h-90);g.rotate(-0.25);g.strokeStyle='#d0202a';g.lineWidth=6;g.strokeRect(-100,-36,200,72);g.fillStyle='#d0202a';g.font='800 40px Kanit, sans-serif';g.textAlign='center';g.fillText('อนุมัติ',0,14);g.restore();
   c.style.display=losers.length?'':'none';
@@ -435,7 +435,6 @@ $('#loadGo').addEventListener('click',()=>{
 });
 function showMoves(on){if(on)buildMoves();$('#movesP').classList.toggle('hidden',!on);}
 $('#movesBtn').addEventListener('click',()=>showMoves(true));
-$('#body3dAll').addEventListener('click',()=>{const all=ROSTER.every(c=>c.body==='3d');ROSTER.forEach(c=>c.body=all?'chibi':'3d');saveAll();updateCards();buildFromSlots();$('#body3dAll').textContent=all?'🧍 ร่าง 3D ทุกคน':'🧸 การ์ตูนทุกคน';});
 $('#movesBtn2').addEventListener('click',()=>showMoves(true));
 $('#movesClose').addEventListener('click',()=>showMoves(false));
 $('#quitBtn').addEventListener('click',()=>{if(NET.role!=='off')netQuitMatch();else toMenu();});
@@ -466,14 +465,13 @@ function buildCards(){
     const el=document.createElement('div');el.className='card';el.dataset.i=i;
     el.innerHTML=`<div class="badges"></div><canvas width="180" height="180"></canvas><input class="nmIn" maxlength="18"><div class="role"></div>
       <div class="ttl"></div>
-      <div class="pbtns"><label class="btn sm">📷 รูปหน้า<input type="file" accept="image/*" hidden></label><button class="btn sm ghost rm">ลบรูป</button><button class="btn sm ghost glv"></button><button class="btn sm ghost bd"></button></div>`;
+      <div class="pbtns"><label class="btn sm">📷 รูปหน้า<input type="file" accept="image/*" hidden></label><button class="btn sm ghost rm">ลบรูป</button><button class="btn sm ghost glv"></button></div>`;
     el.querySelector('.role').textContent=c.role;
     const inp=el.querySelector('.nmIn');inp.value=c.name;
     inp.addEventListener('input',()=>{c.name=inp.value.trim()||c.name;buildSlots();saveAll();G.f.forEach(f=>{if(f.ch===c&&f.tagEl&&f.human==null)f.tagEl.textContent=c.name;});});
     inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();e.stopPropagation();});
     el.querySelector('input[type=file]').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)loadPhoto(f,c);e.target.value='';});
     el.querySelector('.rm').addEventListener('click',()=>{c.photoImg=null;c.photoData=null;saveAll();refreshFaces();});
-    el.querySelector('.bd').addEventListener('click',()=>{c.body=c.body==='3d'?'chibi':'3d';saveAll();updateCards();buildFromSlots();});
     el.querySelector('.glv').addEventListener('click',()=>{const w=winsOf(c);let g=c.glove||0;for(let k=1;k<=GLOVES.length;k++){const n=(g+k)%GLOVES.length;if(GLOVES[n].need<=w){g=n;break;}}c.glove=g;saveAll();updateCards();buildFromSlots();});
     el.addEventListener('click',e=>{if(e.target.closest('input,label,button'))return;SFX.init();G.slots[G.slotSel]=i;const n=G.mode==='arcade'?1:slotCount();G.slotSel=(G.slotSel+1)%n;buildSlots();updateCards();buildFromSlots();});
     grid.appendChild(el);
@@ -497,7 +495,6 @@ function updateCards(){
     const w=winsOf(c);const nextG=GLOVES.find(g=>g.need>w);
     el.querySelector('.ttl').textContent='ชนะ '+w+' · '+titleOf(w)+(nextG?' · อีก '+(nextG.need-w)+' ชนะปลดถุงมือ'+nextG.name:'');
     el.querySelector('.glv').textContent='🥊 '+GLOVES[c.glove||0].name;
-    el.querySelector('.bd').textContent=c.body==='3d'?'🧍 ร่าง 3D':'🧸 การ์ตูน';
   });
   buildSlots();
 }

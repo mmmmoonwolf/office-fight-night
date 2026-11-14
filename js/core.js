@@ -18,38 +18,29 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 
 /* ================= ROSTER ================= */
 // sp = key in SPECIALS (fighter.js). emote = victory pose.
+// The cast: original cartoon characters, each a rigged 3D model (assets/models/char_<model>.glb, body3d.js) with a
+// portrait (assets/portraits/<id>.png). The chibi fields (skin, hair, hairStyle, shirt…) are the cartoon fallback
+// used when the model cannot load (and on the headless test pages). sp = default special. emote = chibi victory pose.
 const ROSTER=[
- {id:'bomb',name:'Bomb',role:'ซีเนียร์ รับจบทุกงาน',skin:'#dcae88',hair:'#151515',hairStyle:'short',shirt:'#1f1f22',shorts:'#2a2a30',sleeves:true,acc:['hood'],
-  hp:115,pow:1.12,spd:1.0,aspd:1.0,size:1.03,sp:'finisher',emote:'chill',
-  quotes:['เดี๋ยวพี่รับจบ!','งานนี้ง่าย!','ส่งมาเลย!','จบในยกเดียว!','ซีเนียร์มาเอง!']},
- {id:'oat',name:'Oat',role:'หนุ่มผมยาว มือกีตาร์',skin:'#e2b590',hair:'#141414',hairStyle:'longM',shirt:'#222226',shorts:'#2e4a7a',acc:['guitarBack'],
-  hp:104,pow:1.06,spd:1.0,aspd:1.02,size:1.02,sp:'chord',emote:'guitar',
-  quotes:['ขอโซโล่หน่อย!','จูนสายก่อน!','Drop D มาเลย!','เสียงแตกแล้วนะ!','ร็อคไม่ตาย!']},
- {id:'march',name:'March',role:'ตากล้อง มือตัดต่อ สายออกกำลังกาย',skin:'#e6b48c',hair:'#1c1c1c',hairStyle:'short',shirt:'#1fa3a3',shorts:'#22303a',acc:['glasses','camera'],bulk:1.15,
-  hp:112,pow:1.1,spd:1.0,aspd:1.0,size:1.04,sp:'flash',emote:'selfie',
-  quotes:['ยิ้มหน่อย แชะ!','เดี๋ยวตัดต่อให้!','วันนี้เล่นอก!','โฟกัสหน้าหน่อย!','เรนเดอร์ไม่ทัน!']},
- {id:'dear',name:'Dear',role:'หน้าเกาหลี ผมปาดเท่ๆ ตัวเล็ก',skin:'#f6d9bf',hair:'#3a2a1f',hairStyle:'swept',eyes:'small',shirt:'#f4f4f4',shorts:'#6b7a8f',acc:[],
-  hp:90,pow:0.95,spd:1.18,aspd:1.18,size:0.88,sp:'dash',emote:'dance',
-  quotes:['ฮวาอิทติ้ง!','ซารังแฮโย~','ผมยังไม่เซ็ตเลย!','ออปป้ามาแล้ว!','อันยอง!']},
- {id:'kunjae',name:'KunJae',role:'สาวตัวเล็ก นักออกแบบภายใน',skin:'#f3cfb0',hair:'#2b1a12',hairStyle:'bun',fem:true,shirt:'#e8a87c',shorts:'#5b4636',acc:['tape'],
-  hp:88,pow:0.96,spd:1.14,aspd:1.15,size:0.84,sp:'pull',emote:'jump',
-  quotes:['ขอวัดก่อนนะ!','ห้องนี้ต้องมินิมอล!','โทนสีไม่เข้ากัน!','ย้ายโซฟาหน่อย!','แปลนผิด!']},
- {id:'eye',name:'Eye',role:'สาวผมยาว สายชิล ชุดดำ',skin:'#efc7a6',hair:'#0b0b0b',hairStyle:'long',fem:true,shirt:'#151515',shorts:'#151515',sleeves:true,acc:[],
-  hp:98,pow:1.0,spd:1.05,aspd:1.0,size:0.95,sp:'cloud',emote:'chill',
-  quotes:['ชิลๆ ก่อน~','ใจเย็นๆ~','ฟินนน~','ไม่รีบ ไม่รีบ','ชุดดำไม่ได้แปลว่าเศร้านะ']},
- {id:'teemee',name:'TeeMee',role:'พี่เซลส์แผนกหนังสือ ทำทุกอย่าง',skin:'#e0aa82',hair:'#222',hairStyle:'short',shirt:'#3b6ea8',shorts:'#2b2b33',acc:['tag','glasses'],
-  hp:105,pow:1.02,spd:1.02,aspd:1.02,size:1.0,sp:'random',emote:'bow',
-  quotes:['หนังสือมาใหม่ครับ!','อันนี้พี่ทำเอง!','เดี๋ยวพี่จัดให้!','ทำทุกอย่างแล้วเนี่ย!','Hal Leonard มาแล้ว!']},
- {id:'sing',name:'Sing',role:'มือตัดต่อวิดีโอ นักกล้าม',skin:'#d29a72',hair:'#111',hairStyle:'buzz',shirt:'#c0392b',shorts:'#1d1d22',tank:true,acc:['headphones'],bulk:1.35,
-  hp:122,pow:1.18,spd:0.95,aspd:0.95,size:1.1,sp:'buff',emote:'flex',
-  quotes:['ขาเดย์วันนี้!','เวย์ยังไม่กิน!','ตัดต่อเสร็จแล้ว!','อีกเซ็ต!','กล้ามมาแล้ว!']},
+ {id:'kip',name:'Kip Kaboom',role:'เด็กแว่นหมวกแดง ตัวจิ๋วแต่ระเบิดพลัง',model:'kip',skin:'#f0c39a',hair:'#2b2b2b',hairStyle:'short',shirt:'#8a8f98',shorts:'#2b2d33',sleeves:true,acc:['cap','glasses'],accent:'#e8401c',
+  sp:'superKick',emote:'jump',quotes:['คาบูมมม!','ระเบิดพลังเด็ก!','อย่าดูถูกคนตัวเล็กนะ!','การบ้านเสร็จแล้วค่อยมาต่อย!','บึ้ม บึ้ม!']},
+ {id:'momo',name:'Momo Mellow',role:'สายชิลหมวกไหมพรมยักษ์ ใจเย็นจนน่ากลัว',model:'momo',skin:'#f3d6c2',hair:'#c9a36a',hairStyle:'long',shirt:'#e0622a',shorts:'#e8c35a',acc:[],
+  sp:'cloud',emote:'chill',quotes:['ชิลล์ๆ เพื่อน~','ไม่ต้องรีบ~','ใจเย็นๆ แล้วค่อยต่อย','หมวกนี้มีของเยอะนะ','สบายยย~']},
+ {id:'ruby',name:'Ruby Rumble',role:'สาวเดรสแดง ตัวเล็กแต่หมัดหนัก',model:'ruby',skin:'#f6d3bd',hair:'#111111',hairStyle:'bob',fem:true,shirt:'#d0232a',shorts:'#1b1b1b',acc:[],
+  sp:'rush',emote:'dance',quotes:['ตึงตังตูม!','อย่ามาแตะเดรสฉัน!','หมัดนี้เพื่อความยุติธรรม!','จบเกมแล้วไปกินชาไข่มุก!','Rumble time!']},
+ {id:'grumbo',name:'Grumbo',role:'ลุงหนวดขี้บ่น บ่นไปต่อยไป',model:'grumbo',skin:'#d99a72',hair:'#7a5a3a',hairStyle:'bald',shirt:'#8c2a20',shorts:'#d08a2a',sleeves:true,acc:['cap'],accent:'#c9a24a',
+  sp:'quake',emote:'point',quotes:['สมัยลุงนะ...','เด็กสมัยนี้!','หนวกหูจริงๆ!','ลุงยังไหวอยู่!','บ่นแล้วก็ต่อย!']},
+ {id:'nana',name:'Nana Nitro',role:'คุณยายสายฟิต ม้วนผมเต็มหัว นกหวีดพร้อม',model:'nana',skin:'#f2d0bb',hair:'#ff7ab0',hairStyle:'bun',fem:true,shirt:'#1e7fd8',shorts:'#1e7fd8',sleeves:true,acc:['glasses'],
+  sp:'dash',emote:'flex',quotes:['ปี๊ดดด! ซิทอัพ 100 ที!','ยายยังฟิต!','หลานจ๋า มานี่!','วิ่งรอบสนามอีกสิบรอบ!','อายุเป็นแค่ตัวเลข!']},
+ {id:'duke',name:'Duke Jiggly',role:'ราชาเพลงร็อค พุงเด้งดึ๋ง',model:'duke',skin:'#f1d2bc',hair:'#141414',hairStyle:'swept',shirt:'#f4f4f4',shorts:'#f4f4f4',sleeves:true,acc:[],bulk:1.35,
+  sp:'buff',emote:'guitar',quotes:['ขอบคุณมากครับบบ~','พุงนี้ร็อคแอนด์โรล!','เต้นสิ เต้น!','ราชามาแล้ว!','อุ้ย พุงเด้ง!']},
 ];
 // everyone is equal: characters only differ in looks — fighting style + special are picked separately (LOADOUT)
-ROSTER.forEach(c=>Object.assign(c,{hp:100,pow:1,spd:1,aspd:1,size:1,body:c.id==='dear'?'3d':'chibi'})); // body: 'chibi' cartoon rig or '3d' rigged model (body3d.js)
+ROSTER.forEach(c=>Object.assign(c,{hp:100,pow:1,spd:1,aspd:1,size:1,body:'3d'}));
 // the arcade's final boss — not selectable
-const BOSS_CH={id:'boss',name:'หัวหน้า',role:'ผู้จัดการร้าน',skin:'#e9b98f',hair:'#2a2a2a',hairStyle:'bald',shirt:'#2d3240',shorts:'#1b1e26',sleeves:true,acc:['tie','glasses'],mustache:true,
-  hp:125,pow:1.2,spd:0.86,aspd:0.92,size:1.1,sp:'files',emote:'point',
-  quotes:['งานนี้ต้องเสร็จวันนี้!','เข้าประชุมด่วน!','ใครทำรายงานผิด!?','ยอดเดือนนี้ไปไหน!?','OT คืนนี้นะ!','ส่งรายงานยัง!?']};
+const BOSS_CH={id:'boss',name:'Boss Bonkers',role:'บอสใหญ่ ผ้าพันคอวิเศษ',body:'3d',skin:'#f2c6a2',hair:'#ff7a1a',hairStyle:'model',shirt:'#5a1d8a',shorts:'#1b1e26',accent:'#ffd23d',sleeves:true,acc:[],
+  hp:125,pow:1.2,spd:0.86,aspd:0.92,size:1.1,sp:'drop',emote:'point',
+  quotes:['บอสมาแล้ว!','บองเกอร์สสส!','ใครกล้าท้าบอส!?','ผ้าพันคอนี้มีพลัง!','ยอมแพ้ซะดีๆ!']};
 const HURT=['โอ๊ย!','เจ็บนะ!','ขอลาป่วย!','จะฟ้อง HR!','ขอเบิกค่ารักษา!','ยังไม่ได้กินข้าวเลย!','พักเที่ยงก่อน!','ขอลาพักร้อน!','ประกันสังคมช่วยด้วย!'];
 const GLOVES=[
  {name:'สีทีม',need:0},
@@ -67,16 +58,16 @@ const STATS={wins:{},lo:[null,null]}; // lo = last fighting style + special pick
 function loadSave(){
   try{
     const s=JSON.parse(localStorage.getItem(SAVE_KEY)||localStorage.getItem('officeFight.v1')||'{}');
-    if(s.wins)STATS.wins=s.wins;const bodies=s.bodies||{};if(Array.isArray(s.lo))STATS.lo=[s.lo[0]||null,s.lo[1]||null];
+    if(s.wins)STATS.wins=s.wins;if(Array.isArray(s.lo))STATS.lo=[s.lo[0]||null,s.lo[1]||null];
     ROSTER.forEach(c=>{
       if(s.names&&s.names[c.id])c.name=s.names[c.id];
-      c.glove=(s.gloves&&s.gloves[c.id])||0;if(bodies[c.id])c.body=bodies[c.id];
+      c.glove=(s.gloves&&s.gloves[c.id])||0;
       if(s.photos&&s.photos[c.id]){c.photoData=s.photos[c.id];const im=new Image();im.onload=()=>{c.photoImg=im;if(window.refreshFaces)refreshFaces();};im.src=c.photoData;}
     });
   }catch(e){ROSTER.forEach(c=>c.glove=c.glove||0);}
 }
 function saveAll(){
-  try{const s={names:{},photos:{},gloves:{},bodies:{},wins:STATS.wins,lo:STATS.lo};ROSTER.forEach(c=>{s.names[c.id]=c.name;s.bodies[c.id]=c.body||'chibi';s.gloves[c.id]=c.glove||0;if(c.photoData)s.photos[c.id]=c.photoData;});localStorage.setItem(SAVE_KEY,JSON.stringify(s));}catch(e){}
+  try{const s={names:{},photos:{},gloves:{},wins:STATS.wins,lo:STATS.lo};ROSTER.forEach(c=>{s.names[c.id]=c.name;s.gloves[c.id]=c.glove||0;if(c.photoData)s.photos[c.id]=c.photoData;});localStorage.setItem(SAVE_KEY,JSON.stringify(s));}catch(e){}
 }
 const winsOf=c=>STATS.wins[c.id]||0;
 
@@ -153,7 +144,12 @@ function drawFace(cv,ch,expr){
   else if(ch.fem){g.fillStyle='#d9536b';g.beginPath();g.ellipse(cx,my-6,10,5,0,0,Math.PI*2);g.fill();}
   else{g.lineWidth=3.5;g.beginPath();g.arc(cx-6,my-9,6,0.1*Math.PI,0.9*Math.PI);g.arc(cx+6,my-9,6,0.1*Math.PI,0.9*Math.PI);g.stroke();}
 }
+const PIMG={};
+function portraitImg(ch){if(!ch.id||!ch.model)return null;let im=PIMG[ch.id];if(!im){im=PIMG[ch.id]=new Image();im.onload=()=>{if(window.refreshFaces)refreshFaces();};im.src='assets/portraits/'+ch.id+'.png';}return im.complete&&im.naturalWidth?im:null;}
 function portrait(ch,cv,expr){
+  const pim=!ch.photoImg&&portraitImg(ch);
+  if(pim){const g=cv.getContext('2d'),w=cv.width,h=cv.height;const bg=g.createLinearGradient(0,0,0,h);bg.addColorStop(0,'#5a3d6e');bg.addColorStop(1,'#2a1b33');g.fillStyle=bg;g.fillRect(0,0,w,h);
+    g.save();if(expr==='ko'){g.filter='grayscale(1)';}g.drawImage(pim,0,0,w,h);g.restore();return;}
   const tmp=document.createElement('canvas');tmp.width=512;tmp.height=256;drawFace(tmp,ch,expr||'normal');
   const g=cv.getContext('2d'),w=cv.width,h=cv.height;
   const bg=g.createLinearGradient(0,0,0,h);bg.addColorStop(0,'#5a3d6e');bg.addColorStop(1,'#2a1b33');g.fillStyle=bg;g.fillRect(0,0,w,h);
