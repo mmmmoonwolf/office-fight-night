@@ -5,7 +5,7 @@
    physics, hit boxes, headPos() and snap() do not change. The clip and its time travel online in the two leg
    channels of snap() (legs are invisible on a 3D fighter): legs[0].rotation.x = clip index, legs[1] = time.
    Per character the model is recoloured (hair, skin, shirt, trousers, scarf) and wears the character's chibi
-   hairstyle (except hairStyle 'model', which keeps the model's own hair). */
+   hairstyle (except hairStyle 'model', which keeps the model's own hair). 3D fighters fight bare-handed. */
 const B3={gltf:null,failed:false,wait:[],gray:{},CLIPS:[],raw:2.5,chars:{}};
 // clip windows in seconds: a = wind-up start, i = impact (lands at the end of the move's startup), e = follow-through end
 const B3ATK={jab:{a:0.13,i:0.57,e:1.0},cross:{a:0.1,i:0.4,e:0.95},hook:{a:0.1,i:0.43,e:1.2},hookR:{a:0.03,i:0.33,e:1.0},upper:{a:0.13,i:0.53,e:1.2},
@@ -58,11 +58,12 @@ function attach3D(f){
     finish3D(f,m,g.animations);
   });
 }
-// common to every 3D body: team-coloured gloves on the hand bones, an animation mixer, hide the chibi parts
+// common to every 3D body: hand anchors on the hand bones, an animation mixer, hide the chibi parts
 function finish3D(f,m,clips){
     const bone=n=>m.getObjectByName('mixamorig'+n);m.updateMatrixWorld(true);
+    // bare hands (no gloves): an empty anchor on each hand bone holds weapons
     ['LeftHand','RightHand'].forEach((n,h)=>{const b=bone(n);if(!b)return;const s=new THREE.Vector3();b.getWorldScale(s);
-      const gl=new THREE.Mesh(new THREE.SphereGeometry(0.2/s.x,14,10),f.gloveMat);gl.scale.set(1,0.95,1.15);gl.position.y=0.07/s.x;gl.castShadow=true;b.add(gl);f.b3.hand[h]=gl;});
+      const a=new THREE.Group();a.position.y=0.07/s.x;b.add(a);f.b3.hand[h]=a;});
     const mx=new THREE.AnimationMixer(m);clips.forEach(c=>{f.b3.acts[c.name]=mx.clipAction(c);});
     f.body.traverse(o=>{if(o.isMesh)o.visible=false;});f.body.add(m);
     Object.assign(f.b3,{ready:true,mixer:mx,model:m});

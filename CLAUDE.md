@@ -141,8 +141,8 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
   `char_<model>.glb` (mesh + skeleton only, made by `export_model.js`; `loadCharModel` scales the clips' hips track
   to that skeleton) and keeps its own textures. Without `model` (the boss) it gets the fighter.glb character inside
   `f.body`, recoloured per character (greyscaled textures × hair/shirt/shorts/accent colours, skin tint on head/hands),
-  wearing the character's own `buildHair()` hairstyle on the head bone, team-colour gloves on the hand bones, and
-  held items in the right hand (`handObj`/`handScale`). The chibi rig still runs invisibly underneath (physics,
+  wearing the character's own `buildHair()` hairstyle on the head bone. 3D fighters are bare-handed (no gloves; team
+  colour shows on the ring and name tag); held items sit on an anchor on the right hand bone (`handObj`/`handScale`). The chibi rig still runs invisibly underneath (physics,
   `headPos`, `snap`). `pick3D` chooses clip + time from the fighter state (attacks are time-warped with `B3ATK` so
   the impact frame lands at the end of startup; kicks/swings/throws/grab-throw/hurricane/flip-kick have their own
   clips); `upd3D` plays it with cross-fades. Online/replay: clip index + time ride in `legs[0|1].rotation.x` of
