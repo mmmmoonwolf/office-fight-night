@@ -56,7 +56,7 @@ async function offline(browser) {
   ok(await ev("lvlOf(G.f[0])") === 'f2', 'mezzanine doorway leads into the 2nd-floor violin shop');
   await ev("G.f[0].state='idle';G.f[0].pos.x=14.6;G.f[0].pos.z=-10.6;G.f[0].y=2.4;G.f[0].vel.x=0;G.f[0].vel.z=0");
   await sleep(200);
-  ok((await ev("document.querySelector('#prompts').textContent")).includes('หยิบ'), 'button prompt shows next to a weapon');
+  ok((await ev("document.querySelector('#prompts').textContent")).includes('pick up'), 'button prompt shows next to a weapon');
   await ev("G.f[1].state='idle';G.f[1].invT=0;G.f[1].hp=G.f[1].maxHp;G.f[1].pos.x=16.6;G.f[1].pos.z=1.8;G.f[1].y=2.4;G.f[1].vy=0;G.f[1].vel.x=0;G.f[1].vel.z=0;G.f[1].fx.dizzy=0");
   await sleep(150);
   const hpBefore = await ev('G.f[1].hp');
@@ -116,7 +116,7 @@ async function offline(browser) {
     await sleep(1700); await pg.keyboard.press('KeyX'); await sleep(1700);
   }
   await sleep(1500);
-  ok((await ev("document.querySelector('#endTitle').textContent")).includes('เคลียร์'), 'arcade ladder clears after 6 stages');
+  ok((await ev("document.querySelector('#endTitle').textContent")).includes('CLEARED'), 'arcade ladder clears after 6 stages');
   ok(errs.length === 0, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
   await ctx.close();
 }
@@ -178,7 +178,7 @@ async function online(browser, page, label) {
   ok(await H("G.f.filter(f=>f.net).length") === 1, 'leaver is replaced by a CPU on the host');
   await H('netQuitMatch()'); await leave(host); await host.close(); await sleep(5200);
   if (label === 'claude.ai room') ok(await C1("NET.role") === 'lobby', 'client survives host closing the tab');
-  else ok(await C1("NET.role") === 'off' && (await C1("document.querySelector('#onMsg').textContent")).includes('ปิดห้อง'), 'client is told the room closed when the host tab goes away');
+  else ok(await C1("NET.role") === 'off' && (await C1("document.querySelector('#onMsg').textContent")).includes('closed the room'), 'client is told the room closed when the host tab goes away');
   ok(errs.length === 0, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
   await ctx.close();
 }

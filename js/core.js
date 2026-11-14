@@ -22,36 +22,36 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 // portrait (assets/portraits/<id>.png). The chibi fields (skin, hair, hairStyle, shirt…) are the cartoon fallback
 // used when the model cannot load (and on the headless test pages). sp = default special. emote = chibi victory pose.
 const ROSTER=[
- {id:'kip',name:'Kip Kaboom',role:'เด็กแว่นหมวกแดง ตัวจิ๋วแต่ระเบิดพลัง',model:'kip',skin:'#f0c39a',hair:'#2b2b2b',hairStyle:'short',shirt:'#8a8f98',shorts:'#2b2d33',sleeves:true,acc:['cap','glasses'],accent:'#e8401c',
+ {id:'kip',name:'Kip Kaboom',role:'Tiny kid in a red cap — small but explosive',model:'kip',skin:'#f0c39a',hair:'#2b2b2b',hairStyle:'short',shirt:'#8a8f98',shorts:'#2b2d33',sleeves:true,acc:['cap','glasses'],accent:'#e8401c',
   sp:'superKick',emote:'jump',quotes:['คาบูมมม!','ระเบิดพลังเด็ก!','อย่าดูถูกคนตัวเล็กนะ!','การบ้านเสร็จแล้วค่อยมาต่อย!','บึ้ม บึ้ม!']},
- {id:'momo',name:'Momo Mellow',role:'สายชิลหมวกไหมพรมยักษ์ ใจเย็นจนน่ากลัว',model:'momo',skin:'#f3d6c2',hair:'#c9a36a',hairStyle:'long',shirt:'#e0622a',shorts:'#e8c35a',acc:[],
+ {id:'momo',name:'Momo Mellow',role:'Chill dude in a giant knit hat — scarily calm',model:'momo',skin:'#f3d6c2',hair:'#c9a36a',hairStyle:'long',shirt:'#e0622a',shorts:'#e8c35a',acc:[],
   sp:'cloud',emote:'chill',quotes:['ชิลล์ๆ เพื่อน~','ไม่ต้องรีบ~','ใจเย็นๆ แล้วค่อยต่อย','หมวกนี้มีของเยอะนะ','สบายยย~']},
- {id:'ruby',name:'Ruby Rumble',role:'สาวเดรสแดง ตัวเล็กแต่หมัดหนัก',model:'ruby',skin:'#f6d3bd',hair:'#111111',hairStyle:'bob',fem:true,shirt:'#d0232a',shorts:'#1b1b1b',acc:[],
+ {id:'ruby',name:'Ruby Rumble',role:'Red-dress dynamo — little, but hits like a truck',model:'ruby',skin:'#f6d3bd',hair:'#111111',hairStyle:'bob',fem:true,shirt:'#d0232a',shorts:'#1b1b1b',acc:[],
   sp:'rush',emote:'dance',quotes:['ตึงตังตูม!','อย่ามาแตะเดรสฉัน!','หมัดนี้เพื่อความยุติธรรม!','จบเกมแล้วไปกินชาไข่มุก!','Rumble time!']},
- {id:'grumbo',name:'Grumbo',role:'ลุงหนวดขี้บ่น บ่นไปต่อยไป',model:'grumbo',skin:'#d99a72',hair:'#7a5a3a',hairStyle:'bald',shirt:'#8c2a20',shorts:'#d08a2a',sleeves:true,acc:['cap'],accent:'#c9a24a',
+ {id:'grumbo',name:'Grumbo',role:'Grumpy old-timer — complains and punches',model:'grumbo',skin:'#d99a72',hair:'#7a5a3a',hairStyle:'bald',shirt:'#8c2a20',shorts:'#d08a2a',sleeves:true,acc:['cap'],accent:'#c9a24a',
   sp:'quake',emote:'point',quotes:['สมัยลุงนะ...','เด็กสมัยนี้!','หนวกหูจริงๆ!','ลุงยังไหวอยู่!','บ่นแล้วก็ต่อย!']},
- {id:'nana',name:'Nana Nitro',role:'คุณยายสายฟิต ม้วนผมเต็มหัว นกหวีดพร้อม',model:'nana',skin:'#f2d0bb',hair:'#ff7ab0',hairStyle:'bun',fem:true,shirt:'#1e7fd8',shorts:'#1e7fd8',sleeves:true,acc:['glasses'],
+ {id:'nana',name:'Nana Nitro',role:'Fitness granny in curlers, whistle ready',model:'nana',skin:'#f2d0bb',hair:'#ff7ab0',hairStyle:'bun',fem:true,shirt:'#1e7fd8',shorts:'#1e7fd8',sleeves:true,acc:['glasses'],
   sp:'dash',emote:'flex',quotes:['ปี๊ดดด! ซิทอัพ 100 ที!','ยายยังฟิต!','หลานจ๋า มานี่!','วิ่งรอบสนามอีกสิบรอบ!','อายุเป็นแค่ตัวเลข!']},
- {id:'duke',name:'Duke Jiggly',role:'ราชาเพลงร็อค พุงเด้งดึ๋ง',model:'duke',skin:'#f1d2bc',hair:'#141414',hairStyle:'swept',shirt:'#f4f4f4',shorts:'#f4f4f4',sleeves:true,acc:[],bulk:1.35,
+ {id:'duke',name:'Duke Jiggly',role:'The King of rock — bouncy belly included',model:'duke',skin:'#f1d2bc',hair:'#141414',hairStyle:'swept',shirt:'#f4f4f4',shorts:'#f4f4f4',sleeves:true,acc:[],bulk:1.35,
   sp:'buff',emote:'guitar',quotes:['ขอบคุณมากครับบบ~','พุงนี้ร็อคแอนด์โรล!','เต้นสิ เต้น!','ราชามาแล้ว!','อุ้ย พุงเด้ง!']},
- {id:'pippa',name:'Pippa Pop',role:'สาวผมมิ้นต์เสื้อกระต่าย เตะไวกว่าแสง',model:'pippa',skin:'#f6d6c6',hair:'#3fd0c8',hairStyle:'bob',fem:true,shirt:'#f59ad0',shorts:'#d61f8a',acc:[],
+ {id:'pippa',name:'Pippa Pop',role:'Mint-haired bunny fan — kicks faster than light',model:'pippa',skin:'#f6d6c6',hair:'#3fd0c8',hairStyle:'bob',fem:true,shirt:'#f59ad0',shorts:'#d61f8a',acc:[],
   sp:'megaSlap',emote:'jump',quotes:['ป๊อปปป!','กระต่ายน้อยเตะแรงนะ!','ผมสีมิ้นต์ไม่ได้แปลว่าใจดี!','ปิ๊ป ป๊อป บึ้ม!','เตะเสร็จไปกินไอติม!']},
 ];
 // everyone is equal: characters only differ in looks — fighting style + special are picked separately (LOADOUT)
 ROSTER.forEach(c=>Object.assign(c,{hp:100,pow:1,spd:1,aspd:1,size:1,body:'3d'}));
 // the arcade's final boss — not selectable
-const BOSS_CH={id:'boss',name:'Boss Bonkers',role:'บอสใหญ่ ผ้าพันคอวิเศษ',body:'3d',skin:'#f2c6a2',hair:'#ff7a1a',hairStyle:'model',shirt:'#5a1d8a',shorts:'#1b1e26',accent:'#ffd23d',sleeves:true,acc:[],
+const BOSS_CH={id:'boss',name:'Boss Bonkers',role:'The big boss with the magic scarf',body:'3d',skin:'#f2c6a2',hair:'#ff7a1a',hairStyle:'model',shirt:'#5a1d8a',shorts:'#1b1e26',accent:'#ffd23d',sleeves:true,acc:[],
   hp:125,pow:1.2,spd:0.86,aspd:0.92,size:1.1,sp:'drop',emote:'point',
   quotes:['บอสมาแล้ว!','บองเกอร์สสส!','ใครกล้าท้าบอส!?','ผ้าพันคอนี้มีพลัง!','ยอมแพ้ซะดีๆ!']};
 const HURT=['โอ๊ย!','เจ็บนะ!','ขอลาป่วย!','จะฟ้อง HR!','ขอเบิกค่ารักษา!','ยังไม่ได้กินข้าวเลย!','พักเที่ยงก่อน!','ขอลาพักร้อน!','ประกันสังคมช่วยด้วย!'];
 const GLOVES=[
- {name:'สีทีม',need:0},
- {name:'ทองคำ',need:1,color:'#ffcc33',metal:.85,rough:.25},
- {name:'ม่วงนีออน',need:2,color:'#b04dff',em:'#8a2bff'},
- {name:'ลายเสือ',need:3,tiger:true},
- {name:'สีรุ้ง',need:5,rainbow:true},
+ {name:'Team colour',need:0},
+ {name:'Gold',need:1,color:'#ffcc33',metal:.85,rough:.25},
+ {name:'Neon purple',need:2,color:'#b04dff',em:'#8a2bff'},
+ {name:'Tiger stripes',need:3,tiger:true},
+ {name:'Rainbow',need:5,rainbow:true},
 ];
-const TITLES=[[0,'พนักงานใหม่'],[1,'พนักงานประจำ'],[3,'หัวหน้าแผนก'],[5,'พนักงานดีเด่นประจำเดือน'],[10,'ตำนานสุขุมวิท 26']];
+const TITLES=[[0,'Rookie'],[1,'Regular'],[3,'Team Lead'],[5,'Employee of the Month'],[10,'Legend of Soi 26']];
 function titleOf(w){let t=TITLES[0][1];for(const[n,s]of TITLES)if(w>=n)t=s;return t;}
 
 /* ================= SAVE ================= */

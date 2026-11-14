@@ -111,7 +111,7 @@ function koDust(p,txt){koDustFx(p,txt);}
 function critFx(f,hp){RAWF0.burst(hp.clone(),0xffe14d,16,5.5);ringFx(hp.x,hp.y-0.4,hp.z,1.8,0xffe14d,0.3);popup(pick(['คริ!! 💥','คริติคอล!!','เข้าเต็มๆ!!']),hp.clone().add(V(0,1.0,0)),'crit',1.1);G.slowT=Math.max(G.slowT,0.12);}
 function comboPop(att){const n=att.comboN,hp=att.headPos().add(V(0,1.1,0));
   popup(n>=12?'คอมโบเทพ!! '+n+' HIT':n>=8?n+' HIT!! โหดมาก':n>=5?n+' HIT! สุดยอด':n+' HIT!',hp,'combo',0.7+Math.min(0.6,n*0.04));
-  if(n===8||n===12||n===20){banner(att.ch.name+' คอมโบ '+n+' HIT!! 🔥',1.5);hype=1;}}
+  if(n===8||n===12||n===20){banner(att.ch.name+' — '+n+'-HIT COMBO!! 🔥',1.5);hype=1;}}
 function landQuake(f,d){const big=!!d.quake,R=big?3.8:2.2;
   ringFx(f.pos.x,f.y,f.pos.z,R,0xd8cbb0,0.5);ringFx(f.pos.x,f.y+0.4,f.pos.z,R*0.8,0xffffff,0.4);
   for(let i=0;i<(big?14:9);i++){const a=i/(big?14:9)*Math.PI*2;puff(f.pos.x+Math.sin(a)*R*0.55,f.y+0.15,f.pos.z+Math.cos(a)*R*0.55,0xd8cbb0,1,big?0.9:0.6,2.6);}
@@ -168,30 +168,35 @@ Object.assign(SPECIALS,{
 });
 for(const k in SPECIALS)if(SPECIALS[k].atk&&!SPECIALS[k].fn){const a=SPECIALS[k].atk;SPECIALS[k].fn=f=>f.startAtk(a,'special');}
 const SP_DESC={
-  files:'ปาแฟ้มงาน 5 แผ่นกระจายเป็นรูปพัด ยิงได้ไกล',
-  chat:'ยิงข้อความแชท 9 ลูกรัวๆ ไปข้างหน้า',
-  books:'ปาหนังสือ 6 เล่มกระจายไปข้างหน้า',
-  trap:'โปรยคูปอง 8 ใบลงพื้นข้างหน้า ใครเหยียบลื่นล้ม (ทะลุการ์ด)',
-  fork:'เคาะส้อมเสียงรอบตัวระยะใกล้ ทะลุการ์ด คนโดนมึนงง 2 วินาที',
-  chord:'คลื่นเสียง 3 ระลอกด้านหน้า ระลอกสุดท้ายแรงสุด ทะลุการ์ดแล้วปลิวล้ม',
-  drop:'แกรนด์เปียโนตกใส่คนที่อยู่ใกล้สุด มีวงแดงเตือนให้วิ่งหนี',
-  audit:'หักเลือดคนที่ใกล้สุด 14 ทะลุการ์ด แล้วเอามาเติมเลือดตัวเอง',
-  flash:'แฟลชรอบตัว ทะลุการ์ด คนโดนตาพร่า แล้วกดชัตเตอร์ซ้ำอีก 3 ที',
-  dash:'หมุนทอร์นาโดพุ่งไปข้างหน้าราว 1 วินาที ตีโดนต่อเนื่อง',
-  pull:'ขึงตลับเมตรดึงทุกคนในระยะเข้ามาหา มึนงง แล้วทิ้งโซฟาทับ',
-  cloud:'ปล่อยควันเขียวรอบตัว 5 วินาที ใครอยู่ในควันจะมึน ช้า และเลือดลด',
-  buff:'ระเบิดกล้ามรอบตัว ทะลุการ์ด ปลิวล้ม แล้วตัวใหญ่ขึ้น 8 วินาที ฮุกมีแรงกระแทก',
-  finisher:'พุ่งชนไล่ทีละคน สูงสุด 3 คนที่อยู่ใกล้ที่สุด',
-  random:'สุ่มใช้ไม้ตายท่าอื่น 1 ท่า ลุ้นเอาเอง',
-  rush:'รัวหมัดใส่ข้างหน้า 16 ครั้ง ทะลุการ์ด ปิดท้ายด้วยหมัดปลิว',
-  superKick:'ถีบพุ่งไปไกลมาก ใครโดนกระเด็นไปชนกำแพง',
-  skyUpper:'อัปเปอร์กระโดดลอยฟ้า คนโดนลอยสูงสุดในเกม',
-  quake:'กระโดดสูงแล้วกระทืบพื้น คลื่นฝุ่นรอบตัว คนรอบๆ ปลิวหมด',
-  megaSlap:'ฝ่ามือยักษ์ตบทีเดียว ทะลุการ์ด ปลิวไกล มึน 2 วินาที',
-  suplex:'ล็อกตัวคนข้างหน้าจากระยะไกล แล้วยกทุ่มข้ามหัวลงพื้น',
-  wind:'เปิดพัดลมเบอร์ 3 ใส่ข้างหน้า 1.6 วินาที พัดคนไปชนของในร้าน',
-  parry:'ตั้งท่ารับ 1.3 วินาที ถ้าโดนตีจะสวนกลับแรงๆ ทันที',
+  files:'Fires 5 work files in a fan — long range',
+  chat:'Spams 9 chat bubbles straight ahead',
+  books:'Throws 6 books in a spread',
+  trap:'Scatters 8 coupons on the floor — step on one and slip (unblockable)',
+  fork:'A tuning-fork ring around you, unblockable, dizzy for 2 s',
+  chord:'Three sound waves in front, the last one strongest — unblockable knockdown',
+  drop:'A grand piano drops on the nearest enemy (red circle warns them)',
+  audit:'Takes 14 HP from the nearest enemy (unblockable) and gives it to you',
+  flash:'Camera flash around you, unblockable, blinds — then 3 more shots',
+  dash:'Spinning tornado dash forward for about a second, hitting non-stop',
+  pull:'Tape-measures everyone nearby towards you, dizzy, then drops a sofa on them',
+  cloud:'Green smoke around you for 5 s — anyone inside gets dizzy, slow and loses HP',
+  buff:'Muscle burst around you (unblockable knockdown), then bigger for 8 s with stronger hooks',
+  finisher:'Dashes through up to 3 of the closest enemies one by one',
+  random:'Uses a random other special — good luck!',
+  rush:'16 rapid punches ahead, unblockable, ending with a launcher',
+  superKick:'A huge flying kick — whoever it hits flies into the wall',
+  skyUpper:'Jumping uppercut that launches higher than anything else',
+  quake:'Jump high and stomp — a dust shockwave throws everyone around you',
+  megaSlap:'One giant-hand slap — unblockable, flies far, dizzy for 2 s',
+  suplex:'Grabs someone from far away and suplexes them over your head',
+  wind:'Desk fan on full blast for 1.6 s — blows people into the furniture',
+  parry:'Counter stance for 1.3 s — get hit and you strike back hard',
 };
+// English names of the specials for menus (the Thai name is what fighters shout in game)
+const SP_EN={files:'Urgent Files!!',chat:'Chat Spam!!',books:'New Books!!',trap:'5% Off Coupons!!',fork:'Tuning Fork A440!!',chord:'Power Chord!!',drop:'Grand Piano Drop!!',audit:'Tax Audit!!',
+  flash:'Paparazzi Flash!!',dash:'Tornado Dash!!',pull:'Rush Renovation!!',cloud:'Chill Smoke~',buff:'Muscle Burst!!',finisher:'Clean-Up Crew!!',random:'Do Everything!!',
+  rush:'Thousand Fists!!',superKick:'Sky Kick!!',skyUpper:'Sky-High Uppercut!!',quake:'Earthquake Stomp!!',megaSlap:'Wake-Up Slap!!',suplex:'Mega Suplex!!',wind:'Fan on Max!!',parry:'Counter Stance!!'};
+const spName=k=>SP_EN[k]||(SPECIALS[k]&&SPECIALS[k].name)||k;
 const SP_LIST=['rush','superKick','skyUpper','quake','megaSlap','suplex','finisher','dash','buff','parry','wind','chord','fork','flash','pull','cloud','drop','trap','audit','random'];
 const SP_MELEE=new Set(['rush','superKick','skyUpper','quake','megaSlap','suplex','finisher','dash','buff','parry']);
 const SP_ICON={rush:'👊',superKick:'🦶',skyUpper:'🚀',quake:'💥',megaSlap:'🖐️',suplex:'🤼',finisher:'✔️',dash:'🌪️',buff:'💪',parry:'🛡️',wind:'🌬️',chord:'🎸',fork:'🎶',flash:'📸',pull:'📏',cloud:'💨',drop:'🎹',trap:'🎟️',audit:'💸',random:'🎲',files:'📁',chat:'💬',books:'📚'};
@@ -229,12 +234,12 @@ const ATK={
 };
 // fighting styles: same 3 buttons (jab / hook / jab-jab-hook combo), different moves + a small trait
 const STYLES={
-  box:{name:'มวยสากล',icon:'🥊',desc:'สมดุล หมัดไว คอมโบอัปเปอร์ปลิว',atk:{jab:'jab',hook:'hook',combo:'combo'},mv:['จ็อบ','ฮุก','อัปเปอร์']},
-  slap:{name:'สายตบ',icon:'👋',desc:'ตบไวที่สุด คอมโบตบหมุน 360 องศาโดนทุกทิศ',atk:{jab:'slapL',hook:'slapH',combo:'spinSlap'},mv:['ตบเบา','ตบหลังมือ','ตบหมุน 360']},
-  kick:{name:'สายเตะ',icon:'🦵',desc:'ระยะยาวสุด ช้ากว่านิด คอมโบถีบยอดหน้าพุ่งไกล',atk:{jab:'kickL',hook:'kickH',combo:'dropkick'},mv:['เตะต่ำ','เตะก้านคอ','ถีบยอดหน้า']},
-  wrestle:{name:'สายมวยปล้ำ',icon:'🤼',desc:'จับได้ไกล ทุ่มแรง คอมโบกระโดดทับ (เดินช้าลงนิด)',atk:{jab:'chop',hook:'lariat',combo:'bodyslam'},mv:['สับมือ','ลาเรียต','บอดี้สแลม'],spd:0.93,grabR:2.0,throwMul:1.5},
-  head:{name:'สายหัวร้อน',icon:'🔥',desc:'โขกหัวทำมึน เกจไม้ตายขึ้นไว คอมโบพุ่งหัวเป็นจรวด',atk:{jab:'elbow',hook:'headbutt',combo:'rocket'},mv:['ศอก','โขกหัว','จรวดหัวร้อน'],rageMul:1.25},
-  drunk:{name:'สายเมางานเลี้ยง',icon:'🍻',desc:'เดินเซ หลบมั่วได้ 20% คอมโบกลิ้งชน',atk:{jab:'drunkL',hook:'drunkH',combo:'roll'},mv:['หมัดเซ','หมัดเหวี่ยง','กลิ้งชน'],dodge:0.2},
+  box:{name:'Boxer',icon:'🥊',desc:'Balanced, quick hands, combo ends in a launching uppercut',atk:{jab:'jab',hook:'hook',combo:'combo'},mv:['jab','hook','uppercut']},
+  slap:{name:'Slapper',icon:'👋',desc:'Fastest hands in town; the combo is a 360° spin-slap that hits everyone around',atk:{jab:'slapL',hook:'slapH',combo:'spinSlap'},mv:['slap','backhand','360 spin-slap']},
+  kick:{name:'Kicker',icon:'🦵',desc:'Longest reach, a bit slower; the combo is a flying drop-kick',atk:{jab:'kickL',hook:'kickH',combo:'dropkick'},mv:['low kick','roundhouse','drop-kick']},
+  wrestle:{name:'Wrestler',icon:'🤼',desc:'Grabs from further, throws harder, combo is a body-slam (walks a little slower)',atk:{jab:'chop',hook:'lariat',combo:'bodyslam'},mv:['chop','lariat','body-slam'],spd:0.93,grabR:2.0,throwMul:1.5},
+  head:{name:'Hothead',icon:'🔥',desc:'Headbutts make people dizzy, special fills faster, combo is a rocket headbutt',atk:{jab:'elbow',hook:'headbutt',combo:'rocket'},mv:['elbow','headbutt','rocket head'],rageMul:1.25},
+  drunk:{name:'Party Animal',icon:'🍻',desc:'Wobbly walk, dodges 20% of hits by luck, combo is a rolling tackle',atk:{jab:'drunkL',hook:'drunkH',combo:'roll'},mv:['wobble punch','haymaker','rolling tackle'],dodge:0.2},
 };
 const STYLE_KEYS=Object.keys(STYLES);
 const armGeo=new THREE.CylinderGeometry(0.1,0.09,1,8);

@@ -86,22 +86,22 @@ function showOnline(msg){
   ROSTER.forEach((c,i)=>{sel.options[i].textContent=c.name+' — '+c.role;});
   const ss=$('#onStyle'),sp=$('#onSp'),lo=STATS.lo[0]||{st:'box',sp:'rush'};
   if(!ss.options.length){STYLE_KEYS.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=STYLES[k].icon+' '+STYLES[k].name;ss.appendChild(o);});ss.value=lo.st;
-    SP_LIST.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=(SP_ICON[k]||'')+' '+SPECIALS[k].name;sp.appendChild(o);});sp.value=SPECIALS[lo.sp]?lo.sp:'rush';}
+    SP_LIST.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=(SP_ICON[k]||'')+' '+spName(k);sp.appendChild(o);});sp.value=SPECIALS[lo.sp]?lo.sp:'rush';}
   if(!NET.code)sel.value=G.slots[0];SFX.music(true);
   portrait(ROSTER[+sel.value],$('#onPic'));
   const ready=!!NET.room||NET.p2p;
-  $('#onMsg').textContent=msg||(ready?'':'กำลังเตรียมระบบออนไลน์... รอสักครู่แล้วลองใหม่');
+  $('#onMsg').textContent=msg||(ready?'':'Getting online ready… wait a moment and try again');
   $('#onCreate').disabled=$('#onEnter').disabled=!ready||joining;
-  $('#onVia').textContent=NET.p2p?'เชื่อมต่อแบบ P2P ผ่านอินเทอร์เน็ต — เพื่อนเปิดลิงก์เกมนี้แล้วใส่รหัสห้องได้เลย ไม่ต้องล็อกอิน':'เชื่อมต่อผ่านระบบห้องของ claude.ai — เพื่อนต้องล็อกอิน claude.ai และเปิดลิงก์ที่คุณแชร์';
+  $('#onVia').textContent=NET.p2p?'Peer-to-peer over the internet — friends open this game\'s link and type the room code, no login needed':'Uses claude.ai rooms — friends must be signed in to claude.ai and open the link you share';
   renderLobby();
 }
 let joining=false;
 async function enterRoom(code,create){
   code=String(code||'').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,6);
-  if(code.length<3){$('#onMsg').textContent='ใส่รหัสห้องให้ถูกก่อนนะ';return;}
+  if(code.length<3){$('#onMsg').textContent='Type a valid room code first';return;}
   if(NET.p2p){
     if(joining)return;joining=true;$('#onCreate').disabled=$('#onEnter').disabled=true;
-    $('#onMsg').textContent=create?'กำลังสร้างห้อง...':'กำลังเชื่อมต่อห้อง '+code+' ...';
+    $('#onMsg').textContent=create?'Creating room…':'Joining room '+code+' ...';
     try{
       await loadPeerJS();
       let room=null;
@@ -110,15 +110,15 @@ async function enterRoom(code,create){
         catch(e){if(create&&e.message==='taken'){code=newCode();continue;}throw e;}
       }
       NET.room=room;
-      room.onClose(()=>{NET.room=null;const inMatch=NET.role==='client';NET.code='';NET.role='off';if(inMatch)toLobby('โฮสต์ปิดห้องแล้ว');else if(!$('#onlineP').classList.contains('hidden'))showOnline('โฮสต์ปิดห้องแล้ว');});
+      room.onClose(()=>{NET.room=null;const inMatch=NET.role==='client';NET.code='';NET.role='off';if(inMatch)toLobby('The host closed the room');else if(!$('#onlineP').classList.contains('hidden'))showOnline('The host closed the room');});
     }catch(e){
       joining=false;$('#onCreate').disabled=$('#onEnter').disabled=false;
-      $('#onMsg').textContent=e.message==='nohost'?'เข้าห้องไม่ได้: ไม่พบรหัสนี้ หรือเน็ตของเครื่องใดเครื่องหนึ่งบล็อกการเชื่อมต่อตรง (P2P)':e.message==='load'?'โหลดระบบออนไลน์ไม่ได้ ลองเช็กอินเทอร์เน็ตแล้วลองใหม่':'เชื่อมต่อไม่ได้ ('+e.message+') ลองใหม่อีกครั้ง';
+      $('#onMsg').textContent=e.message==='nohost'?'Could not join: no such room, or a network is blocking direct (P2P) connections':e.message==='load'?'Could not load online play — check your internet and try again':'Could not connect ('+e.message+') — try again';
       return;
     }
     joining=false;$('#onCreate').disabled=$('#onEnter').disabled=false;
   }
-  if(!NET.room){$('#onMsg').textContent='ระบบออนไลน์ยังไม่พร้อม';return;}
+  if(!NET.room){$('#onMsg').textContent='Online play is not ready yet';return;}
   SFX.init();NET.code=code;NET.jt=Date.now();NET.role='lobby';NET.declined=null;
   setPresence(Object.assign(myLobbyPresence(),{g:null,s:null,in:null,st:null}));
   $('#onMsg').textContent='';renderLobby();
@@ -133,12 +133,12 @@ function renderLobby(){
   const box=$('#onPlayers');box.innerHTML='';
   m.slice(0,6).forEach((p,i)=>{const pr=p.presence,ci=clamp(+pr.c|0,0,ROSTER.length-1);const row=document.createElement('div');row.className='onp';
     const cv=document.createElement('canvas');cv.width=cv.height=88;portrait(ROSTER[ci],cv);row.appendChild(cv);
-    const w=document.createElement('div');w.className='who';w.textContent=(host&&p.peer===host.peer?'👑 ':'')+safeStr(pr.nm||ROSTER[ci].name,18)+(p.sameTab?' (คุณ)':'')+(pr.v===0?' 💤':'');
-    const sm=document.createElement('small');sm.textContent=i<4?(ROSTER[ci].role):'ห้องเต็ม — รอตาถัดไป';w.appendChild(sm);row.appendChild(w);box.appendChild(row);});
-  if(m.length<4){const r=document.createElement('div');r.className='onp';r.style.opacity=.55;r.textContent='🤖 ช่องว่าง '+(4-Math.min(4,m.length))+' ช่อง — คอมเล่นแทน (ส่งรหัสห้องให้เพื่อนได้เลย)';box.appendChild(r);}
+    const w=document.createElement('div');w.className='who';w.textContent=(host&&p.peer===host.peer?'👑 ':'')+safeStr(pr.nm||ROSTER[ci].name,18)+(p.sameTab?' (you)':'')+(pr.v===0?' 💤':'');
+    const sm=document.createElement('small');sm.textContent=i<4?(ROSTER[ci].role):'Room full — waiting for the next match';w.appendChild(sm);row.appendChild(w);box.appendChild(row);});
+  if(m.length<4){const r=document.createElement('div');r.className='onp';r.style.opacity=.55;r.textContent='🤖 '+(4-Math.min(4,m.length))+' empty slot(s) — CPUs fill in (send the room code to friends)';box.appendChild(r);}
   $('#onHostBox').classList.toggle('hidden',!me);$('#onWait').classList.toggle('hidden',me);
   const st=host&&host.presence.st;
-  if(!me&&st)$('#onWait').textContent='รอโฮสต์กดเริ่มเกม... (โหมด: '+({duel:'ดวล 1v1',ffa:'ตะลุมบอน 4 คน',team:'ทีม 2v2'}[st.m]||'-')+')';
+  if(!me&&st)$('#onWait').textContent='Waiting for the host to start… (mode: '+({duel:'Duel 1v1',ffa:'4-Way Brawl',team:'Team 2v2'}[st.m]||'-')+')';
   [['onMode','mode'],['onDiff','diff'],['onLoc','loc']].forEach(([id,k])=>document.querySelectorAll('#'+id+' button').forEach(b=>b.classList.toggle('on',b.dataset.v===String(NET.set[k]))));
   const live=host&&host.presence.g&&!host.sameTab;
   $('#onRejoin').classList.toggle('hidden',!(live&&NET.declined===host.presence.g.id));
@@ -151,7 +151,7 @@ $('#onCode').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Ente
 $('#onLeave').addEventListener('click',leaveRoom);
 ['#onStyle','#onSp'].forEach(q=>$(q).addEventListener('change',()=>{STATS.lo[0]={st:$('#onStyle').value,sp:$('#onSp').value};saveAll();if(NET.code)setPresence(myLobbyPresence());}));
 $('#onChar').addEventListener('change',()=>{portrait(ROSTER[+$('#onChar').value],$('#onPic'));if(NET.code)setPresence(myLobbyPresence());renderLobby();});
-$('#onCopy').addEventListener('click',()=>{try{navigator.clipboard.writeText(NET.code).then(()=>$('#onCopy').textContent='คัดลอกแล้ว ✓',()=>{});}catch(e){}});
+$('#onCopy').addEventListener('click',()=>{try{navigator.clipboard.writeText(NET.code).then(()=>$('#onCopy').textContent='Copied ✓',()=>{});}catch(e){}});
 $('#onRejoin').addEventListener('click',()=>{NET.declined=null;});
 [['onMode','mode'],['onDiff','diff'],['onLoc','loc']].forEach(([id,k])=>document.querySelectorAll('#'+id+' button').forEach(b=>b.addEventListener('click',()=>{NET.set[k]=k==='diff'?+b.dataset.v:b.dataset.v;setPresence({st:{m:NET.set.mode,d:NET.set.diff,l:NET.set.loc}});renderLobby();})));
 $('#onStart').addEventListener('click',()=>{if(amLobbyHost())netHostStart();});
@@ -173,7 +173,7 @@ function netBuildMatch(cfg){
     const ch=Object.assign({},base,{body:s[6]?'3d':'chibi',name:safeStr(s[2]||base.name,18),glove:clamp(s[3]|0,0,GLOVES.length-1),photoImg:peer&&peer===me?base.photoImg:null});
     const team=cfg.mode==='team'?(i<2?0:1):i,color=cfg.mode==='team'?TEAMCOL[team][i%2]:SLOTCOL[i];
     const isMe=!!peer&&peer===me;if(isMe)NET.mySlot=i;
-    const f=new Fighter(ch,i,{human:isMe?0:null,team,color,label:peer?'P'+(++pn):'คอม',lo:cleanLo([s[4],s[5]])});
+    const f=new Fighter(ch,i,{human:isMe?0:null,team,color,label:peer?'P'+(++pn):'CPU',lo:cleanLo([s[4],s[5]])});
     f.player=!!peer;f.net=(NET.role==='host'&&peer&&!isMe)?peer:null;
     G.f.push(f);});
   placeFighters(G.loc);buildTags();
@@ -243,7 +243,7 @@ function netHostFrame(raw){
   if(!NET.room)return;
   const now=performance.now();
   const ids=new Set(NET.room.peers().map(p=>p.peer));
-  for(const f of G.f){if(f.net&&!ids.has(f.net)){banner(f.label+' หลุดจากห้อง คอมเล่นแทน 🤖',3);f.net=null;f.player=false;if(f.tagEl)f.tagEl.textContent=tagText(f);}}
+  for(const f of G.f){if(f.net&&!ids.has(f.net)){banner(f.label+' dropped out — a CPU takes over 🤖',3);f.net=null;f.player=false;if(f.tagEl)f.tagEl.textContent=tagText(f);}}
   if(now-NET.lastSendT<50)return;NET.lastSendT=now;
   const s=buildSnap();
   const fresh=NET.fxBuf.filter(x=>now-x.t<900).map(x=>x.e);
@@ -280,11 +280,11 @@ function netClientEnd(wt){
   const winners=G.f.filter(f=>f.team===wt),losers=G.f.filter(f=>f.team!==wt),me=G.f[NET.mySlot];
   if(me&&me.team===wt){STATS.wins[me.ch.id]=winsOf(me.ch)+1;saveAll();}
   if(me)SFX.voLocal(wt>=0&&me.team===wt?'you_win':'you_lose',0.6);
-  $('#endTitle').textContent=wt<0?'เสมอ!':(me?(me.team===wt?'คุณชนะ! 🏆':(G.mode==='team'?((wt===0?'ทีมแดง':'ทีมฟ้า')+' ชนะ'):(winners[0]?winners[0].ch.name+' ชนะ':''))+' 😵'):(winners[0]?winners[0].ch.name+' ชนะ! 🏆':''));
+  $('#endTitle').textContent=wt<0?'DRAW!':(me?(me.team===wt?'YOU WIN! 🏆':(G.mode==='team'?((wt===0?'Red team':'Blue team')+' wins'):(winners[0]?winners[0].ch.name+' wins':''))+' 😵'):(winners[0]?winners[0].ch.name+' WINS! 🏆':''));
   const pics=$('#endPics');pics.innerHTML='';winners.forEach(f=>{const c=document.createElement('canvas');c.width=c.height=260;portrait(f.ch,c,'win');pics.appendChild(c);});
-  $('#endSub').textContent=winners[0]?winners[0].ch.name+' : "'+pick(winners[0].ch.quotes)+'" · รอโฮสต์กดเล่นอีกตา...':'รอโฮสต์กดเล่นอีกตา...';
+  $('#endSub').textContent=winners[0]?winners[0].ch.name+' : "'+pick(winners[0].ch.quotes)+'" · waiting for the host to play again…':'Waiting for the host to play again…';
   if(winners[0])drawSickNote(losers,winners[0]);else $('#sickNote').style.display='none';
-  setEndBtns([['📸 ถ่ายรูป','btn ghost',()=>enterPhoto()],['กลับห้อง','btn ghost',()=>netQuitMatch()]]);
+  setEndBtns([['📸 Photo','btn ghost',()=>enterPhoto()],['Back to room','btn ghost',()=>netQuitMatch()]]);
   $('#endP').classList.remove('hidden');document.body.classList.remove('fighting');$('#hud').classList.remove('on');
 }
 function netSyncItems(S,raw){
@@ -317,13 +317,13 @@ function netSyncNPC(S,raw){
   NPC.bystanders.forEach(b=>{b.p.g.position.y=0.15+Math.abs(Math.sin(G.clock*9+b.ph))*0.2*hype;animPerson(b.p,G.clock+b.ph,0,hype);});
 }
 function netClientFrame(raw){
-  if(!NET.room){toLobby('การเชื่อมต่อหลุด');return;}
+  if(!NET.room){toLobby('Connection lost');return;}
   const now=performance.now();G.clock+=raw;
   const hp=NET.room.peers().find(p=>p.peer===NET.hostPeer);
-  if(!hp||hp.presence.rc!==NET.code){if(now-NET.lastHostSeen>4000){netAbort('โฮสต์ออกจากห้องไปแล้ว 😢');return;}}
+  if(!hp||hp.presence.rc!==NET.code){if(now-NET.lastHostSeen>4000){netAbort('The host left the room 😢');return;}}
   else{
     NET.lastHostSeen=now;const g=hp.presence.g;
-    if(!g){netAbort('โฮสต์จบแมตช์แล้ว');return;}
+    if(!g){netAbort('The host ended the match');return;}
     if(g.id!==NET.cfg.id){netAdopt(hp);return;}
     const s=hp.presence.s;
     if(s&&s.i!==NET.lastSnapI&&Array.isArray(s.f)){NET.lastSnapI=s.i;NET.snaps.push({t:now,s});if(NET.snaps.length>8)NET.snaps.shift();
@@ -351,10 +351,10 @@ function netClientFrame(raw){
     netSyncItems(S,raw);netSyncProjs(S,now-B[B.length-1].t);netSyncNPC(S,raw);
     if(G.phase!=='end')updHUD(raw);
   }
-  if(now-NET.lastHostSeen>1500||(B.length&&now-B[B.length-1].t>1500))$('#roundLab').textContent='⏳ รอโฮสต์...';
+  if(now-NET.lastHostSeen>1500||(B.length&&now-B[B.length-1].t>1500))$('#roundLab').textContent='⏳ waiting for host…';
   // input health: the host echoes the last input sequence it read from us
   if(B.length&&NET.mySlot>=0){const ia=(B[B.length-1].s.ia||[])[NET.mySlot]|0;if(ia!==NET.ackSeen){NET.ackSeen=ia;NET.ackT=now;}
-    if(G.phase==='fight'&&NET.inSeq>3&&now-NET.ackT>2500){$('#roundLab').textContent='⚠️ ปุ่มยังไม่ถึงโฮสต์';
+    if(G.phase==='fight'&&NET.inSeq>3&&now-NET.ackT>2500){$('#roundLab').textContent='⚠️ your inputs are not reaching the host';
       if(now-(NET.reassertT||0)>3000){NET.reassertT=now;setPresence(Object.assign(myLobbyPresence(),{in:[0,0,0,...NET.inCnt,NET.inSeq]}));}}}
   updEffects(raw);updParts(raw);
 }
