@@ -334,7 +334,7 @@ class Fighter{
     this.state='idle';this.atk=null;this.stunT=0;this.koT=0;this.downT=0;this.recT=0;this.win=false;this.queued=null;this.jabHand=0;this.t=Math.random()*5;this.walk=0;this.moving=0;this.wallCd=0;this.invT=0;
     this.face=this.faceT=face;this.spinA=0;this.seq=[];this.lastAtkEnd=-9;this.comboN=0;this.lastHitT=-9;this.knockdown=false;
     this.stream=null;this.dashing=null;this.pulled=null;this.victim=null;this.grabbedBy=null;
-    this.fx={dizzy:0,slow:0,buff:0,immune:0,parry:0};this.wind=null;this.koFly=false;this.dusted=false;this.superGrab=false;
+    this.fx={dizzy:0,slow:0,buff:0,immune:0,parry:0};this.react=null;this.ap=null;if(this.head)this.head.rotation.set(0,0,0);this.wind=null;this.koFly=false;this.dusted=false;this.superGrab=false;
     if(this.held)this.removeHeld();
     this.body.rotation.set(0,0,0);this.body.position.set(0,0,0);this.body.scale.setScalar(this.S);this.torso.rotation.set(0,0,0);
     this.root.position.set(x,y,z);this.root.rotation.y=face;
@@ -451,6 +451,7 @@ class Fighter{
     if(this.state==='grab'&&this.victim){this.victim.state='idle';this.victim.grabbedBy=null;this.victim=null;}
     if(this.held&&(h.launch||h.knock>=6))this.dropHeld();
     if(!armor||h.launch>=6||h.thrown){
+      if(this.state!=='stun'||!this.react||this.react.t>0.25)this.react={c:pickReact(h,dmg),t:0};
       this.state='stun';this.stunT=h.stun||0.3;this.atk=null;this.queued=null;this.stream=null;this.dashing=null;
       if(h.launch){this.vy=h.launch;this.y+=0.02;}
       if(h.kd){this.knockdown=true;if(!h.launch){this.vy=Math.max(this.vy,3);this.y+=0.02;}}
@@ -616,6 +617,7 @@ class Fighter{
     this.animate(dt);
   }
   glovePose(h){
+    if(this.ap)return animHand(this,h,this.ap.p);
     const sx=h===0?1:-1,s=this.state,t=this.t;
     if(this.win){switch(this.ch.emote){
       case 'flex':return V(sx*0.62,1.35+Math.sin(t*6)*0.06,0.12);
@@ -676,6 +678,8 @@ class Fighter{
   animate(dt){
     const S=this.state,lying=S==='ko'||S==='down',t=this.t;
     const A=S==='attack'&&this.atk?this.atk:null,AP=A?A.def.pose||A.type:'';
+    if(S==='stun'&&this.react)this.react.t+=dt;else if(S!=='stun')this.react=null;
+    const ap=this.ap=animPose(this);
     if(S==='dash'&&this.dashing&&this.dashing.tornado)this.spinA+=dt*30;
     else if(AP==='spin'&&A.t>=A.def.startup*0.5&&A.t<=A.def.startup+A.def.active)this.spinA+=dt*24;
     else if(this.win&&this.ch.emote==='dance')this.spinA+=dt*5;
@@ -687,6 +691,7 @@ class Fighter{
     if(AP==='dropkick'&&A.t>A.def.startup*0.4&&A.t<A.def.startup+A.def.active)this.body.rotation.x=lerp(this.body.rotation.x,-1.05,1-Math.exp(-18*dt));
     if(AP==='roll'&&A.t>A.def.lunge.a&&A.t<A.def.lunge.b){const k=(A.t-A.def.lunge.a)/(A.def.lunge.b-A.def.lunge.a);this.body.rotation.x=k*Math.PI*4;by=0.55*Math.sin(k*Math.PI);}
     if(S==='ko'&&this.koFly)this.body.rotation.x-=dt*16;
+    if(ap)by=clamp(ap.p[11]*0.72,-0.16,0.12);
     if(this.win&&(this.ch.emote==='jump'||!this.ch.emote))by=Math.abs(Math.sin(t*7))*0.35;
     this.body.position.y=by;
     const bs=this.S*(this.fx.buff>0?1.25:1)*(this.win&&this.ch.emote==='flex'?1+Math.abs(Math.sin(t*6))*0.04:1);
@@ -698,17 +703,20 @@ class Fighter{
       if(p<0.6)lean=big?-0.15:-0.05;else if(p<1.6)lean=big?0.1:0.2;
       if(!big&&p>0.5&&p<2.2)twist=(a.hand===0?-1:1)*(['hook','swingH','slap','slapH','kickH'].includes(AP)?0.7:0.4);
       if(AP==='head'||AP==='rocket')lean=p<1?-0.35:0.75;else if(AP==='dropkick')lean=-0.3;else if(AP==='chop'&&p>=1)lean=0.35;else if(AP==='rush')twist=Math.sin(t*60)*0.25;}
+    if(ap){lean=clamp(ap.p[6]*0.9,-0.6,0.7);twist=clamp(ap.p[7]*0.45,-0.75,0.75);roll=clamp(ap.p[8]*0.6,-0.35,0.35);}
     if(this.win){const e=this.ch.emote;if(e==='bow')lean=Math.max(0,Math.sin(t*2.5))*0.8;if(e==='chill')roll=Math.sin(t*1.5)*0.12;if(e==='flex')twist=Math.sin(t*12)*0.08;if(e==='guitar')lean=-0.15+Math.sin(t*8)*0.05;}
     this.torso.rotation.x=lerp(this.torso.rotation.x,lean,1-Math.exp(-14*dt));
     this.torso.rotation.y=lerp(this.torso.rotation.y,twist,1-Math.exp(-16*dt));
     this.torso.rotation.z=lerp(this.torso.rotation.z,roll,1-Math.exp(-8*dt));
     this.torso.position.y=0.72+Math.sin(t*6)*0.025;
-    this.head.rotation.z=lerp(this.head.rotation.z,(S==='stun'||this.fx.dizzy>0)?Math.sin(t*20)*0.15:0,0.3);
+    this.head.rotation.z=lerp(this.head.rotation.z,(ap?clamp(ap.p[13]*0.7,-0.4,0.4):0)+((S==='stun'&&!ap)||this.fx.dizzy>0?Math.sin(t*20)*0.15:0),0.3);
+    this.head.rotation.x=lerp(this.head.rotation.x,ap?clamp(ap.p[12]*0.7,-0.45,0.45):0,0.3);
     const air=this.y>groundAt(this.pos.x,this.pos.z,this.y)+0.15;
     this.walk+=dt*12*this.moving;
     const sw=Math.sin(this.walk)*0.6*this.moving;
     if(lying){this.legs[0].rotation.x=0;this.legs[1].rotation.x=0;}
     else if(air&&S!=='grabbed'){this.legs[0].rotation.x=lerp(this.legs[0].rotation.x,-0.7,0.3);this.legs[1].rotation.x=lerp(this.legs[1].rotation.x,0.3,0.3);}
+    else if(ap&&ap.legs&&this.moving<0.15){const k=1-Math.exp(-14*dt);this.legs[0].rotation.x=lerp(this.legs[0].rotation.x,clamp(ap.p[9]*0.8,-1,0.8),k);this.legs[1].rotation.x=lerp(this.legs[1].rotation.x,clamp(ap.p[10]*0.8,-1,0.8),k);}
     else{this.legs[0].rotation.x=sw;this.legs[1].rotation.x=-sw;}
     if(A){const d=A.def,tt=A.t,env=tt<d.startup?easeOutCubic(Math.min(1,tt/d.startup)):tt<d.startup+d.active?1:Math.max(0,1-(tt-d.startup-d.active)/d.recover);
       if(AP==='kick')this.legs[A.hand].rotation.x=-1.15*env;
