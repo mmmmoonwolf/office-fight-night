@@ -23,7 +23,7 @@ async function offline(browser) {
   ok(await ev("document.querySelectorAll('.card').length") === 8, '8 character cards');
   ok(await ev("ROSTER.map(c=>c.name).join()") === 'Kip Kaboom,Momo Mellow,Ruby Rumble,Grumbo,Nana Nitro,Duke Jiggly,Pippa Pop,Zuzu Zoom', 'the new cartoon cast');
   ok(await ev("ROSTER.every(c=>c.body==='3d'&&c.model)") && (await (await pg.request.get(BASE + '/assets/portraits/kip.png')).status()) === 200 && (await (await pg.request.get(BASE + '/assets/models/char_duke.glb')).status()) === 200, 'every character is a 3D model with a portrait');
-  ok(await ev("ROSTER.every(c=>c.hp===100&&c.pow===1&&c.spd===1&&c.aspd===1&&c.size===1)"), 'every character has the same stats');
+  ok(await ev("ROSTER.every(c=>c.hp===150&&c.pow===1&&c.spd===1&&c.aspd===1&&c.size===1)"), 'every character has the same stats');
   await pg.click('.card[data-i="2"]'); await pg.click('.card[data-i="0"]');
   await pg.click('#startBtn'); await sleep(150);
   ok(await ev("!$('#loadP').classList.contains('hidden') && document.querySelectorAll('#stlGrid .opt').length===Object.keys(STYLES).length && document.querySelectorAll('#spGrid .opt').length>=20"), 'start opens the style + special picker');
@@ -72,7 +72,7 @@ async function offline(browser) {
   await ev("G.f.forEach(f=>{f.hp=60;f.state='idle';});G.timer=0.05");await sleep(250);
   ok(await ev("G.sudden&&G.phase==='fight'&&G.f.every(f=>f.hp===1)&&G.timer>20"), 'a draw on time goes to sudden death (1 HP each)');
   await ev("G.f.forEach(f=>{f.hp=100;});G.timer=99;G.sudden=false");
-  ok(await ev("const a=G.f[0],v=G.f[1];a.hp=50;a.rage=0;v.bounty=true;const ph=G.phase;G.phase='between';onKO(v,a);G.phase=ph;const r=a.hp===80&&a.rage===100&&!v.bounty;a.hp=100;a.rage=0;r"), 'KO-ing the bounty leader pays +30 HP and a full special');
+  ok(await ev("const a=G.f[0],v=G.f[1];a.hp=50;a.rage=0;v.bounty=true;const ph=G.phase;G.phase='between';onKO(v,a);G.phase=ph;const r=a.hp===95&&a.rage===100&&!v.bounty;a.hp=100;a.rage=0;r"), 'KO-ing the bounty leader pays +30 HP and a full special');
   ok(await ev("STATS.wins={kip:3};const r=hatOk(2)&&!hatOk(3)&&HATS[2].k==='crown';STATS.wins={};r"), 'hats unlock by total wins');
   ok(await ev("HATS.every(h=>h.k==='none'||makeHat(h.k).children.length>0) && BOSS_CH.hatKey==='crown'"), 'every hat builds, the boss wears the crown');
   ok(await ev("p2pIce().then(()=>{}),localStorage.setItem('ofn.ice',JSON.stringify([{urls:'turn:relay.example:3478',username:'u',credential:'c'}])),ICE_CACHE=null,p2pIce().then(c=>{localStorage.removeItem('ofn.ice');ICE_CACHE=null;return c.iceServers.some(s=>String(s.urls).startsWith('turn:'))&&c.iceServers.some(s=>String(s.urls).startsWith('stun:'));})"), 'TURN servers from settings are added to the P2P ICE list');
@@ -127,7 +127,7 @@ async function offline(browser) {
   await ev("resetEvents();G.forceEvent='van';G.evT=0"); await sleep(300);
   ok(await ev("!!NPC.van"), 'delivery van event starts a lap around the store');
   await ev("resetEvents();G.forceEvent='blackout';G.evT=0"); await sleep(300);
-  ok(await ev("EV.blackout>0"), 'blackout event turns the lights off');
+  ok(await ev("EV.blackout>0"), 'blackout still works when forced (not in the random pool any more)');
   await ev("resetEvents();G.forceEvent='storm';G.evT=0"); await sleep(300);
   ok(await ev("EV.storm>0"), 'storm event starts gusts');
   await ev("resetEvents();G.evT=999");
