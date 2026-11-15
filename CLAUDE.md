@@ -164,7 +164,7 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
   colour shows on the ring and name tag); held items sit on an anchor on the right hand bone (`handObj`/`handScale`). The chibi rig still runs invisibly underneath (physics,
   `headPos`, `snap`). `pick3D` chooses clip + time from the fighter state (attacks are time-warped with `B3ATK` so
   the impact frame lands at the end of startup; kicks/swings/throws/grab-throw/hurricane/flip-kick have their own
-  clips; locomotion = `walk` / `run` with the clip speed following the real ground speed, `runDrunk` only for the Party
+  clips, the Kicker's roundhouse alternates `martelo` (Martelo 2, left leg) and `mmaKick`; locomotion = `walk` / `run` with the clip speed following the real ground speed, `runDrunk` only for the Party
   Animal style; the winner plays `win` (Victory Idle) or `whatever` at random, kept in `f.winClip`); `upd3D` plays it with cross-fades. Online/replay: clip index + time ride in `legs[0|1].rotation.x` of
   `snap()` (invisible on a 3D fighter) and `apply3D` plays them; the slot tuple gains `s[6]` = 3D flag, presence `bd`.
   Test pages strip `SkeletonUtils`/`GLTFLoader`, so fighters stay chibi there.
@@ -186,8 +186,9 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
 - `takeHit(att, {dmg, knock, stun, launch, kd, unblockable, dir, heavy, thrown})` is the single damage entry point.
   `kd` = knockdown (lands into `down`, then 0.7 s invulnerable). Blocking cuts damage to 15 % from the front.
 - jab, jab, hook within 0.45 s → `combo` launcher. Grab beats block. Specials need rage 100.
-- **Dodge roll**: block + a direction (> 0.5) on the ground → state `roll` (`startRoll`, `ROLL_T` 0.38 s + 0.1 s
-  vulnerable end, `invT` covers 80 %, `rollCd` 0.55 s). Chibi flips around the hips in `animate`; 3D plays `jumping`.
+- **Dodge roll**: block + a direction (> 0.5) on the ground → state `roll` (`startRoll`, `ROLL_T` 0.44 s + 0.1 s
+  vulnerable end, `invT` covers 80 %, `rollCd` 0.55 s). 3D plays the `roll` clip (Mixamo Standing Dive Forward,
+  0.1 → 1.45 s squeezed into the roll); only the chibi fallback flips around the hips in `animate`.
 - **Perfect block**: a hit landing < 0.16 s after block was pressed (`blockAt`) from the front, by a melee attacker
   within 3.4 m → no damage, attacker `stun` 0.8 s, `takeHit` returns `'parried'`, `SFX.perfect`. CPUs only get it with
   `AICFG[diff].perf` probability; they roll with `AICFG[diff].roll`.
