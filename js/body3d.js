@@ -9,7 +9,7 @@
 const B3={gltf:null,failed:false,wait:[],gray:{},CLIPS:[],raw:2.5,chars:{}};
 // clip windows in seconds: a = wind-up start, i = impact (lands at the end of the move's startup), e = follow-through end
 const B3ATK={jab:{a:0.13,i:0.57,e:1.0},cross:{a:0.1,i:0.4,e:0.95},hook:{a:0.1,i:0.43,e:1.2},hookR:{a:0.03,i:0.33,e:1.0},upper:{a:0.13,i:0.53,e:1.2},
-  kick1:{a:0.27,i:0.6,e:1.13},kick2:{a:0.4,i:0.67,e:1.13},mmaKick:{a:0.33,i:0.72,e:1.33},flipKick:{a:0.1,i:0.4,e:1.5},
+  kick1:{a:0.27,i:0.6,e:1.13},kick2:{a:0.4,i:0.67,e:1.13},mmaKick:{a:0.33,i:0.72,e:1.33},martelo:{a:0.16,i:0.52,e:1.15},flipKick:{a:0.1,i:0.4,e:1.5},
   meleeL:{c:'melee',a:0.4,i:1.0,e:1.25},meleeH:{c:'melee',a:1.2,i:1.6,e:2.0},throw:{a:0.13,i:0.73,e:1.33},throwBig:{a:0.17,i:1.03,e:1.83}};
 function loadFighterModel(cb){
   if(B3.gltf)return cb(B3.gltf);if(B3.failed)return cb(null);B3.wait.push(cb);if(B3.wait.length>1)return;
@@ -76,6 +76,7 @@ function finish3D(f,m,clips){
     if(f.held){const t=f.held.type;f.removeHeld();f.setHeldVis(t);}
 }
 // which clip should play now, and where (t = seconds, or null to let it run)
+// (roll = Standing Dive Forward squeezed into the dodge roll; kickH alternates legs: Martelo left / MMA kick right)
 function pick3D(f){
   const S=f.state,A=f.atk,air=f.y>groundAt(f.pos.x,f.pos.z,f.y)+0.2;
   if(S==='ko')return{c:'stunned',t:Math.min(2.1,0.95+f.koT)};
@@ -88,13 +89,13 @@ function pick3D(f){
   if(S==='grab'){const w=B3ATK.throwBig,k=Math.min(1,f.grabT/(f.superGrab?0.55:0.32));return{c:'throwBig',t:w.a+(w.i-w.a)*k};}
   if(S==='recover'&&f.t-(f.throwAt||-9)<0.6){const w=B3ATK.throw,k=(f.t-f.throwAt)/0.6;return{c:'throw',t:k<0.2?w.a+(w.i-w.a)*k/0.2:w.i+(w.e-w.i)*(k-0.2)/0.8};}
   if(S==='block')return{c:'block',t:1.25};
-  if(S==='roll')return{c:'jumping',t:0.62};
+  if(S==='roll')return{c:'roll',t:0.1+clamp(f.rollT/(ROLL_T+0.1),0,1)*1.35};
   if(S==='dash')return f.dashing&&f.dashing.tornado?{c:'hurricane',loop:1,speed:1.4}:{c:'run',loop:1,speed:1.6};
   if(S==='attack'&&A){const d=A.def,P=d.pose||A.type,slot=A.slot;
     if(P==='rush')return{c:'rush',t:0.4+Math.max(0,A.t-d.startup)*1.6};
     if(P==='spin')return{c:'hurricane',t:(A.t*1.6)%1.8};
     let key;if(A.type==='swingL')key='meleeL';else if(A.type==='swingH')key='meleeH';
-    else if(P==='kick')key=A.hand===1?'kick2':'kick1';else if(P==='kickH')key='mmaKick';else if(P==='dropkick')key='flipKick';
+    else if(P==='kick')key=A.hand===1?'kick2':'kick1';else if(P==='kickH')key=A.hand===0?'martelo':'mmaKick';else if(P==='dropkick')key='flipKick';
     else if(['rocket','roll','slam'].includes(P)||d.jumpV)return{c:'jumping',t:A.t<d.startup?0.45:0.75};
     else if(P==='hook'||P==='slapH'||P==='kickH'||P==='lariat'||slot==='hook')key=A.hand===1?'hookR':'hook';
     if(!key){if(slot==='combo'||slot==='special'||A.type==='cast'||P==='skyUpper')key='upper';else key=A.hand===1?'cross':'jab';}
@@ -118,7 +119,7 @@ function play3D(f,c,t,dt,speed){const B=f.b3,a=B.acts[c];if(!a)return;
 function upd3D(f,dt){const B=f.b3;if(!B||!B.ready)return;const p=pick3D(f);
   play3D(f,p.c,p.t,dt,p.speed);const a=B.acts[p.c];
   if(f.state==='ko'||f.state==='down')f.body.rotation.x=f.koFly?f.body.rotation.x:0;
-  if(!(f.state==='attack'&&f.atk&&(f.atk.def.pose==='roll'))&&f.state!=='roll')f.body.position.y=0;
+  if(!(f.state==='attack'&&f.atk&&(f.atk.def.pose==='roll')))f.body.position.y=0;
   f.legs[0].rotation.x=B3.CLIPS.indexOf(p.c);f.legs[1].rotation.x=a?a.time:0;}
 // clients / KO replay: play what the snapshot says
 function apply3D(f,ci,t){const B=f.b3;if(!B||!B.ready)return;const c=B3.CLIPS[Math.round(ci)];if(!c)return;play3D(f,c,t,1/30);
