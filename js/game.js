@@ -426,7 +426,7 @@ function takeShot(){
   const c=document.createElement('canvas');c.width=src.width;c.height=src.height;const g=c.getContext('2d');g.drawImage(src,0,0);
   const s=c.width/1280;g.fillStyle='rgba(0,0,0,.45)';g.fillRect(0,c.height-64*s,c.width,64*s);
   g.fillStyle='#ffd23d';g.font=`${34*s}px 'Luckiest Guy', Kanit, sans-serif`;g.textBaseline='middle';g.fillText('OFFICE FIGHT NIGHT 🥊',20*s,c.height-32*s);
-  g.fillStyle='#fff';g.font=`600 ${22*s}px Fredoka, Kanit, sans-serif`;g.textAlign='right';g.fillText('PETERSON SUKHUMVIT26 · '+new Date().toLocaleDateString('en-GB'),c.width-20*s,c.height-32*s);
+  g.fillStyle='#fff';g.font=`600 ${22*s}px Fredoka, Kanit, sans-serif`;g.textAlign='right';g.fillText('OFFICE FIGHT NIGHT · '+new Date().toLocaleDateString('en-GB'),c.width-20*s,c.height-32*s);
   lastShot=c;$('#shotImg').src=c.toDataURL('image/jpeg',0.92);$('#copyShot').textContent='Copy picture';$('#shotP').classList.remove('hidden');flashScreen();
 }
 $('#snapBtn').addEventListener('click',takeShot);

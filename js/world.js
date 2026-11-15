@@ -204,7 +204,7 @@ const hemiRef=scene.children.find(c=>c.isHemisphereLight);
 (function buildGround(){
   const g=new THREE.Mesh(new THREE.PlaneGeometry(160,110),M('#8e8a82',{roughness:.95}));g.rotation.x=-Math.PI/2;g.position.set(0,-0.01,-3);g.receiveShadow=true;scene.add(g);
   const fl=new THREE.Mesh(new THREE.PlaneGeometry(34.6,15.3),M('#fff',{map:woodTex,roughness:.45}));fl.rotation.x=-Math.PI/2;fl.position.set(-6.15,0.003,-4.5);fl.receiveShadow=true;scene.add(fl);
-  const rugTex=canvasTex(1024,700,(g2,w,h)=>{g2.fillStyle='#7b1d27';g2.fillRect(0,0,w,h);g2.strokeStyle='#e9c46a';g2.lineWidth=14;g2.strokeRect(30,30,w-60,h-60);g2.lineWidth=4;g2.strokeRect(56,56,w-112,h-112);g2.fillStyle='rgba(233,196,106,.16)';g2.beginPath();g2.ellipse(w/2,h/2,300,210,0,0,Math.PI*2);g2.fill();g2.textAlign='center';g2.textBaseline='middle';g2.fillStyle='#f4dfa0';g2.font='400 96px "Luckiest Guy", Fredoka, sans-serif';g2.fillText('OFFICE',w/2,h/2-88);g2.fillText('FIGHT NIGHT',w/2,h/2+8);g2.font='600 40px Fredoka, sans-serif';g2.fillText('PETERSON · SUKHUMVIT 26',w/2,h/2+96);});
+  const rugTex=canvasTex(1024,700,(g2,w,h)=>{g2.fillStyle='#7b1d27';g2.fillRect(0,0,w,h);g2.strokeStyle='#e9c46a';g2.lineWidth=14;g2.strokeRect(30,30,w-60,h-60);g2.lineWidth=4;g2.strokeRect(56,56,w-112,h-112);g2.fillStyle='rgba(233,196,106,.16)';g2.beginPath();g2.ellipse(w/2,h/2,300,210,0,0,Math.PI*2);g2.fill();g2.textAlign='center';g2.textBaseline='middle';g2.fillStyle='#f4dfa0';g2.font='400 96px "Luckiest Guy", Fredoka, sans-serif';g2.fillText('OFFICE',w/2,h/2-88);g2.fillText('FIGHT NIGHT',w/2,h/2+8);g2.font='600 40px Fredoka, sans-serif';g2.fillText('PIANOS · GUITARS · DRUMS',w/2,h/2+96);});
   const rug=new THREE.Mesh(new THREE.PlaneGeometry(7.6,5.2),M('#fff',{map:rugTex,roughness:.95}));rug.rotation.x=-Math.PI/2;rug.position.set(0,0.008,-0.9);rug.receiveShadow=true;scene.add(rug);
 })();
 
@@ -234,7 +234,7 @@ const hemiRef=scene.children.find(c=>c.isHemisphereLight);
   const gcols=[['#d9a35a','#5a3010'],['#e8c88e','#4a2810'],['#b8732e','#2a1408'],['#efd29a','#6a3a18'],['#a9622a','#2a1408'],['#d4a060','#3a2010'],['#c58a4a','#3a2010']];
   for(let i=0;i<7;i++){const gg=guitar(...gcols[i]);gg.scale.setScalar(0.78);gg.position.set(-4.3+i*0.93,2.1,-11.85);scene.add(gg);}
   // sign inside
-  const signTex=canvasTex(1024,200,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#1d1d24');gr.addColorStop(1,'#0e0e12');g.fillStyle=gr;g.fillRect(0,0,w,h);g.textAlign='center';g.textBaseline='middle';g.fillStyle='#e9c46a';g.font='800 92px Kanit, serif';g.fillText('PETERSON',w/2,h/2-18);g.font='600 36px Kanit, sans-serif';g.fillStyle='#fff';g.fillText('PIANOS · GUITARS · SUKHUMVIT 26',w/2,h/2+58);});
+  const signTex=canvasTex(1024,200,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#1d1d24');gr.addColorStop(1,'#0e0e12');g.fillStyle=gr;g.fillRect(0,0,w,h);g.textAlign='center';g.textBaseline='middle';g.fillStyle='#e9c46a';g.font='800 92px Kanit, serif';g.fillText('MUSIC SHOP',w/2,h/2-18);g.font='600 36px Kanit, sans-serif';g.fillStyle='#fff';g.fillText('PIANOS · GUITARS · VIOLINS',w/2,h/2+58);});
   const s1=new THREE.Mesh(new THREE.PlaneGeometry(4.6,0.9),new THREE.MeshBasicMaterial({map:signTex}));s1.position.set(-11.9,2.75,-11.94);scene.add(s1);
   fadeGroup([slat,s1],(c,f)=>c.z<-12.0&&(!f||f.z>-12.3));
   // uprights + benches (back wall)
@@ -296,7 +296,7 @@ const hemiRef=scene.children.find(c=>c.isHemisphereLight);
   // door frames & open sliding panels
   vbox(0.12,2.7,0.3,M('#2b2b2b'),-2.3,1.35,2.98);vbox(0.12,2.7,0.3,M('#2b2b2b'),2.3,1.35,2.98);
   for(const s of[-1,1]){const dp=new THREE.Mesh(new THREE.PlaneGeometry(1.5,2.4),glass);dp.position.set(s*3.0,1.5,3.12);scene.add(dp);}
-  const bandTex=canvasTex(2048,128,(g,w,h)=>{g.fillStyle='#141418';g.fillRect(0,0,w,h);g.textAlign='center';g.textBaseline='middle';g.fillStyle='#e9c46a';g.font='800 92px Kanit, serif';g.fillText('PETERSON',w/2,h/2+4);g.font='600 40px Kanit, sans-serif';g.fillStyle='#fff';g.fillText('PIANO & GUITAR GALLERY',w*0.18,h/2);g.fillText('SUKHUMVIT 26',w*0.82,h/2);});
+  const bandTex=canvasTex(2048,128,(g,w,h)=>{g.fillStyle='#141418';g.fillRect(0,0,w,h);g.textAlign='center';g.textBaseline='middle';g.fillStyle='#e9c46a';g.font='800 92px Kanit, serif';g.fillText('MUSIC SHOP',w/2,h/2+4);g.font='600 40px Kanit, sans-serif';g.fillStyle='#fff';g.fillText('PIANO & GUITAR GALLERY',w*0.18,h/2);g.fillText('OPEN DAILY',w*0.82,h/2);});
   const band=vbox(26.6,0.7,0.3,M('#141418'),-2,3.05,2.98);
   const bandF=new THREE.Mesh(new THREE.PlaneGeometry(26.6,0.7),new THREE.MeshBasicMaterial({map:bandTex}));bandF.position.set(-2,3.05,3.14);scene.add(bandF);
   const wTex=canvasTex(1024,128,(g,w,h)=>{g.fillStyle='#1b2a3a';g.fillRect(0,0,w,h);g.textAlign='center';g.textBaseline='middle';g.fillStyle='#6fd3ff';g.font='800 64px Kanit, sans-serif';g.fillText('DRUMS & AMPS · กลอง & แอมป์',w/2,h/2+3);});
@@ -418,7 +418,7 @@ const hemiRef=scene.children.find(c=>c.isHemisphereLight);
     solid(-16.5,-12.9,8,9.9,0,1.05,'car');solid(-12.9,-11.5,8,9.9,0,1.95,'car');})();
   // street sign
   cyl(0.05,0.05,2.6,M('#777'),3,1.45,7.2,null,6);
-  const ssTex=canvasTex(512,128,(g,w,h)=>{g.fillStyle='#1d5fa8';g.fillRect(0,0,w,h);g.strokeStyle='#fff';g.lineWidth=6;g.strokeRect(6,6,w-12,h-12);g.fillStyle='#fff';g.font='800 50px Kanit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('ซอยสุขุมวิท 26',w/2,h/2-12);g.font='600 26px Kanit, sans-serif';g.fillText('Sukhumvit Soi 26',w/2,h/2+30);});
+  const ssTex=canvasTex(512,128,(g,w,h)=>{g.fillStyle='#1d5fa8';g.fillRect(0,0,w,h);g.strokeStyle='#fff';g.lineWidth=6;g.strokeRect(6,6,w-12,h-12);g.fillStyle='#fff';g.font='800 50px Kanit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('ซอยดนตรี',w/2,h/2-12);g.font='600 26px Kanit, sans-serif';g.fillText('Music Lane',w/2,h/2+30);});
   const ss=new THREE.Mesh(new THREE.PlaneGeometry(1.8,0.45),new THREE.MeshBasicMaterial({map:ssTex,side:THREE.DoubleSide}));ss.position.set(3,2.6,7.2);scene.add(ss);
   solid(2.9,3.1,7.1,7.3,0,2.8,'pole');
 })();
@@ -580,7 +580,7 @@ function updNPC(dt){
     const wp=c.path[c.i];
     if(c.wait>0){c.wait-=dt;animPerson(c.p,G.clock,0,0);}
     else if(wp){const dx=wp.x-c.x,dz=wp.z-c.z,dl=Math.hypot(dx,dz);
-      if(dl<0.15){c.i++;if(c.i===3){c.wait=2.4;popup(pick(['มีเปียโนมือสองไหมครับ?','ขอดูกีตาร์คลาสสิกหน่อย','มีหนังสือ ABRSM ไหม?','สายกีตาร์ Hannabach มีไหม?']),V(c.x,2.4,c.z),'bubble',2.2);}}
+      if(dl<0.15){c.i++;if(c.i===3){c.wait=2.4;popup(pick(['มีเปียโนมือสองไหมครับ?','ขอดูกีตาร์คลาสสิกหน่อย','มีหนังสือสอบเกรดเปียโนไหม?','มีสายกีตาร์ไนลอนไหม?']),V(c.x,2.4,c.z),'bubble',2.2);}}
       else{const sp=2.3*dt;c.x+=dx/dl*sp;c.z+=dz/dl*sp;c.p.g.rotation.y=Math.atan2(dx,dz);animPerson(c.p,G.clock,1,0);}}
     else{scene.remove(c.p.g);NPC.customer=null;}
     if(NPC.customer){c.p.g.position.set(c.x,c.z>3?0.15:0,c.z);G.watch=(c.z<2.95)?1:0;}
