@@ -637,7 +637,7 @@ class Fighter{
     }
     else if(S==='attack'){
       const a=this.atk,d=a.def;a.t+=dt*ch.aspd*(this.fx.buff>0?1.1:1);
-      if(it&&it.atk&&a.t>d.startup)this.queued=it.atk;
+      if(it&&it.atk)this.queued=it.atk; // buffered: fires when this move ends
       if(d.jumpV&&!a.jumped&&a.t>=(d.jumpAt||0.02)){a.jumped=true;this.vy=d.jumpV;this.y+=0.03;puff(this.pos.x,this.y,this.pos.z,0xd8cbb0,4,0.45,1.5);}
       if(d.lunge){if(a.t>d.lunge.a&&a.t<d.lunge.b){const f=this.fwd();this.pos.x+=f.x*d.lunge.sp*dt;this.pos.z+=f.z*d.lunge.sp*dt;if(Math.random()<0.5)puff(this.pos.x,this.y+0.3,this.pos.z,0xe6e0d0,1,0.45,0.6);if(d.lunge.sp>=9&&Math.random()<0.35)windFx(this.pos.x,this.y+1,this.pos.z,this.face+Math.PI,2.2);}}
       else if(onG&&a.t>d.startup*0.5&&a.t<d.startup&&a.type!=='cast'){const f=this.fwd();const sp=a.slot==='combo'?2.4:1.3;this.pos.x+=f.x*sp*dt;this.pos.z+=f.z*sp*dt;}
