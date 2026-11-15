@@ -197,6 +197,9 @@ kbd{background:#fff;color:#222;border-radius:5px;padding:0 5px;font-family:inher
 #touch{position:fixed;inset:0;pointer-events:none;display:none;z-index:4}
 body.touch.fighting #touch{display:block}
 /* left: floating stick — touch anywhere in the zone and the stick appears under your thumb */
+#camBtns{position:absolute;left:14px;top:104px;display:flex;gap:10px;pointer-events:auto}
+.cb{width:46px;height:46px;border-radius:50%;border:2px solid rgba(255,255,255,.6);background:rgba(30,30,40,.45);color:#fff;font-size:22px;touch-action:none;padding:0}
+.cb.on{background:rgba(255,255,255,.35)}
 #stickZone{position:absolute;left:0;bottom:0;width:46vw;height:62vh;pointer-events:auto;touch-action:none}
 #stick{position:absolute;left:28px;bottom:30px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.10);border:3px solid rgba(255,255,255,.32);opacity:.6;transition:opacity .15s}
 #stick.on{opacity:1}
@@ -349,6 +352,7 @@ body.touch.fighting #touch{display:block}
 <div id="photoBar" class="hidden"><span>Drag to orbit · wheel / ± to zoom</span><button class="ib" id="zIn">＋</button><button class="ib" id="zOut">－</button><button class="btn" id="snapBtn">📸 Snap!</button><button class="btn ghost" id="photoExit">Exit</button></div>
 
 <div id="touch">
+  <div id="camBtns"><button class="cb" data-t="-1">⟲</button><button class="cb" data-t="1">⟳</button></div>
   <div id="stickZone"><div id="stick"><div id="knob"></div></div></div>
   <div id="tbtns">
     <button class="tb" data-k="TSpec"><i>⭐</i>SPECIAL</button>

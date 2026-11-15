@@ -102,7 +102,36 @@ function updHUD(dt){
 }
 
 /* ================= CAMERA ================= */
-const CAM={yaw:0,pitch:0.66,zoom:1,focus:V(0,1,0),pos:V(0,9,14),pyaw:0,ppitch:0.35,pdist:6};
+const CAM={turn:0,yaw:0,pitch:0.66,zoom:1,focus:V(0,1,0),pos:V(0,9,14),pyaw:0,ppitch:0.35,pdist:6};
+function camArm(des,look){
+  const inBlock=p=>blocks.some(b=>p.x>b.x0-0.25&&p.x<b.x1+0.25&&p.z>b.z0-0.25&&p.z<b.z1+0.25&&p.y>b.y0-0.25&&p.y<b.y1+0.25);
+  if(!inBlock(des))return;const at=k=>V(des.x+(look.x-des.x)*k,des.y+(look.y-des.y)*k,des.z+(look.z-des.z)*k);
+  for(let i=1;i<=12;i++){const p=at(i/14);if(!inBlock(p)){des.copy(p);return;}}des.copy(at(0.85));}
+/* see-through: anything between the camera and a local fighter (trees, awnings, signs, poles, shelves, the
+   mezzanine floor…) fades to 25 % while it blocks the view, then fades back. Visual only (clients do it too). */
+const OCC={t:0,list:null,listT:0,on:new Map()};
+function updOccluders(raw){
+  OCC.t-=raw;OCC.listT-=raw;
+  const tg=G.photo||G.phase==='menu'||G.phase==='end'?[]:G.f.filter(f=>(NET.role==='off'?f.human!=null:f.human===0)&&f.state!=='ko');
+  if(OCC.t<=0){OCC.t=0.1;
+    if(!OCC.list||OCC.listT<=0){OCC.listT=2;OCC.list=[];const skip=new Set(G.f.map(f=>f.root));
+      scene.traverse(o=>{if(skip.has(o)){o.traverse(c=>c.userData.isFighter=1);}});
+      scene.traverse(o=>{if(o.isMesh&&!o.userData.isFighter&&o.geometry&&o.material&&!Array.isArray(o.material)){
+        if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();const s=new THREE.Vector3();o.getWorldScale(s);
+        if(o.geometry.boundingSphere&&o.geometry.boundingSphere.radius*Math.max(s.x,s.y,s.z)>0.35)OCC.list.push(o);}});}
+    const hit=new Set(),rc=OCC.rc||(OCC.rc=new THREE.Raycaster()),cam=camera.position;
+    for(const f of tg)for(const h of [0.9,1.8]){const t=V(f.pos.x,f.y+h*f.S,f.pos.z),dir=t.clone().sub(cam),L=dir.length();if(L<0.5)continue;
+      rc.set(cam,dir.multiplyScalar(1/L));rc.far=L-0.5;
+      for(const i of rc.intersectObjects(OCC.list,false)){const m=i.object;if(!m.visible)continue;if(m.userData.fadeGroup){hit.add(m);continue;}let y=m;while(y.parent&&y.parent!==scene&&!y.parent.isScene)y=y.parent;hit.add(m);
+        if(y!==m)y.traverse(c=>{if(c.isMesh&&!c.userData.fadeGroup)hit.add(c);});}}
+    // walls that already have a fade rule (fadeGroup) just get flagged; updFades fades them
+    for(const m of OCC.fg||[])m.userData.occHit=false;OCC.fg=[...hit].filter(m=>m.userData.fadeGroup);for(const m of OCC.fg)m.userData.occHit=true;
+    for(const m of hit)if(!m.userData.fadeGroup&&!OCC.on.has(m)){if(!m.userData.occMat){m.userData.occMat=m.material;m.material=m.material.clone();m.material.transparent=true;}
+      OCC.on.set(m,{o:m.material.opacity,want:0.25,base:m.userData.occMat.opacity??1});}
+    for(const [m,s] of OCC.on)s.want=hit.has(m)?0.25:s.base;}
+  for(const [m,s] of OCC.on){s.o+=(s.want-s.o)*(1-Math.exp(-10*raw));m.material.opacity=s.o;m.material.depthWrite=s.o>0.9;
+    if(s.want>=s.base&&Math.abs(s.o-s.base)<0.02){m.material=m.userData.occMat;delete m.userData.occMat;OCC.on.delete(m);}}
+}
 function humansFocus(){
   const hs=G.f.filter(f=>f.human!=null);const src=hs.length?hs:G.f.filter(f=>f.state!=='ko');if(!src.length)return{p:V(0,0,0),spread:0};
   let x=0,y=0,z=0;src.forEach(f=>{x+=f.pos.x;y+=f.y;z+=f.pos.z;});x/=src.length;y/=src.length;z/=src.length;
@@ -117,10 +146,17 @@ function updCamera(raw){
   else if(G.phase==='end'){const w=G.f.find(f=>f.win)||G.f[0];focus=V(w.pos.x,w.y+0.4,w.pos.z);yaw=lerpAngle(CAM.yaw,w.face,0.03);CAM.yaw=yaw;pitch=0.3;dist=6;}
   else{
     if(G.humans===1&&!G.paused){if(held.has('KeyQ'))CAM.yaw-=2.2*raw;if(held.has('KeyE'))CAM.yaw+=2.2*raw;CAM.yaw+=GP[0].rx*2.4*raw;}
-    const hf=humansFocus();focus=hf.p;yaw=CAM.yaw;pitch=CAM.pitch;dist=(9.4+hf.spread*(G.humans===2?1.1:0.25))*CAM.zoom;dist=clamp(dist,4.5,26);
+    if(G.humans===1&&!G.paused&&CAM.turn)CAM.yaw+=CAM.turn*2.2*raw; // touch ⟲ ⟳ buttons
+    const hf=humansFocus();focus=hf.p;yaw=CAM.yaw;pitch=CAM.pitch;dist=(9.4+hf.spread*(G.humans===2?1.1:0.25))*CAM.zoom;
+    // 1 player: lean the frame towards the nearest opponent so they stay on screen
+    if(G.humans===1){const me=G.f.find(f=>f.human===0),e=me&&me.state!=='ko'&&nearestEnemy(me,13);
+      if(e){const d=Math.hypot(e.pos.x-me.pos.x,e.pos.z-me.pos.z);focus.x+=(e.pos.x-me.pos.x)*0.3;focus.z+=(e.pos.z-me.pos.z)*0.3;dist+=d*0.25*CAM.zoom;}}
+    dist=clamp(dist,4.5,26);
   }
   CAM.focus.lerp(focus,G.phase==='replay'?1:1-Math.exp(-8*raw));
   const des=V(CAM.focus.x+Math.sin(yaw)*Math.cos(pitch)*dist,CAM.focus.y+1.2+Math.sin(pitch)*dist,CAM.focus.z+Math.cos(yaw)*Math.cos(pitch)*dist);
+  // spring arm: never park the camera inside a wall / building / tree — slide it in towards the fighter instead
+  if(!G.photo&&G.phase!=='menu')camArm(des,V(CAM.focus.x,CAM.focus.y+1.2,CAM.focus.z));
   CAM.pos.lerp(des,k);camera.position.copy(CAM.pos);
   if(G.shake>0&&!G.photo){camera.position.x+=rand(-1,1)*G.shake*0.5;camera.position.y+=rand(-1,1)*G.shake*0.5;G.shake=Math.max(0,G.shake-raw*1.8);}
   camera.position.y=Math.max(0.6,camera.position.y);
@@ -166,6 +202,9 @@ function readPlayer(h){
 }
 (function(){
   const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0;if(isTouch)document.body.classList.add('touch');
+  // camera turn buttons (hold)
+  document.querySelectorAll('.cb').forEach(b=>{const t=+b.dataset.t,on=e=>{CAM.turn=t;b.classList.add('on');e.preventDefault();},off=()=>{if(CAM.turn===t)CAM.turn=0;b.classList.remove('on');};
+    b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('pointerleave',off);});
   // floating stick: it jumps under the thumb wherever the left zone is touched, and springs back on release
   const zone=$('#stickZone'),st=$('#stick'),kn=$('#knob');let sid=null,cx=0,cy=0;
   const R=()=>st.getBoundingClientRect().width/2;
@@ -667,7 +706,7 @@ function loop(now){
     hype=Math.max(0,hype-raw*0.35);
   }
   if(NET.role==='host')netHostFrame(raw);
-  updSmoke(raw*(G.phase==='replay'?0.5:G.timeScale||1));updRain(raw,CAM.focus);updCamera(raw);updFades(raw,CAM.focus);for(const f of G.f)f.hairFade(raw);updTags();updPops(raw);updPrompts();
+  updSmoke(raw*(G.phase==='replay'?0.5:G.timeScale||1));updRain(raw,CAM.focus);updCamera(raw);updFades(raw,CAM.focus);if(REAL_THREE)updOccluders(raw);for(const f of G.f)f.hairFade(raw);updTags();updPops(raw);updPrompts();
   SFX.amb(G.phase==='menu'?0.4:(CAM.focus.z>3?1:CAM.focus.y>2?0.15:0.35));SFX.musicTempo(G.phase==='fight'&&G.timer<=15?132:G.phase==='end'?108:96);
   SFX.bgm(G.phase==='menu'||!G.f.length?'menu':G.phase==='end'?'win':G.mode==='train'?'train':'fight',G.phase==='fight'&&G.mode!=='train'&&G.timer<=15?1.08:1);
   renderer.render(scene,camera);
