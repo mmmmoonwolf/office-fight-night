@@ -63,6 +63,11 @@ async function offline(browser) {
   // crazy rules + last stand
   ok(await ev("MUT.k='bighead';G.f[0].animate(0.016);const big=G.f[0].head.scale.x>1.9;MUT.k=null;G.f[0].animate(0.016);big&&G.f[0].head.scale.x<1.3"), 'BIG HEADS crazy rule scales heads');
   ok(await ev("const v=G.f[0];v.lastStand=false;v.hp=25;v.state='idle';v.invT=0;v.fx.parry=0;v.style=STYLES.box;v.takeHit(G.f[1],{dmg:10,knock:1});const r=v.lastStand;v.hp=100;v.lastStand=false;r"), 'dropping under 20 % HP triggers last stand');
+  // touch: the COMBO button chains jab → jab → hook into the style's combo; a tap during wind-up is buffered
+  await ev("G.f[0].state='idle';G.f[0].atk=null;G.f[0].queued=null;G.f[0].seq=[];G.f[0].lastAtkEnd=-9;G.f[1].pos.x=G.f[0].pos.x+9;window.__slots=[];const o=G.f[0].startAtk.bind(G.f[0]);G.f[0].startAtk=function(t,sl){__slots.push(sl);return o(t,sl);};touchCombo()");
+  await sleep(1600);
+  ok((await ev("__slots.join()")).endsWith('combo'), 'touch COMBO button lands the jab-jab-hook combo');
+  ok(await ev("const f=G.f[0];f.startAtk=Fighter.prototype.startAtk;f.state='idle';f.atk=null;f.queued=null;f.tryAttack('jab');f.update(0.02,{mx:0,mz:0,atk:'hook',block:false,jump:false,grab:false});f.atk.t<f.atk.def.startup&&f.queued==='hook'"), 'a press during wind-up is buffered (not dropped)');
   // sudden death on a tie at time-up, then the bounty reward
   await ev("G.f.forEach(f=>{f.hp=60;f.state='idle';});G.timer=0.05");await sleep(250);
   ok(await ev("G.sudden&&G.phase==='fight'&&G.f.every(f=>f.hp===1)&&G.timer>20"), 'a draw on time goes to sudden death (1 HP each)');

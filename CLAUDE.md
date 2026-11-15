@@ -34,6 +34,12 @@ someone is knocked into them — they drop onto the sidewalk and take fall damag
   `G<pad><btn>` in `held`/`pressed`; `PADMAP` adds them to every `SCH` scheme (pad 0 → P1/solo, pad 1 → P2); left stick
   analog in `readPlayer`, right stick orbits the camera, Start/A/B drive menus via `padMenus()`; key prompts show pad
   labels (`PADLAB`) while `padUsed(n)`.
+- **Touch controls** (`#touch`, game.js): a floating stick (`#stickZone`, left 46 vw — the stick jumps under the thumb)
+  and one pointer handler on the button cluster (`#tbtns`): each finger presses the nearest button within 14 px of
+  its edge and sliding onto another button releases/presses (jab → hook rolls); `navigator.vibrate` tick. Big JAB/HOOK,
+  a **COMBO** button (`touchCombo` → `TCQ` feeds TJab, TJab, THook, each sent once the fighter can buffer it; online
+  clients use 0.36 s spacing; drops after 2.5 s), SPECIAL glows when ready. Smaller scale under 520 / 440 px wide.
+  Attack input is buffered for the whole move (`queued`), so a tap during wind-up is no longer dropped.
 - **Loading screen** (`#loadScr`, game.js): boot progress from `THREE.DefaultLoadingManager` (furniture + fighter.glb);
   `preloadFighters(chs, cb)` loads only the chosen fighters' `char_*.glb` before a match (arcade: the whole ladder);
   the online lobby fetches every cast model in the background.
@@ -61,6 +67,10 @@ someone is knocked into them — they drop onto the sidewalk and take fall damag
   (`SPECIALS[k].name`) and the salary-damage banner. For the UI use `spName(k)` (`SP_EN`), `WEAPONS[t].en`,
   `POWER[t].en`/`enTxt`; the Thai `name`/`txt` fields feed the popups.
 - Original names only — no other game's names, logos, characters or assets.
+
+## Workflow
+
+The owner wants finished work merged to `main` right away (PR + merge) once tests pass — no need to ask.
 
 ## Commands
 
