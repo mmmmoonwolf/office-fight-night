@@ -1,6 +1,6 @@
 'use strict';
 /* ================= GAME STATE ================= */
-const G={phase:'menu',mode:'duel',humans:1,diff:1,loc:'in',slots:[0,1,2,3],slotSel:0,f:[],round:1,wins:{},timer:99,phaseT:0,clock:0,timeScale:1,slowT:0,shake:0,hitStop:0,paused:false,photo:false,watch:0,rain:0,evT:12,arc:null,roundWinner:-1,lastKO:null,replayPending:false};
+const G={mutOn:true,sudden:false,phase:'menu',mode:'duel',humans:1,diff:1,loc:'in',slots:[0,1,2,3],slotSel:0,f:[],round:1,wins:{},timer:99,phaseT:0,clock:0,timeScale:1,slowT:0,shake:0,hitStop:0,paused:false,photo:false,watch:0,rain:0,evT:12,arc:null,roundWinner:-1,lastKO:null,replayPending:false};
 const SLOTCOL=['#e0303a','#2f6fe0','#2bb673','#f1b31c'];
 const TEAMCOL=[['#e0303a','#ff8a5c'],['#2f6fe0','#36c5f0']];
 const chOf=i=>i<0?BOSS_CH:ROSTER[i]; // -1 = arcade boss
@@ -60,7 +60,7 @@ function refreshFaces(){G.f.forEach(f=>f.redraw());updateCards();}
 
 /* ================= TAGS ================= */
 function buildTags(){const box=$('#tags');box.innerHTML='';G.f.forEach(f=>{const el=document.createElement('div');el.className='ftag';el.style.setProperty('--c',f.color);el.textContent=tagText(f);box.appendChild(el);f.tagEl=el;});}
-function tagText(f){if(NET.role!=='off')return f.human===0?'YOU':(f.player?f.label+' '+f.ch.name:f.ch.name);return f.human!=null?f.label:f.ch.name;}
+function tagText(f){const c=f.bounty?'👑 ':'';if(NET.role!=='off')return c+(f.human===0?'YOU':(f.player?f.label+' '+f.ch.name:f.ch.name));return c+(f.human!=null?f.label:f.ch.name);}
 function updTags(){
   const show=G.phase!=='menu'&&G.phase!=='replay'&&!G.photo&&G.phase!=='end';
   const W=innerWidth,H=innerHeight;
@@ -85,6 +85,7 @@ function buildHUD(){
 }
 function spKeyOf(f){if(f.human==null)return'';if(f.human===1)return'P';return G.humans===2?'R':'L';}
 function updHUD(dt){
+  {const me=G.f.find(f=>f.human===0);$('#lowhp').classList.toggle('on',!!me&&me.state!=='ko'&&me.hp>0&&me.hp<me.maxHp*0.2&&G.phase==='fight'&&G.mode!=='train');}
   for(const f of G.f){const h=f.hud;if(!h)continue;
     f.lagHp=f.lagHp>f.hp?Math.max(f.hp,f.lagHp-f.maxHp*0.6*dt):f.hp;
     h.hp.style.transform=`scaleX(${f.hp/f.maxHp})`;h.hp.classList.toggle('low',f.hp/f.maxHp<0.3);
@@ -225,7 +226,13 @@ function startRound(loc){
   const p=G.f.find(f=>f.human===0)||G.f[0];CAM.yaw=(loc||G.roundLoc||G.loc)==='boss'?0.5:0;CAM.focus.set(p.pos.x,p.y,p.pos.z);
   const vs=G.f.length===2?G.f[0].ch.name+' VS '+G.f[1].ch.name:(G.mode==='team'?'RED VS BLUE':'4-WAY BRAWL!');
   $('#roundLab').textContent=G.mode==='arcade'?('STAGE '+(G.arc.stage+1)+'/'+G.arc.list.length):G.mode==='train'?'Training · dummy: '+DUMMY_MODES[TR.dummy]+' [T]':('ROUND '+G.round);
-  G.hurry=0;
+  G.hurry=0;G.sudden=false;
+  MUT.k=null;const later2=G.mode==='arcade'?G.arc.stage>0:G.round>1;
+  if(G.mutOn&&G.mode!=='train'&&later2&&Math.random()<0.75)MUT.k=pick(MUTS).k;
+  const mu=MUTS.find(m=>m.k===MUT.k);if(mu)setTimeout(()=>{if(G.phase==='intro'||G.phase==='fight')banner(mu.ic+' CRAZY RULE: '+mu.en+' '+mu.ic,3.2);},1300);
+  // FFA bounty: whoever leads on rounds wears the crown — KO them for +30 HP and a full special bar
+  G.f.forEach(f=>f.bounty=false);
+  if(G.mode==='ffa'){const sc=G.f.map(f=>G.wins[f.team]||0),mx=Math.max(...sc);if(mx>0&&sc.filter(v=>v===mx).length===1){const L=G.f[sc.indexOf(mx)];L.bounty=true;setTimeout(()=>{if(G.phase==='intro'||G.phase==='fight')banner('👑 BOUNTY on '+L.ch.name+' — KO them for +30 HP & a full special!',3);},mu?4600:1300);}}
   if(G.mode==='train'){SFX.vo('ready');Object.assign(TR,{last:-9,hits:0,dmg:0});showCenter('TRAINING 🥋','No timer · special refills itself · T switches the dummy',1.6);return;}
   if(G.mode==='arcade'?G.arc.stage===G.arc.list.length-1:G.round>=3)SFX.vo('final_round');else SFX.voRound(G.mode==='arcade'?G.arc.stage+1:G.round);
   showCenter(G.mode==='arcade'?('STAGE '+(G.arc.stage+1)):(G.round>=3?'FINAL ROUND!':'ROUND '+G.round),G.round===1||G.mode==='arcade'?vs:'',1.3);
@@ -233,6 +240,7 @@ function startRound(loc){
 function aliveTeams(){const s=new Set();G.f.forEach(f=>{if(f.state!=='ko')s.add(f.team);});return[...s];}
 function onKO(f,att){
   G.lastKO=f;hype=1;SFX.crowd();
+  if(f.bounty&&att&&att!==f&&att.state!=='ko'){f.bounty=false;att.heal(30);att.rage=100;banner('👑 '+att.ch.name+' claimed the bounty! +30 HP',2.4);popup('ค่าหัว!! 💰',att.headPos().add(V(0,1,0)),'combo',1.3);}
   if(G.phase!=='fight')return;
   const at=aliveTeams();
   if(at.length<=1)endRoundBy(at.length?at[0]:-1,'ko');
@@ -251,6 +259,9 @@ function endRoundBy(team,how){
 function timeUp(){
   const score={};G.f.forEach(f=>{score[f.team]=(score[f.team]||0)+Math.max(0,f.hp)/f.maxHp;});
   let best=-1,bv=-1,tie=false;for(const t in score){if(score[t]>bv+0.005){bv=score[t];best=+t;tie=false;}else if(Math.abs(score[t]-bv)<=0.005)tie=true;}
+  // a draw on time → SUDDEN DEATH: everyone left is on 1 HP, first clean hit wins (once per round)
+  if(tie&&!G.sudden&&G.mode!=='train'){G.sudden=true;G.timer=30;G.hurry=1;G.f.forEach(f=>{if(f.state!=='ko'){f.hp=1;f.lagHp=1;}});
+    showCenter('SUDDEN DEATH! ⚡','One hit wins!',1.8);SFX.koBell();SFX.vo('war_look_out',0.3);G.shake=Math.max(G.shake,0.4);return;}
   endRoundBy(tie?-1:best,'time');
 }
 function endRound(){
@@ -417,6 +428,9 @@ function buildMoves(){
     [keysOf(S.hook),'Hook','Slower but harder, knocks further'],
     [keysOf(S.jab)+' '+keysOf(S.jab)+' '+keysOf(S.hook),'Combo','Jab, jab, hook within 0.45 s → launches and knocks down'],
     [keysOf(S.blk),'Block','From the front you take only 15% · grabs beat blocks'],
+    [keysOf(S.blk)+' + direction','Dodge roll','Roll through attacks — invincible for most of it, short cooldown'],
+    ['','PERFECT block','Press block just before a punch lands → no damage and the attacker staggers (เป๊ะ!!)'],
+    ['','WALL SPLAT','Knock or throw someone hard into a wall, piano or glass → they stick to it for a free follow-up'],
     [keysOf(S.grab),'Grab / pick up / throw','Near someone = throw them (beats block) · near an item = pick it up · holding one = throw it'],
     [keysOf(S.jump),'Jump','Dodge thrown stuff, climb things'],
     [keysOf(S.sp),'Special','When the purple bar under your health is full (it fills when you hit and when you get hit)'],
@@ -543,6 +557,7 @@ function updateCards(){
 function setSeg(id,attr,val){document.querySelectorAll('#'+id+' button').forEach(b=>b.classList.toggle('on',b.dataset[attr]===String(val)));}
 document.querySelectorAll('#modeSeg button').forEach(b=>b.addEventListener('click',()=>{G.mode=b.dataset.m;setSeg('modeSeg','m',G.mode);if(G.mode==='arcade')G.humans=1;setSeg('humSeg','h',G.humans);G.slotSel=0;$('#ctrlHelp').innerHTML=ctrlHTML();updateCards();buildFromSlots();}));
 document.querySelectorAll('#humSeg button').forEach(b=>b.addEventListener('click',()=>{G.humans=+b.dataset.h;setSeg('humSeg','h',G.humans);$('#ctrlHelp').innerHTML=ctrlHTML();updateCards();buildFromSlots();}));
+document.querySelectorAll('#mutSeg button').forEach(b=>b.addEventListener('click',()=>{G.mutOn=b.dataset.v==='1';setSeg('mutSeg','v',G.mutOn?'1':'0');}));
 document.querySelectorAll('#diffSeg button').forEach(b=>b.addEventListener('click',()=>{G.diff=G.baseDiff=+b.dataset.d;setSeg('diffSeg','d',G.diff);}));
 document.querySelectorAll('#locSeg button').forEach(b=>b.addEventListener('click',()=>{G.loc=b.dataset.l;setSeg('locSeg','l',G.loc);placeFighters(G.loc);}));
 function toMenu(){
@@ -611,7 +626,7 @@ function loop(now){
   else if(G.phase==='replay'&&RP){updReplay(raw);}
   else if(!G.paused){
     if(G.slowT>0){G.slowT-=raw;G.timeScale=G.slowT>0?0.3:1;}
-    let dt=raw*G.timeScale;if(G.hitStop>0){G.hitStop-=raw;dt=0;}
+    let dt=raw*G.timeScale*(mutIs('turbo')?1.3:1);if(G.hitStop>0){G.hitStop-=raw;dt=0;}
     G.phaseT+=raw;G.clock+=dt;
     if(G.f.length){
       const fighting=G.phase==='fight';

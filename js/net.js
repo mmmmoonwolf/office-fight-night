@@ -232,7 +232,7 @@ function netInput(f){
   NET.remote[f.slot]=c;NET.ack[f.slot]=a[8]|0;return it;
 }
 function buildSnap(){
-  const s={i:++NET.seq,ph:Math.max(0,PHASES.indexOf(G.phase)),t:Math.ceil(G.timer),r:G.round,w:[0,1,2,3].map(t=>G.wins[t]||0),wt:G.matchWinner==null?-1:G.matchWinner,sh:Q(G.shake),rn:G.rain>0?Math.ceil(G.rain):0,hy:Q(hype)};
+  const s={i:++NET.seq,ph:Math.max(0,PHASES.indexOf(G.phase)),t:Math.ceil(G.timer),r:G.round,w:[0,1,2,3].map(t=>G.wins[t]||0),wt:G.matchWinner==null?-1:G.matchWinner,sh:Q(G.shake),mu:MUTS.findIndex(m=>m.k===MUT.k),bo:G.f.findIndex(f=>f.bounty),rn:G.rain>0?Math.ceil(G.rain):0,hy:Q(hype)};
   s.f=G.f.map(f=>{const a=f.snap();const bits=(f.fx.dizzy>0?1:0)|(f.fx.slow>0?2:0)|(f.fx.buff>0?4:0)|(f.fx.immune>0?8:0)|(f.win?16:0);
     return a.slice(0,18).map(Q).concat([a[18],a[19],Math.ceil(Math.max(0,f.hp)),Math.round(f.rage),f.held?WT.indexOf(f.held.type):-1,f.held?f.held.dur:0,bits,Math.max(0,STATES.indexOf(f.state))]);});
   s.ia=G.f.map(f=>f.net?(NET.ack[f.slot]|0):0);
@@ -333,7 +333,7 @@ function netClientFrame(raw){
     const s=hp.presence.s;
     if(s&&s.i!==NET.lastSnapI&&Array.isArray(s.f)){NET.lastSnapI=s.i;NET.snaps.push({t:now,s});if(NET.snaps.length>8)NET.snaps.shift();
       if(Array.isArray(s.fx))for(const e of s.fx){if(!Array.isArray(e)||!(e[0]>NET.lastFx))continue;NET.lastFx=e[0];try{playFx(e);}catch(_){}}
-      G.shake=Math.max(G.shake,UQ(s.sh)*0.6);netPhase(s);}
+      G.shake=Math.max(G.shake,UQ(s.sh)*0.6);MUT.k=MUTS[s.mu|0]&&s.mu>=0?MUTS[s.mu].k:null;G.f.forEach((f,i)=>f.bounty=i===s.bo);netPhase(s);}
   }
   if(NET.mySlot>=0&&['intro','fight','ko','post'].includes(G.phase))netSendInput(now);
   const B=NET.snaps;

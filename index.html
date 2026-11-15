@@ -79,6 +79,9 @@ body.touch #hint{display:none}
 @keyframes slam{from{opacity:0;transform:scale(2.4)}to{opacity:1;transform:scale(1)}}
 @keyframes fadeIn{to{opacity:1}}
 #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+#lowhp{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .4s;box-shadow:inset 0 0 90px 30px rgba(255,30,30,.55);z-index:3}
+#lowhp.on{opacity:1;animation:lowpulse .9s ease-in-out infinite}
+@keyframes lowpulse{50%{box-shadow:inset 0 0 120px 46px rgba(255,30,30,.75)}}
 #loadScr{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,#3a1e4f,#120a18);color:#fff;font-family:Fredoka,Kanit,sans-serif;text-align:center;padding:16px}
 #loadScr.hidden{display:none}
 #loadScr h2{font-family:'Luckiest Guy',Fredoka,sans-serif;font-weight:400;letter-spacing:2px;font-size:clamp(30px,7vw,56px);color:#ffd23d;margin:0 0 14px;text-shadow:0 4px 0 #7a3b00}
@@ -223,6 +226,7 @@ body.touch.fighting #touch{display:block}
 <div id="pops"></div>
 <div id="center"><h1 id="cH"></h1><p id="cP"></p></div>
 <div id="flash"></div>
+<div id="lowhp"></div>
 <div id="loadScr" class="hidden"><div class="ldBox"><h2>OFFICE FIGHT NIGHT</h2><div id="loadTxt">Loading…</div><div class="ldTrack"><div id="loadBar"></div></div><small>🥊 Tip: jab, jab, hook = combo · grab beats block</small></div></div>
 <div id="replayLab" class="hidden">● REPLAY<small>press any key to skip</small></div>
 
@@ -235,6 +239,7 @@ body.touch.fighting #touch{display:block}
     <div class="row">
       <div class="seg" id="humSeg"><span class="lab">Players</span><button data-h="1" class="on">1 player</button><button data-h="2">2 players (same keyboard)</button></div>
       <div class="seg" id="diffSeg"><span class="lab">CPU</span><button data-d="0">Easy</button><button data-d="1" class="on">Normal</button><button data-d="2">Brutal</button></div>
+      <div class="seg" id="mutSeg"><span class="lab">Crazy rules</span><button data-v="1" class="on">On</button><button data-v="0">Off</button></div>
       <div class="seg" id="locSeg"><span class="lab">Start at</span><button data-l="in" class="on">Showroom</button><button data-l="out">Front street</button><button data-l="wing">Drum wing</button><button data-l="back">Back alley</button><button data-l="up">Violin shop 2F</button></div>
     </div>
     <div class="slots" id="slots"></div>

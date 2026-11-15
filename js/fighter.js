@@ -80,7 +80,7 @@ function updEffects(dt){
     if(c.t<0.35){const k=c.t/0.35;c.mesh.position.set(lerp(c.sx,c.x,k),lerp(c.sy,c.y+0.02,k)+Math.sin(k*Math.PI)*1.2,lerp(c.sz,c.z,k));c.mesh.rotation.z+=dt*12;continue;}
     c.mesh.position.set(c.x,c.y+0.02,c.z);
     let used=false;
-    if(c.owner)for(const e of enemiesOf(c.owner)){if(e.state==='down'||e.invT>0)continue;if(Math.hypot(e.pos.x-c.x,e.pos.z-c.z)<0.6&&Math.abs(e.y-c.y)<0.4){e.takeHit(c.owner,{dmg:6,knock:2,stun:.5,kd:1,unblockable:1});popup('ลื่นคูปอง!',e.headPos().add(V(0,0.5,0)),'combo',1);used=true;break;}}
+    if(c.owner)for(const e of enemiesOf(c.owner)){if(e.state==='down'||e.invT>0)continue;if(Math.hypot(e.pos.x-c.x,e.pos.z-c.z)<0.85&&Math.abs(e.y-c.y)<0.4){e.takeHit(c.owner,{dmg:9,knock:2,stun:.5,kd:1,unblockable:1,dizzy:.6});popup('ลื่นคูปอง!',e.headPos().add(V(0,0.5,0)),'combo',1);used=true;break;}}
     if(used||c.t>8||c.gone){if(c.owner)couponGone(c);scene.remove(c.mesh);coupons.splice(i,1);}}
   for(let i=drops.length-1;i>=0;i--){const d=drops[i];d.t+=dt;d.warn.material.opacity=0.25+0.25*Math.sin(d.t*20);
     if(d.t>d.delay&&!d.done){const k=Math.min(1,(d.t-d.delay)/0.3);d.piano.position.y=d.y+d.H*(1-k*k);
@@ -93,6 +93,12 @@ function updEffects(dt){
 
 /* ================= SMOKE / WIND / HIT FX ================= */
 const CRIT=0.12;
+/* CRAZY RULES: one random twist per round from round 2 on (G.mutOn, picked by the host in startRound; s.mu online) */
+const MUTS=[{k:'bighead',en:'BIG HEADS',ic:'🎈'},{k:'moon',en:'LOW GRAVITY',ic:'🌙'},{k:'slip',en:'SLIPPERY FLOOR',ic:'🧼'},{k:'rage',en:'SPECIALS GALORE',ic:'⚡'},
+  {k:'turbo',en:'TURBO SPEED',ic:'⏩'},{k:'tiny',en:'TINY FIGHTERS',ic:'🐜'},{k:'homerun',en:'HOME RUN HITS',ic:'⚾'},{k:'crit',en:'CRIT PARTY',ic:'💥'}];
+const MUT={k:null};const mutIs=k=>MUT.k===k;
+// wall splat damage by what you get slammed into (thrown fighters take ×1.6)
+const SPLAT={glass:9,glass2:9,grand:9,piano:8,car:8,shelf:7,amp:7,drums:7,tv:7,pole:7,case:7,cello:7,keyboard:6,counter:6,stage:6,ac:6,bike:6};
 const puffs=[],winds=[],ghosts=[];const puffGeo=new THREE.SphereGeometry(1,10,8),windGeo=new THREE.BoxGeometry(0.035,0.035,1);
 function puff(x,y,z,color,n,size,spd){puffFx(x,y,z,color,n,size,spd);}
 function puffFx(x,y,z,color,n,size,spd){for(let i=0;i<n&&puffs.length<260;i++){const m=new THREE.Mesh(puffGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.7,depthWrite:false}));
@@ -135,7 +141,7 @@ const SPECIALS={
   files:{name:'สั่งงานด่วน!!',range:8,fn:f=>{for(let i=-2;i<=2;i++)fireProj(f,'file',f.face+i*0.22,{speed:13,dmg:7,knock:4,stun:.4,spin:12});SFX.whoosh();}},
   chat:{name:'ตอบแชทรัวๆ!!',range:9,fn:f=>{f.stream={n:9,t:0,iv:.07,kind:'chat',o:{speed:16,dmg:3.2,knock:1.6,stun:.28},spread:.12};}},
   books:{name:'หนังสือมาใหม่!!',range:8,fn:f=>{f.stream={n:6,t:0,iv:.1,kind:'book',o:{speed:12,dmg:5,knock:2.5,stun:.32,spin:10},spread:.3};}},
-  trap:{name:'คูปองลด 5%!!',range:4,fn:f=>{for(let i=0;i<8;i++){const a=f.face+rand(-1,1),d=rand(1.1,4.2);spawnCoupon(f,f.pos.x+Math.sin(a)*d,f.pos.z+Math.cos(a)*d);}}},
+  trap:{name:'คูปองลด 5%!!',range:4,fn:f=>{for(let i=0;i<11;i++){const a=f.face+rand(-0.8,0.8),d=rand(1.1,4.6);spawnCoupon(f,f.pos.x+Math.sin(a)*d,f.pos.z+Math.cos(a)*d);}}},
   fork:{name:'ส้อมเสียง A440!!',range:3.2,fn:f=>{aoe(f,{r:3.4,dmg:8,dizzy:2.2,knock:3,color:0x7fe0ff,unblockable:1});SFX.tone('sine',440,0,1.6,0.35);SFX.tone('sine',880,0,1.2,0.12);}},
   chord:{name:'Power Chord สามช่า!!',range:6,fn:f=>{const wave=i=>{if(f.state==='ko'||G.phase!=='fight')return;aoe(f,{r:4+i*1.6,cone:0.95,dmg:i<2?9:20,knock:i<2?6:14,launch:i<2?0:7,kd:i===2?1:0,color:i<2?0xff8a00:0xff2a00,unblockable:i===2?1:0});SFX.chord(i);if(i===2){G.shake=Math.max(G.shake,0.7);popup('ร็อคไม่ตาย!! 🎸🔥',f.headPos().add(V(0,1,0)),'crit',1.3);}};wave(0);later(0.32,()=>wave(1));later(0.64,()=>wave(2));}},
   drop:{name:'ยกแกรนด์ทุ่ม!!',range:11,fn:f=>{const t=nearestEnemy(f,13);const x=t?t.pos.x:f.pos.x+Math.sin(f.face)*3,z=t?t.pos.z:f.pos.z+Math.cos(f.face)*3;spawnDrop(f,x,z);}},
@@ -143,7 +149,7 @@ const SPECIALS={
     const r=t.takeHit(f,{dmg:14,knock:2,stun:.6,unblockable:1});if(r){f.heal(14);popup('-14 ภาษี 💸',t.headPos().add(V(0,0.8,0)),'crit',1.2);popup('+14',f.headPos().add(V(0,0.6,0)),'good',1);}
     for(let i=0;i<3;i++){const p=fireProj(t,'paper',0,{visual:1,life:1.2,target:f});p.x+=rand(-.3,.3);p.y+=rand(0,.5);}}},
   flash:{name:'ปาปารัซซี่แฟลช!!',range:7,fn:f=>{doFlash(f,7.5,10,2.4);G.shake=Math.max(G.shake,0.3);[0.4,0.62,0.84].forEach((t,i)=>later(t,()=>{if(f.state!=='ko'&&G.phase==='fight')doFlash(f,6.5,5,0.7);}));later(1.0,()=>{if(f.state!=='ko'){f.fx.slow=0;popup('ได้ช็อตเด็ด! 📸',f.headPos().add(V(0,0.8,0)),'combo',1.1);}});}},
-  dash:{name:'ทอร์นาโดเกาหลี!!',range:6,fn:f=>{f.state='dash';f.dashing={t:1.15,sp:6.5,tornado:true,tick:0};SFX.tornado();G.slowT=Math.max(G.slowT,0.15);}},
+  dash:{name:'ทอร์นาโดเกาหลี!!',range:6,fn:f=>{f.state='dash';f.dashing={t:1.0,sp:6.5,tornado:true,tick:0};SFX.tornado();G.slowT=Math.max(G.slowT,0.15);}},
   pull:{name:'รีโนเวทด่วน!!',range:9,fn:f=>{const ts=enemiesOf(f).filter(e=>Math.hypot(e.pos.x-f.pos.x,e.pos.z-f.pos.z)<9.5&&e.state!=='down'&&e.invT<=0&&Math.abs(e.y-f.y)<3);
     if(!ts.length){popup('วัดไม่ถึง!',f.headPos(),'info');return;}
     ts.forEach((t,i)=>{if(t.state==='grab'&&t.victim){t.victim.state='idle';t.victim.grabbedBy=null;t.victim=null;}addTape(f,t);t.state='stun';t.stunT=1.8;t.atk=null;t.stream=null;t.dashing=null;t.pulled={by:f,t:.3,off:(i-(ts.length-1)/2)*0.75};});
@@ -163,7 +169,7 @@ Object.assign(SPECIALS,{
   quake:{name:'กระทืบแผ่นดินไหว!!',range:3.6,atk:'quake'},
   megaSlap:{name:'ตบเรียกสติ!!',range:2.4,atk:'megaSlap'},
   suplex:{name:'ซูเพล็กซ์ทะลุพื้น!!',range:2.8,fn:f=>f.doGrab(true)},
-  wind:{name:'พัดลมเบอร์ 3!!',range:8,fn:f=>{f.wind={t:1.6,tick:0};SFX.tornado();}},
+  wind:{name:'พัดลมเบอร์ 3!!',range:8,fn:f=>{f.wind={t:2.1,tick:0};SFX.tornado();}},
   parry:{name:'รับแล้วสวน!!',range:2.5,fn:f=>{f.fx.parry=1.3;popup('ตั้งท่ารับ... 🛡️',f.headPos().add(V(0,0.7,0)),'info',1);}},
 });
 for(const k in SPECIALS)if(SPECIALS[k].atk&&!SPECIALS[k].fn){const a=SPECIALS[k].atk;SPECIALS[k].fn=f=>f.startAtk(a,'special');}
@@ -214,11 +220,11 @@ const ATK={
   slapH:{startup:.17,active:.09,recover:.24,dmg:8,range:1.6,knock:3.6,stun:.4,rage:10,pose:'slapH',heavy:1},
   spinSlap:{startup:.12,active:.46,recover:.3,dmg:4,range:1.9,knock:1.6,stun:.45,rage:4,pose:'spin',arc:1,multi:{n:4,iv:.12,last:{dmg:7,knock:7,launch:5,kd:1,heavy:1}},call:'ตบหมุน 360!!'},
   kickL:{startup:.14,active:.08,recover:.2,dmg:6,range:2.0,knock:2.2,stun:.3,rage:8,pose:'kick'},
-  kickH:{startup:.3,active:.1,recover:.34,dmg:12,range:2.2,knock:5.5,stun:.5,rage:12,pose:'kickH',heavy:1},
+  kickH:{startup:.26,active:.1,recover:.34,dmg:12,range:2.2,knock:5.5,stun:.5,rage:12,pose:'kickH',heavy:1},
   dropkick:{startup:.16,active:.38,recover:.45,dmg:15,range:1.5,knock:11,stun:.9,launch:4,kd:1,rage:12,pose:'dropkick',lunge:{sp:9,a:.1,b:.54},sweep:1,jumpV:4.2,heavy:1,call:'ถีบยอดหน้า!!'},
-  chop:{startup:.13,active:.08,recover:.2,dmg:6,range:1.5,knock:1.8,stun:.32,rage:8,pose:'chop'},
-  lariat:{startup:.26,active:.14,recover:.32,dmg:11,range:1.8,knock:6,stun:.55,launch:3,kd:1,rage:12,pose:'lariat',lunge:{sp:5,a:.12,b:.4},heavy:1},
-  bodyslam:{startup:.6,active:.08,recover:.4,dmg:16,range:2.4,knock:7,stun:.8,launch:6,kd:1,rage:12,pose:'slam',arc:1,jumpV:7.2,onLand:1,heavy:1,call:'บอดี้สแลม!!'},
+  chop:{startup:.12,active:.08,recover:.2,dmg:7,range:1.5,knock:1.8,stun:.32,rage:8,pose:'chop'},
+  lariat:{startup:.24,active:.14,recover:.32,dmg:13,range:1.8,knock:6,stun:.55,launch:3,kd:1,rage:12,pose:'lariat',lunge:{sp:5,a:.12,b:.4},heavy:1},
+  bodyslam:{startup:.5,active:.08,recover:.4,dmg:16,range:2.4,knock:7,stun:.8,launch:6,kd:1,rage:12,pose:'slam',arc:1,jumpV:7.2,onLand:1,heavy:1,call:'บอดี้สแลม!!'},
   elbow:{startup:.1,active:.08,recover:.18,dmg:5.5,range:1.4,knock:2,stun:.3,rage:8,pose:'elbow'},
   headbutt:{startup:.22,active:.1,recover:.3,dmg:11,range:1.5,knock:4.5,stun:.6,rage:12,pose:'head',heavy:1,dizzy:.8},
   rocket:{startup:.2,active:.42,recover:.45,dmg:14,range:1.4,knock:9,stun:1,launch:5,kd:1,rage:12,pose:'rocket',lunge:{sp:11,a:.18,b:.62},sweep:1,heavy:1,dizzy:1.5,call:'จรวดหัวร้อน!!'},
@@ -229,7 +235,7 @@ const ATK={
   rushAtk:{startup:.1,active:1.2,recover:.35,dmg:2.4,range:2.0,knock:.5,stun:.3,rage:0,pose:'rush',multi:{n:16,iv:.07,last:{dmg:12,knock:9,launch:7,kd:1,heavy:1}},unblockable:1,noCrit:1},
   superKick:{startup:.18,active:.5,recover:.5,dmg:22,range:1.7,knock:16,stun:1.1,launch:6,kd:1,rage:0,pose:'dropkick',lunge:{sp:15,a:.12,b:.68},sweep:1,jumpV:5,heavy:1,unblockable:1},
   skyUpper:{startup:.2,active:.12,recover:.6,dmg:22,range:1.9,knock:3,stun:1.2,launch:13,kd:1,rage:0,pose:'skyUpper',jumpV:9,jumpAt:.18,heavy:1,unblockable:1},
-  quake:{startup:.83,active:.08,recover:.55,dmg:18,range:4.0,knock:9,stun:.9,launch:7,kd:1,rage:0,pose:'slam',arc:1,jumpV:10,onLand:1,heavy:1,unblockable:1,quake:1},
+  quake:{startup:.55,active:.08,recover:.5,dmg:24,range:5.0,knock:9,stun:.9,launch:7,kd:1,rage:0,pose:'slam',arc:1,jumpV:10,onLand:1,heavy:1,unblockable:1,quake:1},
   megaSlap:{startup:.32,active:.1,recover:.45,dmg:20,range:2.3,knock:15,stun:1,launch:4,kd:1,rage:0,pose:'slap',bigGlove:1,heavy:1,unblockable:1,dizzy:2},
 };
 // fighting styles: same 3 buttons (jab / hook / jab-jab-hook combo), different moves + a small trait
@@ -237,9 +243,9 @@ const STYLES={
   box:{name:'Boxer',icon:'🥊',desc:'Balanced, quick hands, combo ends in a launching uppercut',atk:{jab:'jab',hook:'hook',combo:'combo'},mv:['jab','hook','uppercut']},
   slap:{name:'Slapper',icon:'👋',desc:'Fastest hands in town; the combo is a 360° spin-slap that hits everyone around',atk:{jab:'slapL',hook:'slapH',combo:'spinSlap'},mv:['slap','backhand','360 spin-slap']},
   kick:{name:'Kicker',icon:'🦵',desc:'Longest reach, a bit slower; the combo is a flying drop-kick',atk:{jab:'kickL',hook:'kickH',combo:'dropkick'},mv:['low kick','roundhouse','drop-kick']},
-  wrestle:{name:'Wrestler',icon:'🤼',desc:'Grabs from further, throws harder, combo is a body-slam (walks a little slower)',atk:{jab:'chop',hook:'lariat',combo:'bodyslam'},mv:['chop','lariat','body-slam'],spd:0.93,grabR:2.0,throwMul:1.5},
-  head:{name:'Hothead',icon:'🔥',desc:'Headbutts make people dizzy, special fills faster, combo is a rocket headbutt',atk:{jab:'elbow',hook:'headbutt',combo:'rocket'},mv:['elbow','headbutt','rocket head'],rageMul:1.25},
-  drunk:{name:'Party Animal',icon:'🍻',desc:'Wobbly walk, dodges 20% of hits by luck, combo is a rolling tackle',atk:{jab:'drunkL',hook:'drunkH',combo:'roll'},mv:['wobble punch','haymaker','rolling tackle'],dodge:0.2},
+  wrestle:{name:'Wrestler',icon:'🤼',desc:'Grabs from further, throws harder, combo is a body-slam (walks a little slower)',atk:{jab:'chop',hook:'lariat',combo:'bodyslam'},mv:['chop','lariat','body-slam'],spd:1.0,grabR:2.0,throwMul:1.5},
+  head:{name:'Hothead',icon:'🔥',desc:'Headbutts make people dizzy, special fills faster, combo is a rocket headbutt',atk:{jab:'elbow',hook:'headbutt',combo:'rocket'},mv:['elbow','headbutt','rocket head'],rageMul:1.12},
+  drunk:{name:'Party Animal',icon:'🍻',desc:'Wobbly walk, dodges 15% of hits by luck, combo is a rolling tackle',atk:{jab:'drunkL',hook:'drunkH',combo:'roll'},mv:['wobble punch','haymaker','rolling tackle'],dodge:0.15},
 };
 const STYLE_KEYS=Object.keys(STYLES);
 const armGeo=new THREE.CylinderGeometry(0.1,0.09,1,8);
@@ -305,6 +311,7 @@ const UPV=V(0,1,0);
 const WALLFX={piano:['ชนเปียโน! 🎹','piano'],grand:['ชนแกรนด์! 🎹','piano'],bench:['ชนเก้าอี้!','thud'],guitar:['ชนกีตาร์! 🎸','guitar'],glass:['ชนกระจก!','glass'],counter:['ชนเคาน์เตอร์!','thud'],box:['ชนกล่องพัสดุ! 📦','thud'],shelf:['หนังสือร่วง! 📚','thud'],car:['รถร้อง! 🚨','alarm'],bike:['ชนมอไซค์!','metal'],cart:['ส้มตำหก! 🌶','thud'],pole:['ชนเสาไฟ!','metal'],planter:['ชนกระถาง!','thud'],stage:['ชนแท่น!','thud'],amp:['ชนตู้แอมป์! 🔊','wood'],sofa:['ล้มลงโซฟา! 🛋️','sofa'],table:['ชนโต๊ะ!','wood'],lamp:['ชนโคมไฟ! 💡','glass'],tv:['ชนทีวี! 📺','glass'],drums:['ชนกลอง! 🥁','plate'],keyboard:['ชนคีย์บอร์ด!','plate'],ac:['ชนแอร์!','metal'],bin:['ชนถังขยะ! 🗑️','metal'],mezz:['ติดผนัง!','thud'],stairs:['ชนบันได!','thud'],desk:['ชนโต๊ะ!','thud'],case:['ชนตู้ไวโอลิน! 🎻','violin'],cello:['ชนเชลโล่! 🎻','cello'],glass2:['ชนกระจก!','glass'],wall:['ติดผนัง!','thud']};
 const tigerTex=canvasTex(128,64,(g,w,h)=>{g.fillStyle='#ff9a1a';g.fillRect(0,0,w,h);g.fillStyle='#111';for(let i=0;i<9;i++){g.beginPath();const x=i*15;g.moveTo(x,0);g.lineTo(x+8,0);g.lineTo(x+2,h);g.lineTo(x-5,h);g.fill();}});
 
+const ROLL_T=0.38;
 class Fighter{
   constructor(ch,slot,o){
     this.ch=ch;this.slot=slot;this.team=o.team;this.human=o.human;this.color=o.color;this.label=o.label;
@@ -373,7 +380,7 @@ class Fighter{
     this.state='idle';this.atk=null;this.stunT=0;this.koT=0;this.downT=0;this.recT=0;this.win=false;this.winClip=null;this.queued=null;this.jabHand=0;this.t=Math.random()*5;this.walk=0;this.moving=0;this.wallCd=0;this.invT=0;
     this.face=this.faceT=face;this.spinA=0;this.seq=[];this.lastAtkEnd=-9;this.comboN=0;this.lastHitT=-9;this.knockdown=false;
     this.stream=null;this.dashing=null;this.pulled=null;this.victim=null;this.grabbedBy=null;
-    this.fx={dizzy:0,slow:0,buff:0,immune:0,parry:0};this.react=null;this.ap=null;if(this.head)this.head.rotation.set(0,0,0);this.wind=null;this.koFly=false;this.dusted=false;this.superGrab=false;
+    this.fx={dizzy:0,slow:0,buff:0,immune:0,parry:0};this.react=null;this.ap=null;if(this.head)this.head.rotation.set(0,0,0);this.wind=null;this.koFly=false;this.dusted=false;this.superGrab=false;this.lastStand=false;this.splatT=0;this.rollCd=0;this.lastAtt=null;this.blockAt=-9;
     if(this.held)this.removeHeld();
     this.body.rotation.set(0,0,0);this.body.position.set(0,0,0);this.body.scale.setScalar(this.S);this.bsc=this.S;this.squashT=0;this.torso.rotation.set(0,0,0);
     this.root.position.set(x,y,z);this.root.rotation.y=face;
@@ -433,6 +440,8 @@ class Fighter{
     handObj(this).add(mesh);this.held={type:it.type,dur:it.dur,mesh};SFX.pickup();popup('ได้ '+W.name+'!',this.headPos().add(V(0,0.7,0)),'good',1);
     this.state='recover';this.recT=0.15;
   }
+  startRoll(mx,mz){this.state='roll';this.rollT=0;this.rollDir=Math.atan2(mx,mz);this.face=this.faceT=this.rollDir;this.atk=null;this.queued=null;
+    this.invT=Math.max(this.invT,ROLL_T*0.8);this.rollCd=0.55;SFX.whoosh();puff(this.pos.x,this.y+0.15,this.pos.z,0xd8cbb0,4,0.45,1.6);}
   endDash(){this.dashing=null;this.state='recover';this.recT=0.35;}
   removeHeld(){if(this.held){const m=this.held.mesh;if(m.parent)m.parent.remove(m);this.held=null;}}
   dropHeld(){if(!this.held)return;dropWeapon(this.held.type,this.held.dur,this.pos.x+rand(-.4,.4),groundAt(this.pos.x,this.pos.z,this.y+0.5),this.pos.z+rand(-.4,.4));this.removeHeld();}
@@ -450,13 +459,13 @@ class Fighter{
       if(!d.arc&&dist>0.3&&(dx*fw.x+dz*fw.z)/dist<0.4)continue;
       let dmg=(o.dmg||d.dmg)*this.ch.pow*(this.fx.buff>0?1.5:1),knock=o.knock||d.knock;if(W){dmg*=W.dmg;knock+=W.knock;}
       if(this.style.dodge)knock*=rand(0.7,1.5);
-      const crit=!d.noCrit&&!W&&Math.random()<CRIT;
+      const crit=!d.noCrit&&!W&&Math.random()<(mutIs('crit')?0.5:CRIT);
       const r=e.takeHit(this,{dmg,knock,stun:o.stun||d.stun,launch:o.launch||d.launch,kd:o.kd||d.kd,heavy:d.heavy||o.heavy||W&&a.type==='swingH',rage:d.rage,unblockable:d.unblockable,crit,dizzy:d.dizzy,dir:d.arc?null:{x:fw.x,z:fw.z}});
       if(r){a.hitSet.add(e);if(r===true||r==='blocked')any=true;}
     }
     if(any&&d.sweep){a.t=Math.max(a.t,d.startup+d.active);this.vel.x-=fw.x*2.5;this.vel.z-=fw.z*2.5;}
     if(this.fx.buff>0&&a.slot!=='jab'&&a.slot!=='special'){const fw2=this.fwd();ringFx(this.pos.x+fw2.x,this.y,this.pos.z+fw2.z,2.2,0xff4040,0.35);for(const e of enemiesOf(this)){const dx=e.pos.x-this.pos.x-fw2.x,dz=e.pos.z-this.pos.z-fw2.z;if(Math.hypot(dx,dz)<2.2&&Math.abs(e.y-this.y)<1.6)e.takeHit(this,{dmg:5,knock:7,stun:.5,heavy:1});}SFX.thud();}
-    if(any&&W){if(W.sfx)SFX[W.sfx]();this.held.dur--;if(this.held.dur<=0){popup(W.name+' พัง!',this.headPos().add(V(0,0.6,0)),'info',1);burst(this.gloves[0].getWorldPosition(V(0,0,0)),0x8a6a4a,10,3);this.removeHeld();}}
+    if(any&&W&&this.held){if(W.sfx)SFX[W.sfx]();this.held.dur--;if(this.held.dur<=0){popup(W.name+' พัง!',this.headPos().add(V(0,0.6,0)),'info',1);burst(this.gloves[0].getWorldPosition(V(0,0,0)),0x8a6a4a,10,3);this.removeHeld();}}
     return any;
   }
   takeHit(att,h){
@@ -476,7 +485,15 @@ class Fighter{
     const hp=this.headPos();let dmg=h.dmg;
     if(this.state==='block'&&!h.unblockable){
       const fx=Math.sin(this.face),fz=Math.cos(this.face);
-      if(-(nx*fx+nz*fz)>-0.25){dmg*=0.15;this.hp=Math.max(1,this.hp-dmg);this.vel.x+=nx*h.knock*0.35;this.vel.z+=nz*h.knock*0.35;
+      if(-(nx*fx+nz*fz)>-0.25){
+        // PERFECT block: pressed just before the hit → no damage, the attacker staggers (a free punish)
+        if(att&&att!==this&&!h.thrown&&this.t-(this.blockAt??-9)<0.16&&(this.human!=null||this.net||Math.random()<AICFG[G.diff].perf)&&att.state!=='ko'&&Math.hypot(att.pos.x-this.pos.x,att.pos.z-this.pos.z)<3.4){
+          this.blockAt=-9;this.rage=Math.min(100,this.rage+12);
+          att.state='stun';att.atk=null;att.queued=null;att.stream=null;att.stunT=0.8;att.react={c:'hitM',t:0};att.vel.x-=nx*3;att.vel.z-=nz*3;att.setExpr('hurt',0.6);
+          popup('เป๊ะ!! ✨',hp.clone().add(V(0,0.5,0)),'crit',1.1);SFX.perfect();ringFx(this.pos.x,this.y+1,this.pos.z,1.8,0xbfe8ff,0.35);
+          burst(hp.clone().add(V(-nx*0.5,-0.2,-nz*0.5)),0xffffff,10,4);G.hitStop=Math.max(G.hitStop,0.12);G.slowT=Math.max(G.slowT,0.2);G.shake=Math.max(G.shake,0.2);
+          return 'parried';}
+        dmg*=0.15;this.hp=Math.max(1,this.hp-dmg);this.vel.x+=nx*h.knock*0.35;this.vel.z+=nz*h.knock*0.35;
         this.rage=Math.min(100,this.rage+4);if(att)att.rage=Math.min(100,att.rage+2);
         SFX.block();popup('กัน!',hp,'blk',0.7);burst(hp.clone().add(V(-nx*0.5,-0.2,-nz*0.5)),0x9fd4ff,5,2);return 'blocked';}
     }
@@ -485,7 +502,11 @@ class Fighter{
     if(h.crit){dmg*=1.6;h.knock=(h.knock||0)*1.4;crit=true;critFx(this,hp);}
     if(att&&G.clock-att.lastHitT<1.0&&att.comboN>=3)dmg*=1+Math.min(0.3,(att.comboN-2)*0.05);
     const armor=this.fx.buff>0;if(armor)dmg*=0.7;
+    if(att&&att!==this){this.lastAtt=att;this.lastAttT=this.t;}if(h.thrown)this.thrownAt=this.t;
+    if(mutIs('homerun')){h.knock=(h.knock||0)*1.7;if(h.launch)h.launch*=1.35;}
     this.hp-=dmg;
+    // LAST STAND: under 20 % the special fills twice as fast
+    if(this.hp>0&&this.hp<this.maxHp*0.2&&!this.lastStand&&G.mode!=='train'){this.lastStand=true;popup('ฮึดสู้!! 🔥',hp.clone().add(V(0,1.1,0)),'crit',1.2);SFX.voice(this.vp,'sp');}
     if(G.mode==='train'){if(this.hp<1)this.hp=1;trainHit(this,att,dmg);}
     if(this.state==='grab'&&this.victim){this.victim.state='idle';this.victim.grabbedBy=null;this.victim=null;}
     if(this.held&&(h.launch||h.knock>=6))this.dropHeld();
@@ -496,8 +517,8 @@ class Fighter{
       if(h.kd){this.knockdown=true;if(!h.launch){this.vy=Math.max(this.vy,3);this.y+=0.02;}}
       this.vel.x+=nx*h.knock;this.vel.z+=nz*h.knock;
     }else{this.vel.x+=nx*h.knock*0.25;this.vel.z+=nz*h.knock*0.25;if(Math.random()<.3)popup('ไม่สะเทือน! 💪',hp.clone().add(V(0,0.6,0)),'info',0.8);}
-    this.rage=Math.min(100,this.rage+8);
-    if(att){att.rage=Math.min(100,att.rage+(h.rage||9)*(att.style&&att.style.rageMul||1));
+    this.rage=Math.min(100,this.rage+8*(this.lastStand?2:1));
+    if(att){att.rage=Math.min(100,att.rage+(h.rage||9)*(att.style&&att.style.rageMul||1)*(att.lastStand?2:1));
       if(G.clock-att.lastHitT<1.0)att.comboN++;else att.comboN=1;att.lastHitT=G.clock;
       if(att.comboN>=3)comboPop(att);}
     if(h.dizzy&&this.fx.immune<=0){this.fx.dizzy=Math.max(this.fx.dizzy,h.dizzy);}
@@ -526,7 +547,17 @@ class Fighter{
     this.wallCd=0.45;const fx=WALLFX[b.tag]||WALLFX.wall;
     SFX[fx[1]]();G.shake=Math.max(G.shake,0.3);hype=Math.min(1,hype+0.4);
     popup(fx[0],this.headPos().add(V(0,0.4,0)),'info',1.1);
-    if(this.state!=='ko'&&G.phase==='fight')this.hp=Math.max(1,this.hp-3);
+    // WALL SPLAT: knocked hard into something → stuck to it for a moment (free follow-up), damage by what it was
+    const hard=this.impact>3.6&&(this.state==='stun'||this.knockdown)&&G.phase==='fight'&&this.state!=='ko';
+    if(hard){const thrown=this.t-(this.thrownAt??-9)<1.2,by=this.lastAtt&&this.t-(this.lastAttT??-9)<1.5?this.lastAtt:null;
+      const dmg=(SPLAT[b.tag]||5)*(thrown?1.6:1),l=Math.hypot(this.vel.x,this.vel.z)||1;this.splatN={x:this.vel.x/l,z:this.vel.z/l};
+      this.splatT=0.42;this.state='stun';this.stunT=Math.max(this.stunT,0.85);this.knockdown=false;this.atk=null;
+      this.squashT=0.3;this.squashK=0.22;G.hitStop=Math.max(G.hitStop,0.09);G.shake=Math.max(G.shake,0.45);
+      if(by){by.rage=Math.min(100,by.rage+10);if(G.clock-by.lastHitT<1.5){by.comboN++;by.lastHitT=G.clock;if(by.comboN>=3)comboPop(by);}}
+      const T=b.tag,txt=thrown?(T==='piano'||T==='grand'?'เสิร์ฟเปียโน!! 🎹':T==='glass'||T==='glass2'?'ทะลุกระจก!! 💥':T==='shelf'?'จมกองหนังสือ!! 📚':T==='car'?'ส่งขึ้นรถ!! 🚗':'เสิร์ฟผนัง!! 🧱'):'แปะผนัง!! 🧱';
+      popup(txt,this.headPos().add(V(0,0.9,0)),'crit',1.2);popup('-'+Math.round(dmg),this.headPos(),'crit',0.8);
+      if(this.hp-dmg<=0)this.takeHit(by,{dmg,knock:2,stun:.5,unblockable:1,heavy:1});else this.hp-=dmg;}
+    else if(this.state!=='ko'&&G.phase==='fight')this.hp=Math.max(1,this.hp-3);
     burst(this.headPos(),b.tag==='shelf'?0xc0392b:0xffffff,b.tag==='shelf'?14:7,3);
     if(b.tag==='grand'||b.tag==='piano')this.setExpr('hurt',0.5);
   }
@@ -547,7 +578,11 @@ class Fighter{
     const ch=this.ch;
     this.t+=dt;this.blocked=false;
     for(const k in this.fx)if(this.fx[k]>0)this.fx[k]=Math.max(0,this.fx[k]-dt);
-    if(this.invT>0)this.invT-=dt;if(this.wallCd>0)this.wallCd-=dt;
+    if(this.invT>0)this.invT-=dt;if(this.wallCd>0)this.wallCd-=dt;if(this.rollCd>0)this.rollCd-=dt;
+    if(mutIs('rage')&&this.state!=='ko')this.rage=Math.min(100,this.rage+28*dt);
+    // wall splat: stuck to the wall, sliding down, then peels off and drops
+    if(this.splatT>0){this.splatT-=dt;this.vel.x=this.vel.z=0;this.mv.x=this.mv.z=0;this.vy=Math.min(this.vy,0)*0.5;
+      if(this.splatT<=0&&this.state==='stun'){this.vel.x=this.splatN.x*3;this.vel.z=this.splatN.z*3;this.knockdown=true;this.vy=1.5;this.y+=0.02;}}
     if(this.exprT>0){this.exprT-=dt;if(this.exprT<=0&&this.state!=='ko')this.setExpr(this.win?'win':'normal');}
     const g0=groundAt(this.pos.x,this.pos.z,this.y);const onG=this.y<=g0+0.02&&this.vy<=0;
     let wx=0,wz=0;const S=this.state;
@@ -573,6 +608,8 @@ class Fighter{
           v.takeHit(this,{dmg:10*ch.pow*(this.style.throwMul||1),knock:7.5*(this.style.throwMul?1.25:1),stun:.8,launch:6.5,kd:1,unblockable:1,dir:fw,thrown:1,heavy:1});popup('ทุ่ม!!',v.headPos().add(V(0,0.8,0)),'combo',0.9);}}
     }
     else if(S==='recover'){this.recT-=dt;if(this.recT<=0)this.state='idle';}
+    else if(S==='roll'){this.rollT+=dt;const k=this.rollT/ROLL_T,sp=k<0.7?9.5:k<1?4:0;this.pos.x+=Math.sin(this.rollDir)*sp*dt;this.pos.z+=Math.cos(this.rollDir)*sp*dt;
+      if(this.rollT>=ROLL_T+0.1)this.state='idle';}
     else if(S==='dash'){
       const D=this.dashing;
       if(!D){this.state='idle';}
@@ -614,14 +651,19 @@ class Fighter{
     }
     else{
       if(it){
-        const dz=this.fx.dizzy>0;
-        this.state=it.block&&!dz?'block':'idle';
+        const dz=this.fx.dizzy>0,wantB=it.block&&!dz,mm=Math.hypot(it.mx,it.mz);
+        if(wantB&&S!=='block')this.blockAt=this.t; // perfect-block window starts when block is pressed
+        // block + a direction = dodge roll (invincible for most of it, short vulnerable end, cooldown)
+        if(wantB&&mm>0.5&&onG&&!(this.rollCd>0)){this.startRoll(it.mx,it.mz);}
+        else{
+        this.state=wantB?'block':'idle';
         if(this.state==='idle'){
           if(it.jump&&onG){this.vy=JUMPV*(this.fx.buff>0?1.06:1);this.y+=0.02;SFX.jump();}
           if(!dz&&it.grab)this.doGrab();
           else if(!dz&&it.atk)this.tryAttack(it.atk);
           wx=it.mx;wz=it.mz;
           if(dz){wx+=Math.sin(this.t*3)*0.7;wz+=Math.cos(this.t*2.3)*0.7;}
+        }
         }
       }else this.state='idle';
     }
@@ -642,14 +684,14 @@ class Fighter{
     let tx=0,tz=0;
     if(m>0.12&&this.state==='idle'){const k=Math.min(1,m)/m;tx=wx*k*sp;tz=wz*k*sp;this.faceT=Math.atan2(wx,wz);}
     this.moving=(m>0.12&&this.state==='idle')?Math.min(1,m):0;
-    const slick=G.rain>0&&zoneOf(this.pos)==='out'&&this.y<1;
+    const slick=mutIs('slip')||G.rain>0&&zoneOf(this.pos)==='out'&&this.y<1;
     const rate=slick?2.2:(onG?16:5);
     if(this.state!=='grabbed'){
       const k=1-Math.exp(-rate*dt);this.mv.x+=(tx-this.mv.x)*k;this.mv.z+=(tz-this.mv.z)*k;
       this.pos.x+=(this.mv.x+this.vel.x)*dt;this.pos.z+=(this.mv.z+this.vel.z)*dt;
       const dec=Math.exp(-(this.koFly?0.25:slick?1.6:5)*dt);this.vel.x*=dec;this.vel.z*=dec;
       const g2=groundAt(this.pos.x,this.pos.z,this.y);
-      if(this.y>g2+0.001||this.vy>0){this.airTop=Math.max(this.airTop||this.y,this.y);this.vy-=GRAV*dt;this.y+=this.vy*dt;if(this.y<=g2){this.y=g2;this.land();}}
+      if(this.y>g2+0.001||this.vy>0){this.airTop=Math.max(this.airTop||this.y,this.y);this.vy-=GRAV*(mutIs('moon')?0.42:1)*dt;this.y+=this.vy*dt;if(this.y<=g2){this.y=g2;this.land();}}
       else{this.y=g2;this.vy=0;this.airTop=this.y;
         if(this.moving>0.3&&this.human!=null){this.stepT=(this.stepT||0)-dt*this.moving;if(this.stepT<=0){this.stepT=0.27;SFX.step(lvlOf(this)==='f2'?2:zoneOf(this.pos)==='out'?1:0);}}}
       resolveBlocks(this);
@@ -733,14 +775,19 @@ class Fighter{
     if(AP==='dropkick'&&A.t>A.def.startup*0.4&&A.t<A.def.startup+A.def.active)this.body.rotation.x=lerp(this.body.rotation.x,-1.05,1-Math.exp(-18*dt));
     if(AP==='roll'&&A.t>A.def.lunge.a&&A.t<A.def.lunge.b){const k=(A.t-A.def.lunge.a)/(A.def.lunge.b-A.def.lunge.a);this.body.rotation.x=k*Math.PI*4;by=0.55*Math.sin(k*Math.PI);}
     if(S==='ko'&&this.koFly)this.body.rotation.x-=dt*16;
+    if(S==='roll'){const k=clamp(this.rollT/ROLL_T,0,1),a=k*Math.PI*2,h=0.6;this.body.rotation.x=a;by=h-h*Math.cos(a)+Math.sin(k*Math.PI)*0.25;this.body.position.z=-h*Math.sin(a);}
+    else this.body.position.z=0;
     if(ap)by=clamp(ap.p[11]*0.72,-0.16,0.12);
     if(this.win&&(this.ch.emote==='jump'||!this.ch.emote))by=Math.abs(Math.sin(t*7))*0.35;
+    if(S==='roll'){const k=clamp(this.rollT/ROLL_T,0,1),a=k*Math.PI*2;by=0.6-0.6*Math.cos(a)+Math.sin(k*Math.PI)*0.25;}
     this.body.position.y=by;
-    const bs=this.S*(this.fx.buff>0?1.25:1)*(this.win&&this.ch.emote==='flex'?1+Math.abs(Math.sin(t*6))*0.04:1);
+    this.head.scale.setScalar(mutIs('bighead')?2.1:1.26);
+    const bs=this.S*(mutIs('tiny')?0.62:1)*(this.fx.buff>0?1.25:1)*(this.win&&this.ch.emote==='flex'?1+Math.abs(Math.sin(t*6))*0.04:1);
     if(this.dusted)this.body.scale.setScalar(0.001);else{this.bsc=lerp(this.bsc||this.body.scale.x,bs,1-Math.exp(-8*dt));this.body.scale.setScalar(this.bsc);
       // squash on impact: held through the hit-stop (dt = 0), then springs back
       if(this.squashT>0){this.squashT-=dt;const k=Math.max(0,this.squashT/0.18)*this.squashK;this.body.scale.set(this.bsc*(1+k*0.6),this.bsc*(1-k),this.bsc*(1+k*0.6));}}
     if(this.ring)this.ring.visible=!this.dusted;
+    if(this.lastStand&&S!=='ko'&&dt>0&&NET.role!=='client'&&Math.random()<dt*5)puff(this.pos.x+rand(-.3,.3),this.y+rand(.4,1.6),this.pos.z+rand(-.3,.3),0xff4a2a,1,0.3,0.8);
     let lean=0,twist=0,roll=0;
     if(S==='stun')lean=-0.4;else if(S==='block')lean=0.15;else if(S==='grab')lean=0.2;else if(S==='dash')lean=0.35;
     else if(A){const a=A,p=a.t/a.def.startup,big=a.slot==='combo'||a.slot==='special';
@@ -796,7 +843,8 @@ class Fighter{
 function say(f,text,sp){popup(text,f.headPos().add(V(0,0.95*f.S,0)),'bubble'+(sp?' sp':''),sp?1.4:1.5);}
 
 /* ================= AI ================= */
-const AICFG=[{think:.45,aggr:.32,block:.1,spec:.35},{think:.26,aggr:.55,block:.33,spec:.6},{think:.13,aggr:.8,block:.6,spec:.9}];
+// roll = chance to dodge-roll a punch it sees coming; perf = chance its block counts as a perfect block
+const AICFG=[{think:.45,aggr:.32,block:.1,spec:.35,roll:.03,perf:0},{think:.26,aggr:.55,block:.33,spec:.6,roll:.12,perf:.25},{think:.13,aggr:.8,block:.6,spec:.9,roll:.25,perf:.6}];
 function aiThink(f,dt){
   const A=f.ai,C=AICFG[G.diff];
   const it={mx:0,mz:0,atk:null,block:false,jump:false,grab:false};
@@ -807,7 +855,9 @@ function aiThink(f,dt){
   if(A.blockT>0){A.blockT-=dt;it.block=true;return it;}
   const dx=tg.pos.x-f.pos.x,dz=tg.pos.z-f.pos.z,d=Math.hypot(dx,dz)||0.001,dy=tg.y-f.y;
   let threat=null;for(const e of G.f){if(e.team===f.team||e.state!=='attack'||!e.atk)continue;if(e.atk.t<e.atk.def.startup&&Math.hypot(e.pos.x-f.pos.x,e.pos.z-f.pos.z)<2.4){threat=e;break;}}
-  if(threat){if(!A.reacted){A.reacted=true;if(Math.random()<C.block){A.blockT=rand(.3,.55);it.block=true;return it;}}}else A.reacted=false;
+  if(threat){if(!A.reacted){A.reacted=true;
+    if(Math.random()<C.roll&&!(f.rollCd>0)){const tx=threat.pos.x-f.pos.x,tz=threat.pos.z-f.pos.z,l=Math.hypot(tx,tz)||1,s=Math.random()<0.5?1:-1;it.block=true;it.mx=tz/l*s;it.mz=-tx/l*s;return it;}
+    if(Math.random()<C.block){A.blockT=rand(.3,.55);it.block=true;return it;}}}else A.reacted=false;
   A.timer-=dt;
   if(A.timer<=0){
     A.timer=C.think*rand(.6,1.4);A.atk=null;A.grab=false;A.jump=false;
