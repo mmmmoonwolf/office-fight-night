@@ -38,6 +38,10 @@ const ROSTER=[
   sp:'megaSlap',emote:'jump',quotes:['ป๊อปปป!','กระต่ายน้อยเตะแรงนะ!','ผมสีมิ้นต์ไม่ได้แปลว่าใจดี!','ปิ๊ป ป๊อป บึ้ม!','เตะเสร็จไปกินไอติม!']},
  {id:'zuzu',name:'Zuzu Zoom',role:'Headphone dancer — fights to her own beat',model:'zuzu',skin:'#7a4a32',hair:'#141414',hairStyle:'bun',fem:true,shirt:'#2b2b2b',shorts:'#f5d21c',acc:['glasses'],accent:'#ff3b2f',
   sp:'wind',emote:'dance',quotes:['ซูมมม!','เปิดเพลงดังๆ!','จังหวะนี้ของฉัน!','หลบไปเลย เต้นผ่าน!','เบสแน่นกว่าหมัดอีก!']},
+ {id:'boggle',name:'Boggle Bug',role:'Bug-eyed zombie with a high heel stuck on his head — don\'t ask',model:'boggle',skin:'#7f9a52',hair:'#3a2a1a',hairStyle:'bald',shirt:'#2a4f9a',shorts:'#8a5a2a',acc:[],accent:'#7a1a1a',
+  sp:'pull',emote:'point',quotes:['อย่าถามเรื่องรองเท้า!','ตาโตเห็นหมด!','อ้าาาา... หิวสมอง!','บ็อกๆ บึ้ม!','ส้นสูงนี้ของแม่!']},
+ {id:'chuckles',name:'Mister Chuckles',role:'Silent creepy clown — the joke is on you',model:'chuckles',skin:'#f2f2f2',hair:'#1a1a1a',hairStyle:'buzz',shirt:'#151515',shorts:'#151515',sleeves:true,acc:['tie'],accent:'#d8d8d8',
+  sp:'flash',emote:'bow',quotes:['ฮิฮิฮิ...','ตลกไหมล่ะ?','ยิ้มหน่อยสิ~','มุกนี้เจ็บนะ!','ปิดไฟก่อนดีไหม... ฮิ']},
 ];
 // everyone is equal: characters only differ in looks — fighting style + special are picked separately (LOADOUT)
 ROSTER.forEach(c=>Object.assign(c,{hp:150,pow:1,spd:1,aspd:1,size:1,body:'3d'}));
