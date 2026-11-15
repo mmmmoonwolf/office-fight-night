@@ -5,7 +5,7 @@ Handoff notes for Claude Code. Read this first.
 ## What this is
 
 A silly 3D brawler in the browser (three.js r128 from cdnjs, no bundler). Set in a
-piano/guitar shop (a nameless music shop). One continuous map: the showroom (grand-piano podium, upright row, guitar
+nameless piano/guitar shop (no real shop or brand names anywhere — signs say "MUSIC SHOP", the street is "ซอยดนตรี / Music Lane"). One continuous map: the showroom (grand-piano podium, upright row, guitar
 wall, book shelf, counter, mezzanine "ห้องหัวหน้า" with stairs) opens through a glass door onto the sidewalk and the
 street (motorbike-taxi stand, som-tam cart, pickup truck, poles with tangled cables). A doorway on the mezzanine leads
 into the 2nd-floor violin & book shop (built above the right-hand neighbour) whose 4 front glass panes break when
