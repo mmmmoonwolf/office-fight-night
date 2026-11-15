@@ -76,7 +76,7 @@ function finish3D(f,m,clips){
     if(f.held){const t=f.held.type;f.removeHeld();f.setHeldVis(t);}
 }
 // which clip should play now, and where (t = seconds, or null to let it run)
-// (roll = Standing Dive Forward squeezed into the dodge roll; kickH alternates legs: Martelo left / MMA kick right)
+// (roll = Stand To Roll 0.35→1.95 s squeezed into the dodge roll; kickH alternates legs: Martelo left / MMA kick right)
 function pick3D(f){
   const S=f.state,A=f.atk,air=f.y>groundAt(f.pos.x,f.pos.z,f.y)+0.2;
   if(S==='ko')return{c:'stunned',t:Math.min(2.1,0.95+f.koT)};
@@ -89,7 +89,7 @@ function pick3D(f){
   if(S==='grab'){const w=B3ATK.throwBig,k=Math.min(1,f.grabT/(f.superGrab?0.55:0.32));return{c:'throwBig',t:w.a+(w.i-w.a)*k};}
   if(S==='recover'&&f.t-(f.throwAt||-9)<0.6){const w=B3ATK.throw,k=(f.t-f.throwAt)/0.6;return{c:'throw',t:k<0.2?w.a+(w.i-w.a)*k/0.2:w.i+(w.e-w.i)*(k-0.2)/0.8};}
   if(S==='block')return{c:'block',t:1.25};
-  if(S==='roll')return{c:'roll',t:0.1+clamp(f.rollT/(ROLL_T+0.1),0,1)*1.35};
+  if(S==='roll')return{c:'roll',t:0.35+clamp(f.rollT/(ROLL_T+0.1),0,1)*1.6};
   if(S==='dash')return f.dashing&&f.dashing.tornado?{c:'hurricane',loop:1,speed:1.4}:{c:'run',loop:1,speed:1.6};
   if(S==='attack'&&A){const d=A.def,P=d.pose||A.type,slot=A.slot;
     if(P==='rush')return{c:'rush',t:0.4+Math.max(0,A.t-d.startup)*1.6};
