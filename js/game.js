@@ -5,14 +5,15 @@ const SLOTCOL=['#e0303a','#2f6fe0','#2bb673','#f1b31c'];
 const TEAMCOL=[['#e0303a','#ff8a5c'],['#2f6fe0','#36c5f0']];
 const chOf=i=>i<0?BOSS_CH:ROSTER[i]; // -1 = arcade boss
 function humanLo(h,ch){const l=STATS.lo[h];return l&&STYLES[l.st]&&SPECIALS[l.sp]?l:{st:'box',sp:ch.sp};}
-const slotCount=()=>(G.mode==='ffa'||G.mode==='team')?4:2;
+const teamMode=m=>(m||G.mode)==='team'||(m||G.mode)==='paint';
+const slotCount=()=>(G.mode==='ffa'||teamMode())?4:2;
 function slotInfo(i){
   const m=G.mode,two=G.humans===2;let human=null,team=i,color=SLOTCOL[i],label='CPU';
   if(i===0)human=0;else if(i===1&&two&&m!=='arcade')human=1;
-  if(m==='team'){team=i<2?0:1;color=TEAMCOL[team][i%2];}
+  if(teamMode(m)){team=i<2?0:1;color=TEAMCOL[team][i%2];}
   if(m==='arcade'&&i===1){team=1;}
-  if(human!=null)label='P'+(human+1);else if(slotCount()>2)label='CPU'+(m==='team'?(team===0?' (Red)':' (Blue)'):'');
-  if(m==='team'&&human!=null)label+=' Red';
+  if(human!=null)label='P'+(human+1);else if(slotCount()>2)label='CPU'+(teamMode(m)?(team===0?' (Red)':' (Blue)'):'');
+  if(teamMode(m)&&human!=null)label+=' Red';
   return{human,team,color,label};
 }
 
@@ -85,6 +86,7 @@ function buildHUD(){
 }
 function spKeyOf(f){if(f.human==null)return'';if(padUsed(f.human===1?1:0))return'RB';if(f.human===0&&document.body.classList.contains('touch'))return'';if(f.human===1)return'P';return G.humans===2?'R':'L';}
 function updHUD(dt){
+  if(G.mode==='paint'){const p=NET.role==='client'&&NET.turf?NET.turf:turfPct();$('#turfR').style.width=(p[0]*100)+'%';$('#turfB').style.width=(p[1]*100)+'%';$('#turfT').textContent=Math.round(p[0]*100)+'%  🎨  '+Math.round(p[1]*100)+'%';}
   {const me=G.f.find(f=>f.human===0),sb=$('.tb[data-k=TSpec]');if(sb)sb.classList.toggle('ready',!!me&&me.rage>=100);}
   {const me=G.f.find(f=>f.human===0);$('#lowhp').classList.toggle('on',!!me&&me.state!=='ko'&&me.hp>0&&me.hp<me.maxHp*0.2&&G.phase==='fight'&&G.mode!=='train');}
   for(const f of G.f){const h=f.hud;if(!h)continue;
@@ -285,9 +287,9 @@ function startRound(loc){
   G.matchWinner=-1;
   resetWorld();clearPops();hideCenter();
   placeFighters(loc||G.roundLoc||G.loc);
-  G.timer=99;G.phase='intro';G.phaseT=0;G.roundWinner=-1;G.replayPending=false;G.lastKO=null;REC.length=0;hype=0;G.paused=false;G.timeScale=1;G.slowT=0;
+  G.timer=G.mode==='paint'?75:99;if(typeof paintReset==='function')paintReset();G.f.forEach(f=>f.spawn=[f.pos.x,f.y,f.pos.z,f.face]);$('#turf').classList.toggle('hidden',G.mode!=='paint');G.phase='intro';G.phaseT=0;G.roundWinner=-1;G.replayPending=false;G.lastKO=null;REC.length=0;hype=0;G.paused=false;G.timeScale=1;G.slowT=0;
   const p=G.f.find(f=>f.human===0)||G.f[0];CAM.yaw=(loc||G.roundLoc||G.loc)==='boss'?0.5:0;CAM.focus.set(p.pos.x,p.y,p.pos.z);
-  const vs=G.f.length===2?G.f[0].ch.name+' VS '+G.f[1].ch.name:(G.mode==='team'?'RED VS BLUE':'4-WAY BRAWL!');
+  const vs=G.f.length===2?G.f[0].ch.name+' VS '+G.f[1].ch.name:(G.mode==='paint'?'PAINT SPLAT! 🎨':teamMode()?'RED VS BLUE':'4-WAY BRAWL!');
   $('#roundLab').textContent=G.mode==='arcade'?('STAGE '+(G.arc.stage+1)+'/'+G.arc.list.length):G.mode==='train'?'Training · dummy: '+DUMMY_MODES[TR.dummy]+' [T]':('ROUND '+G.round);
   G.hurry=0;G.sudden=false;
   MUT.k=null;const later2=G.mode==='arcade'?G.arc.stage>0:G.round>1;
@@ -305,6 +307,10 @@ function onKO(f,att){
   G.lastKO=f;hype=1;SFX.crowd();
   if(f.bounty&&att&&att!==f&&att.state!=='ko'){f.bounty=false;att.heal(45);att.rage=100;banner('👑 '+att.ch.name+' claimed the bounty! +45 HP',2.4);popup('ค่าหัว!! 💰',att.headPos().add(V(0,1,0)),'combo',1.3);}
   if(G.phase!=='fight')return;
+  // paint: nobody is out for good — respawn at your start spot after 3 s
+  if(G.mode==='paint'){later(3,()=>{if(G.mode!=='paint'||G.phase!=='fight'||f.state!=='ko')return;const s=f.spawn||[0,0,0,0];f.reset(s[0],s[1],s[2],s[3]);f.invT=2;f.body.scale.setScalar(f.S);
+      puff(s[0],s[1]+0.5,s[2],PAINTCOL[f.team?1:0],10,0.7,2.5);});
+    paintAt(f.pos.x,groundAt(f.pos.x,f.pos.z,f.y+0.5),f.pos.z,(att&&att!==f?att.team:1-f.team)?1:0,2.6);return;}
   const at=aliveTeams();
   if(at.length<=1)endRoundBy(at.length?at[0]:-1,'ko');
   else{G.slowT=0.5;banner(f.ch.name+' is out! 😵',2);}
@@ -314,12 +320,14 @@ function endRoundBy(team,how){
   if(team>=0)G.wins[team]=(G.wins[team]||0)+1;
   const ws=G.f.filter(f=>f.team===team&&f.state!=='ko');ws.forEach(f=>{f.win=true;f.setExpr('win',0,true);});
   if(ws[0])say(ws[0],pick(ws[0].ch.quotes),true);
-  const wname=team<0?'':(G.mode==='team'?(team===0?'Red team':'Blue team'):(G.f.find(f=>f.team===team).ch.name));
+  const wname=team<0?'':(teamMode()?(team===0?'Red team':'Blue team'):(G.f.find(f=>f.team===team).ch.name));
   if(team<0)SFX.vo('its_a_tie',0.8);
   if(how==='ko'){G.slowT=1.0;showCenter('K.O.!!',wname?wname+' wins the round!':'DRAW!',2.2);G.replayPending=false;}
   else{SFX.bell();SFX.vo('time_over',0.4);showCenter('TIME!',wname?wname+' wins on points!':'Draw! Back to work',2.4);}
 }
 function timeUp(){
+  if(G.mode==='paint'){const p=turfPct(),w=Math.abs(p[0]-p[1])<0.005?-1:(p[0]>p[1]?0:1);
+    endRoundBy(w,'time');showCenter('TIME!',w<0?'Dead even!':(w===0?'Red':'Blue')+' team painted '+Math.round(p[w]*100)+'%!',2.4);return;}
   const score={};G.f.forEach(f=>{score[f.team]=(score[f.team]||0)+Math.max(0,f.hp)/f.maxHp;});
   let best=-1,bv=-1,tie=false;for(const t in score){if(score[t]>bv+0.005){bv=score[t];best=+t;tie=false;}else if(Math.abs(score[t]-bv)<=0.005)tie=true;}
   // a draw on time → SUDDEN DEATH: everyone left is on 1 HP, first clean hit wins (once per round)
@@ -349,7 +357,7 @@ function endMatch(team){
     if(unlocks.length)SFX.voLocal('level_up',2.6);}
   setTimeout(()=>{if(G.phase!=='end')return;
     const hw=winners.find(f=>f.human!=null);
-    $('#endTitle').textContent=G.mode==='team'?((team===0?'Red team':'Blue team')+' WINS! 🏆'):(hw?(G.humans===2?hw.label+' WINS! 🏆':'YOU WIN! 🏆'):(winners[0].ch.name+' wins… 😵'));
+    $('#endTitle').textContent=teamMode()?((team===0?'Red team':'Blue team')+' WINS! 🏆'):(hw?(G.humans===2?hw.label+' WINS! 🏆':'YOU WIN! 🏆'):(winners[0].ch.name+' wins… 😵'));
     const pics=$('#endPics');pics.innerHTML='';winners.forEach(f=>{const c=document.createElement('canvas');c.width=c.height=260;portrait(f.ch,c,'win');pics.appendChild(c);});
     const w0=winners[0];$('#endSub').innerHTML='';const q=document.createElement('div');q.textContent=w0.ch.name+' : "'+pick(w0.ch.quotes)+'" · '+titleOf(winsOf(w0.ch));$('#endSub').appendChild(q);
     if(G.matchBill>0){const d=document.createElement('div');d.style.color='#ff8a8a';d.style.fontWeight='800';d.textContent='💸 Shop damage: '+baht(G.matchBill)+' — coming out of everyone\'s paycheck!';$('#endSub').appendChild(d);}
@@ -574,7 +582,7 @@ function buildSlots(){
     el.innerHTML=`<span class="tag" style="--c:${inf.color}"></span><b></b>`;el.querySelector('.tag').textContent=inf.label;el.querySelector('b').textContent=ROSTER[G.slots[i]].name;
     el.addEventListener('click',()=>{G.slotSel=i;buildSlots();});box.appendChild(el);
     if(n===2&&i===0){const v=document.createElement('div');v.className='vs';v.textContent='VS';box.appendChild(v);}
-    if(G.mode==='team'&&i===1){const v=document.createElement('div');v.className='vs';v.textContent='VS';box.appendChild(v);}}
+    if(teamMode()&&i===1){const v=document.createElement('div');v.className='vs';v.textContent='VS';box.appendChild(v);}}
   if(G.mode!=='arcade'){const r=document.createElement('button');r.className='btn ghost';r.textContent='🎲 Random CPUs';r.addEventListener('click',()=>{for(let i=0;i<slotCount();i++)if(slotInfo(i).human==null)G.slots[i]=Math.floor(Math.random()*ROSTER.length);buildSlots();updateCards();buildFromSlots();});box.appendChild(r);}
   const hints={duel:'One on one — first to 2 rounds',ffa:'Four-way free-for-all — last one standing takes the round',team:'2 vs 2 · no friendly fire'+(G.humans===2?' · P1 + P2 are on the same team':''),train:'Training: practise on a dummy, no timer, health refills after 2 s without a hit',arcade:'Pick a fighter and climb a ladder of 5 + the big boss (single player)'};
   $('#menuHint').textContent=hints[G.mode]+' · click a slot above, then a card · names and face photos can be edited';

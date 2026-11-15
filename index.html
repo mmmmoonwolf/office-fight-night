@@ -79,6 +79,9 @@ body.touch #hint{display:none}
 @keyframes slam{from{opacity:0;transform:scale(2.4)}to{opacity:1;transform:scale(1)}}
 @keyframes fadeIn{to{opacity:1}}
 #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+#turf{position:relative;width:min(300px,52vw);height:14px;margin:6px auto 0;border-radius:7px;overflow:hidden;background:#222;display:flex;border:2px solid rgba(255,255,255,.7)}
+#turf.hidden{display:none}#turf i{display:block;height:100%;transition:width .3s}#turfR{background:#ff3b6b}#turfB{background:#2fb8ff;margin-left:auto}
+#turfT{position:absolute;inset:0;font:800 10px/14px Fredoka,sans-serif;text-align:center;color:#fff;text-shadow:0 1px 2px #000}
 #lowhp{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .4s;box-shadow:inset 0 0 90px 30px rgba(255,30,30,.55);z-index:3}
 #lowhp.on{opacity:1;animation:lowpulse .9s ease-in-out infinite}
 @keyframes lowpulse{50%{box-shadow:inset 0 0 120px 46px rgba(255,30,30,.75)}}
@@ -232,6 +235,7 @@ body.touch.fighting #touch{display:block}
   <div class="mid">
     <div id="timer">99</div>
     <div id="roundLab">ROUND 1</div>
+    <div id="turf" class="hidden"><i id="turfR"></i><i id="turfB"></i><span id="turfT"></span></div>
     <div id="topBtns"><button class="ib" id="pauseBtn" title="Pause">⏸</button><button class="ib" id="muteBtn" title="Sound">🔊</button></div>
   </div>
   <div class="grp r" id="hudR"></div>
@@ -250,7 +254,7 @@ body.touch.fighting #touch{display:block}
   <div class="wrap">
     <div class="title"><h1>OFFICE FIGHT NIGHT 🥊</h1><div class="sub2">Brawl through the piano shop, out the door and round the block!</div></div>
     <div class="row">
-      <div class="seg" id="modeSeg"><button data-m="duel" class="on">Duel 1v1</button><button data-m="ffa">4-Way Brawl</button><button data-m="team">Team 2v2</button><button data-m="train">Training 🥋</button><button data-m="arcade">Arcade 🏆</button></div>
+      <div class="seg" id="modeSeg"><button data-m="duel" class="on">Duel 1v1</button><button data-m="ffa">4-Way Brawl</button><button data-m="team">Team 2v2</button><button data-m="paint">Paint Splat 🎨</button><button data-m="train">Training 🥋</button><button data-m="arcade">Arcade 🏆</button></div>
     </div>
     <div class="row">
       <div class="seg" id="humSeg"><span class="lab">Players</span><button data-h="1" class="on">1 player</button><button data-h="2">2 players (same keyboard)</button></div>
@@ -280,7 +284,7 @@ body.touch.fighting #touch{display:block}
       <div class="roomcode">Room code <b id="onCodeShow"></b><button class="btn sm ghost" id="onCopy" style="flex:none">Copy</button></div>
       <div id="onPlayers" class="onplayers"></div>
       <div id="onHostBox">
-        <div class="onseg seg" id="onMode"><button data-v="duel">Duel 1v1</button><button data-v="ffa">4-Way Brawl</button><button data-v="team">Team 2v2</button></div>
+        <div class="onseg seg" id="onMode"><button data-v="duel">Duel 1v1</button><button data-v="ffa">4-Way Brawl</button><button data-v="team">Team 2v2</button><button data-v="paint">Paint Splat 🎨</button></div>
         <div class="onseg"><div class="seg" id="onDiff"><span class="lab">CPU</span><button data-v="0">Easy</button><button data-v="1">Normal</button><button data-v="2">Brutal</button></div><div class="seg" id="onLoc"><span class="lab">Start at</span><button data-v="in">Showroom</button><button data-v="out">Street</button><button data-v="up">2nd floor</button></div></div>
         <div class="onrow"><button class="btn big" id="onStart">Start match! 🥊</button></div>
       </div>

@@ -49,7 +49,15 @@ someone is knocked into them — they drop onto the sidewalk and take fall damag
   `dusted` shrinks the body to scale 0, which travels in `snap()` so clients and the KO replay see it too).
 - Smoke/wind: `puff` (soft spheres), `windFx` (streaks), ghosts — updated by `updSmoke` every frame (also in replays and
   on clients); `puff`/`windFx`/`koDust` are broadcast by net.js (`pf`/`wd`/`kd`, wind rate-limited).
-- Modes: duel 1v1, FFA 4, team 2v2, arcade ladder (5 + boss) — offline 1–2 players on one keyboard
+- Modes: duel 1v1, FFA 4, team 2v2, **Paint Splat 2v2** (`G.mode==='paint'`, `teamMode()`), arcade ladder (5 + boss) — offline 1–2 players on one keyboard
+- **Paint Splat** (fighter.js "PAINT SPLAT MODE"): jab → `pshot` paint pellet, hook → `pbomb` lobbed bomb (lands ~6 m,
+  2.4 m splash), jab-jab-hook → `pspray` 5-pellet fan (`ATK.*.shoot` → `paintShoot`, host only); grab + specials as
+  usual. Projectile kinds `paint0/1`, `pbomb0/1`; on landing `paintEnd` → `paintAt(x,y,z,team,r)` draws a decal (pool
+  of 700) and marks a 1 m turf grid over `WORLD` (`PAINT.cells/cnt`, `turfPct()`). 75 s rounds, a KO paints a big splat
+  in the killer's colour and respawns the victim at its start spot after 3 s (`f.spawn`, `later`), time-up → most turf
+  wins (`timeUp`). HUD `#turf` bar. Online: `paintAt` is broadcast (`pa` fx), turf % rides in `s.pt` (`NET.turf`),
+  clients reset paint on `intro`. AI keeps 4–8 m away, lobs bombs at 4.5–7.5 m, sprays turf while walking, ignores
+  weapons. A paint blaster mesh sits in the right hand (`paintGun`, body3d.js).
 - Training room (`G.mode==='train'`, offline only): no timer, no random events, nobody can be KO'd, HP refills after
   2 s without being hit, human rage refills by itself; `T` cycles the dummy (`TR.dummy`: stand / always block / fight
   back via `aiThink`); the dummy's HUD line shows the current combo's hits + damage (`trainHit`, called from `takeHit`)
@@ -148,8 +156,8 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
   looks at the fighter's back (`Fighter.hairFade`, run every frame after `updCamera`; off in photo mode).
 - `zoneOf` ('in'/'out'), `lvlOf` and `onMezz` drive AI path-finding: `exitWp` picks the cheapest door or smashed hole
   between store and street, `outdoorWp` walks around the block via its corners (`BCORN`, `segHitsRect`).
-- Events (`updEvents`, host only; `G.forceEvent` forces the next one): customer, piano movers, rain, **flood** (rare: ≥ 90 s
-  apart via `G.lastFlood`, 25 % when eligible)
+- Events (`updEvents`, host only; `G.forceEvent` forces the next one): customer, piano movers, rain, delivery van, bikes.
+  **Flood, storm and blackout are no longer picked at random** (code kept, only via `G.forceEvent`):
   (`FLOOD`: water rises to 0.5 m, `inWater` → 62 % speed + splashes, floating junk, a live cable shocks anyone in the
   water near one pole), **blackout** (`EV.blackout`: lights down — no longer in the random pool, only via `G.forceEvent`), **storm** (`EV.storm`: gusts push
   everyone outdoors, thunder flashes), **delivery van** (`NPC.van`, one lap of the loop on `VANPATH`), motorbikes on

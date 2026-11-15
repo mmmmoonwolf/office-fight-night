@@ -153,6 +153,23 @@ async function offline(browser) {
   await sleep(2600);
   ok(await ev("G.f[1].hp===G.f[1].maxHp && G.f[0].rage===100 && G.phase==='fight'"), 'dummy heals and special gauge refills');
   await pg.keyboard.press('KeyT'); ok(await ev('TR.dummy') === 1, 'T cycles the dummy behaviour');
+  // PAINT SPLAT: 2v2 paint-gun mode — shots paint the floor, bombs splash, KOs respawn, most turf wins
+  await ev('toMenu()'); await pg.click('#modeSeg button[data-m="paint"]'); await pg.click('#startBtn'); await pg.click('#loadGo'); await sleep(1700);
+  ok(await ev("G.mode==='paint'&&G.f.length===4&&G.f.map(f=>f.team).join()==='0,0,1,1'&&G.timer<=75&&!$('#turf').classList.contains('hidden')"), 'paint mode: 2v2, 75 s, turf bar shown');
+  await ev("window.__ai4=aiThink;aiThink=()=>({mx:0,mz:0,atk:null,block:false,jump:false,grab:false});G.evT=1e9;const f=G.f[0];f.state='idle';f.atk=null;f.tryAttack('jab')");
+  ok(await ev("G.f[0].atk&&G.f[0].atk.type==='pshot'"), 'jab fires the paint gun');
+  await sleep(1200);
+  ok(await ev("PAINT.cnt[0]>0"), 'a paint pellet paints the floor in the team colour (' + await ev('PAINT.cnt[0]') + ' cells)');
+  await ev("const a=G.f[0],v=G.f[2];v.pos.x=a.pos.x+Math.sin(a.face)*5.8;v.pos.z=a.pos.z+Math.cos(a.face)*5.8;v.y=a.y;v.state='idle';v.invT=0;v.hp=v.maxHp;window.__h0=v.hp;a.state='idle';a.atk=null;a.tryAttack('hook')");
+  await sleep(1500);
+  ok(await ev("G.f[2].hp<__h0"), 'paint bomb lands ~6 m away and splashes the enemy');
+  await ev("const v=G.f[3];v.state='idle';v.invT=0;v.hp=1;v.fx.parry=0;v.takeHit(G.f[0],{dmg:5,knock:1,stun:.3,unblockable:1})");
+  ok(await ev("G.f[3].state==='ko'&&G.phase==='fight'"), 'a KO does not end a paint round');
+  await sleep(3600);
+  ok(await ev("G.f[3].state!=='ko'&&G.f[3].hp===G.f[3].maxHp"), 'KO\'d painter respawns after 3 s');
+  await ev("for(let i=0;i<30;i++)paintAt(-10+i*0.7,0,-5,1,1.5);G.timer=0.05"); await sleep(400);
+  ok(await ev("G.roundWinner===1"), 'time-up: the team with more turf wins the round');
+  await ev("aiThink=__ai4");
   await ev('toMenu()'); await pg.click('#modeSeg button[data-m="arcade"]'); await pg.click('#startBtn'); await pg.click('#loadGo'); await sleep(300);
   for (let st = 0; st < 6; st++) {
     await pg.click('#interGo'); await sleep(1600);
@@ -215,6 +232,10 @@ async function online(browser, page, label) {
   ok(await C1("NET.role") === 'lobby', 'client returns to lobby when host leaves the match');
   await c2.click('#onlineBtn'); await c2.fill('#onCode', code); await c2.click('#onEnter'); await sleep(1500);
   await host.click('#onMode button[data-v="ffa"]'); await host.click('#onStart'); await sleep(1500);
+  await H('netQuitMatch()'); await sleep(800); await host.click('#onMode button[data-v="paint"]'); await host.click('#onStart'); await sleep(1500);
+  await H("G.evT=1e9;for(let i=0;i<12;i++)paintAt(i*0.8,0,0,1,1.2)"); await sleep(900);
+  ok(await C1("G.mode==='paint'&&PAINT.cnt[1]>0&&Array.isArray(NET.turf)&&NET.turf[1]>0.5"), 'paint splats and turf % reach the clients');
+  await H('netQuitMatch()'); await sleep(800); await host.click('#onMode button[data-v="ffa"]'); await host.click('#onStart'); await sleep(1500);
   ok(await C2('NET.role') === 'client' && await C2('G.f.length') === 4, 'third player joins a 4-slot FFA');
   ok(await H("G.f.filter(f=>f.player).length") === 3, '3 human slots + 1 CPU');
   for (let i = 0; i < 10; i++) { await c1.keyboard.press('KeyJ'); await c2.keyboard.press('KeyK'); await c2.keyboard.press('Space'); await sleep(120); }

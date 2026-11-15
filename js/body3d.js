@@ -111,7 +111,14 @@ function pick3D(f){
     return{c:'walk',loop:1,speed:clamp(v/1.6,0.6,1.5)};}
   return{c:'idle',loop:1};
 }
-function play3D(f,c,t,dt,speed){const B=f.b3,a=B.acts[c];if(!a)return;
+function paintGun(f){const B=f.b3,on=G.mode==='paint';if(!B||!B.hand[1])return;
+  if(on&&!f.gun){const g=new THREE.Group(),col=PAINTCOL[f.team?1:0],s=handScale(f);
+    const body=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.12,0.34),M('#f4f4f4',{roughness:.4}));body.position.z=0.1;g.add(body);
+    const tank=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.16,12),M(col,{roughness:.2,emissive:new THREE.Color(col),emissiveIntensity:.3}));tank.position.set(0,0.12,0.06);g.add(tank);
+    const noz=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.04,0.12,10),M('#333'));noz.rotation.x=Math.PI/2;noz.position.z=0.32;g.add(noz);
+    g.scale.setScalar(s);B.hand[1].add(g);f.gun=g;}
+  if(f.gun)f.gun.visible=on&&!f.held;}
+function play3D(f,c,t,dt,speed){const B=f.b3,a=B.acts[c];if(!a)return;paintGun(f);
   if(B.cur!==c){const old=B.acts[B.cur];a.reset();a.setEffectiveWeight(1);a.play();if(old)a.crossFadeFrom(old,c==='stunned'||/^hit/.test(c)?0.06:0.12,false);B.cur=c;}
   if(t!=null){a.timeScale=0;a.time=Math.min(t,a.getClip().duration-0.001);}else a.timeScale=speed||1;
   B.mixer.update(dt);if(B.headBone)B.headBone.scale.setScalar(mutIs('bighead')?1.75:1);}
