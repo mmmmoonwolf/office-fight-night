@@ -83,8 +83,9 @@ function buildHUD(){
     el.querySelector('.nm span').textContent=f.ch.name;(right?R:L).appendChild(el);
     f.hud={el,hp:el.querySelector('.hp'),lag:el.querySelector('.lag'),rg:el.querySelector('.rage i'),rgw:el.querySelector('.rage'),sub:el.querySelector('.sub')};});
 }
-function spKeyOf(f){if(f.human==null)return'';if(f.human===1)return'P';return G.humans===2?'R':'L';}
+function spKeyOf(f){if(f.human==null)return'';if(padUsed(f.human===1?1:0))return'RB';if(f.human===0&&document.body.classList.contains('touch'))return'';if(f.human===1)return'P';return G.humans===2?'R':'L';}
 function updHUD(dt){
+  {const me=G.f.find(f=>f.human===0),sb=$('.tb[data-k=TSpec]');if(sb)sb.classList.toggle('ready',!!me&&me.rage>=100);}
   {const me=G.f.find(f=>f.human===0);$('#lowhp').classList.toggle('on',!!me&&me.state!=='ko'&&me.hp>0&&me.hp<me.maxHp*0.2&&G.phase==='fight'&&G.mode!=='train');}
   for(const f of G.f){const h=f.hud;if(!h)continue;
     f.lagHp=f.lagHp>f.hp?Math.max(f.hp,f.lagHp-f.maxHp*0.6*dt):f.hp;
@@ -144,6 +145,15 @@ const SCH={
 const PADMAP={up:['Up'],dn:['Down'],lf:['Left'],rt:['Right'],jab:['X'],hook:['Y'],sp:['RB','RT'],blk:['LB','LT'],grab:['B'],jump:['A']};
 const PADLAB={jab:'X',hook:'Y',sp:'RB',blk:'LB',grab:'B',jump:'A'};
 [['solo',0],['p1',0],['p2',1]].forEach(([s,n])=>{for(const a in PADMAP)SCH[s][a]=SCH[s][a].concat(PADMAP[a].map(b=>'G'+n+b));});
+// touch COMBO button: feeds jab → jab → hook, each one buffered while the previous move plays, so it always chains
+const TCQ={q:[],t:0};
+function touchCombo(){if(TCQ.q.length&&TCQ.age<2)return;TCQ.q=['TJab','TJab','THook'];TCQ.t=0;TCQ.age=0;}
+function touchComboTick(raw){if(!TCQ.q.length)return;TCQ.t-=raw;TCQ.age=(TCQ.age||0)+raw;if(TCQ.age>2.5){TCQ.q=[];return;} // stuck (stunned, knocked down…) → drop it
+  // offline / host: send the next press as soon as our fighter can buffer it (never overwrite a buffered press);
+  // online client (no local simulation): fall back to the fixed spacing
+  const me=NET.role!=='client'&&G.f.find(f=>f.human===0);
+  const ready=me?(me.state==='idle'||(me.state==='attack'&&!me.queued&&me.atk&&me.atk.t>0.05)):TCQ.t<=0;
+  if(ready&&TCQ.t<=0.3){pressed.add(TCQ.q.shift());TCQ.t=0.36;}}
 function readPlayer(h){
   const S=h===1?SCH.p2:(G.humans===2?SCH.p1:SCH.solo);
   let rx=(has(held,S.rt)?1:0)-(has(held,S.lf)?1:0),rf=(has(held,S.up)?1:0)-(has(held,S.dn)?1:0);
@@ -156,15 +166,29 @@ function readPlayer(h){
 }
 (function(){
   const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0;if(isTouch)document.body.classList.add('touch');
-  const st=$('#stick'),kn=$('#knob');let sid=null;
-  const mv=e=>{const r=st.getBoundingClientRect();let dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);const m=Math.hypot(dx,dy),R=r.width/2;if(m>R){dx*=R/m;dy*=R/m;}touch.x=dx/R;touch.y=dy/R;kn.style.transform=`translate(${dx}px,${dy}px)`;};
-  st.addEventListener('pointerdown',e=>{sid=e.pointerId;try{st.setPointerCapture(sid);}catch(_){}mv(e);e.preventDefault();});
-  st.addEventListener('pointermove',e=>{if(e.pointerId===sid)mv(e);});
-  const end=e=>{if(e.pointerId!==sid)return;sid=null;touch.x=touch.y=0;kn.style.transform='';};
-  st.addEventListener('pointerup',end);st.addEventListener('pointercancel',end);
-  document.querySelectorAll('.tb').forEach(b=>{const k=b.dataset.k;
-    b.addEventListener('pointerdown',e=>{SFX.init();held.add(k);pressed.add(k);e.preventDefault();});
-    const up=()=>held.delete(k);b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('pointerleave',up);});
+  // floating stick: it jumps under the thumb wherever the left zone is touched, and springs back on release
+  const zone=$('#stickZone'),st=$('#stick'),kn=$('#knob');let sid=null,cx=0,cy=0;
+  const R=()=>st.getBoundingClientRect().width/2;
+  const mv=e=>{let dx=e.clientX-cx,dy=e.clientY-cy;const m=Math.hypot(dx,dy),r=R();if(m>r){dx*=r/m;dy*=r/m;}touch.x=dx/r;touch.y=dy/r;kn.style.transform=`translate(${dx}px,${dy}px)`;};
+  zone.addEventListener('pointerdown',e=>{if(sid!=null)return;sid=e.pointerId;try{zone.setPointerCapture(sid);}catch(_){}SFX.init();
+    const zr=zone.getBoundingClientRect(),r=R(),sr=st.getBoundingClientRect();
+    cx=clamp(e.clientX,zr.left+r,zr.right-r);cy=clamp(e.clientY,zr.top+r,zr.bottom-r);
+    st.style.left=(cx-zr.left-sr.width/2)+'px';st.style.bottom=(zr.bottom-cy-sr.height/2)+'px';st.classList.add('on');mv(e);e.preventDefault();});
+  zone.addEventListener('pointermove',e=>{if(e.pointerId===sid)mv(e);});
+  const end=e=>{if(e.pointerId!==sid)return;sid=null;touch.x=touch.y=0;kn.style.transform='';st.classList.remove('on');st.style.left='';st.style.bottom='';};
+  zone.addEventListener('pointerup',end);zone.addEventListener('pointercancel',end);
+  // buttons: one handler on the cluster; each finger presses whatever button is under it, and sliding onto another
+  // button releases the old one and presses the new one (jab → hook rolls). Hit areas are the nearest button
+  // centre within reach, so near-misses still count.
+  const box=$('#tbtns'),btns=[...box.querySelectorAll('.tb')],own=new Map();
+  const under=(x,y)=>{let best=null,bd=1e9;for(const b of btns){const r=b.getBoundingClientRect(),d=Math.hypot(x-(r.left+r.width/2),y-(r.top+r.height/2))-r.width/2;if(d<bd){bd=d;best=b;}}return bd<14?best:null;};
+  const press=b=>{const k=b.dataset.k;b.classList.add('on');if(k==='TCombo'){touchCombo();}else{held.add(k);pressed.add(k);}try{if(navigator.vibrate)navigator.vibrate(12);}catch(_){}};
+  const release=b=>{if(!b)return;b.classList.remove('on');held.delete(b.dataset.k);};
+  const at=e=>{const b=under(e.clientX,e.clientY),cur=own.get(e.pointerId);if(b===cur)return;release(cur);if(b){own.set(e.pointerId,b);press(b);}else own.delete(e.pointerId);};
+  box.addEventListener('pointerdown',e=>{SFX.init();try{box.setPointerCapture(e.pointerId);}catch(_){}at(e);e.preventDefault();});
+  box.addEventListener('pointermove',e=>{if(own.has(e.pointerId)||e.buttons||e.pointerType==='touch')at(e);});
+  const up=e=>{release(own.get(e.pointerId));own.delete(e.pointerId);};
+  box.addEventListener('pointerup',up);box.addEventListener('pointercancel',up);
 })();
 function padMenus(){
   const st=pressed.has('G0Start')||pressed.has('G1Start'),a=pressed.has('G0A')||pressed.has('G1A'),b=pressed.has('G0B')||pressed.has('G1B');if(!st&&!a&&!b)return;
@@ -621,7 +645,7 @@ let last=performance.now();
 function loop(now){
   requestAnimationFrame(loop);
   const raw=Math.min(0.05,(now-last)/1000);last=now;
-  pollPads();padMenus();
+  pollPads();padMenus();touchComboTick(raw);
   if(NET.role==='client'){netClientFrame(raw);}
   else if(G.phase==='replay'&&RP){updReplay(raw);}
   else if(!G.paused){

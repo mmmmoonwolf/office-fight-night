@@ -194,18 +194,31 @@ kbd{background:#fff;color:#222;border-radius:5px;padding:0 5px;font-family:inher
 #shotImg{width:100%;border-radius:10px;margin-top:10px;-webkit-user-select:auto;user-select:auto;-webkit-touch-callout:default}
 
 /* touch */
-#touch{position:fixed;inset:auto 0 0 0;height:230px;pointer-events:none;display:none;z-index:4}
+#touch{position:fixed;inset:0;pointer-events:none;display:none;z-index:4}
 body.touch.fighting #touch{display:block}
-#stick{position:absolute;left:22px;bottom:26px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);pointer-events:auto;touch-action:none}
-#knob{position:absolute;left:45px;top:45px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.55)}
-#tbtns{position:absolute;right:14px;bottom:16px;width:236px;height:200px;pointer-events:auto}
-.tb{position:absolute;width:66px;height:66px;border-radius:50%;border:3px solid rgba(255,255,255,.7);background:rgba(224,48,58,.55);color:#fff;font-size:13px;font-weight:800;touch-action:none}
-.tb[data-k=TJab]{right:0;bottom:56px}
-.tb[data-k=THook]{right:72px;bottom:4px}
-.tb[data-k=TSpec]{right:72px;bottom:106px;background:rgba(255,170,0,.6)}
-.tb[data-k=TJump]{right:0;bottom:132px;background:rgba(43,182,115,.6);width:58px;height:58px}
-.tb[data-k=TGrab]{right:146px;bottom:76px;background:rgba(140,80,220,.6);width:58px;height:58px}
-.tb[data-k=TBlock]{right:146px;bottom:4px;background:rgba(47,111,224,.6);width:58px;height:58px}
+/* left: floating stick — touch anywhere in the zone and the stick appears under your thumb */
+#stickZone{position:absolute;left:0;bottom:0;width:46vw;height:62vh;pointer-events:auto;touch-action:none}
+#stick{position:absolute;left:28px;bottom:30px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.10);border:3px solid rgba(255,255,255,.32);opacity:.6;transition:opacity .15s}
+#stick.on{opacity:1}
+#knob{position:absolute;left:43px;top:43px;width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 2px 8px rgba(0,0,0,.35)}
+/* right: big thumb cluster — slide between buttons without lifting your thumb */
+#tbtns{position:absolute;right:10px;bottom:12px;width:290px;height:262px;pointer-events:auto;touch-action:none;transform-origin:right bottom}
+.tb{position:absolute;width:64px;height:64px;border-radius:50%;border:3px solid rgba(255,255,255,.75);background:rgba(40,40,52,.55);color:#fff;
+  font:800 11px/1 Fredoka,Kanit,sans-serif;letter-spacing:.5px;touch-action:none;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  box-shadow:0 3px 10px rgba(0,0,0,.35);transition:transform .06s,filter .06s;padding:0}
+.tb i{font-style:normal;font-size:22px;line-height:1}
+.tb.on{transform:scale(.9);filter:brightness(1.45)}
+.tb[data-k=TJab]{right:12px;bottom:64px;width:96px;height:96px;background:rgba(224,48,58,.72);font-size:14px}.tb[data-k=TJab] i{font-size:34px}
+.tb[data-k=THook]{right:116px;bottom:8px;width:86px;height:86px;background:rgba(238,110,40,.72);font-size:13px}.tb[data-k=THook] i{font-size:30px}
+.tb[data-k=TCombo]{right:114px;bottom:104px;width:68px;height:68px;background:rgba(255,72,140,.62)}
+.tb[data-k=TJump]{right:22px;bottom:170px;background:rgba(43,182,115,.62)}
+.tb[data-k=TSpec]{right:104px;bottom:184px;width:72px;height:72px;background:rgba(120,120,130,.5)}
+.tb[data-k=TSpec].ready{background:rgba(255,170,0,.85);animation:spready .7s ease-in-out infinite}
+@keyframes spready{50%{box-shadow:0 0 22px 6px rgba(255,200,40,.85)}}
+.tb[data-k=TGrab]{right:210px;bottom:98px;background:rgba(140,80,220,.65)}
+.tb[data-k=TBlock]{right:214px;bottom:12px;width:70px;height:70px;background:rgba(47,111,224,.68)}
+@media (max-width:520px),(max-height:420px){#tbtns{transform:scale(.84)}#stick{transform:scale(.86);transform-origin:left bottom}}
+@media (max-width:440px){#tbtns{transform:scale(.72)}#stick{transform:scale(.7)}#stickZone{width:42vw}}
 </style>
 </head>
 <body>
@@ -336,14 +349,15 @@ body.touch.fighting #touch{display:block}
 <div id="photoBar" class="hidden"><span>Drag to orbit · wheel / ± to zoom</span><button class="ib" id="zIn">＋</button><button class="ib" id="zOut">－</button><button class="btn" id="snapBtn">📸 Snap!</button><button class="btn ghost" id="photoExit">Exit</button></div>
 
 <div id="touch">
-  <div id="stick"><div id="knob"></div></div>
+  <div id="stickZone"><div id="stick"><div id="knob"></div></div></div>
   <div id="tbtns">
-    <button class="tb" data-k="TSpec">Special</button>
-    <button class="tb" data-k="TJab">Jab</button>
-    <button class="tb" data-k="THook">Hook</button>
-    <button class="tb" data-k="TJump">Jump</button>
-    <button class="tb" data-k="TGrab">Grab</button>
-    <button class="tb" data-k="TBlock">Block</button>
+    <button class="tb" data-k="TSpec"><i>⭐</i>SPECIAL</button>
+    <button class="tb" data-k="TJump"><i>⤴</i>JUMP</button>
+    <button class="tb" data-k="TCombo"><i>🔥</i>COMBO</button>
+    <button class="tb big" data-k="TJab"><i>👊</i>JAB</button>
+    <button class="tb" data-k="THook"><i>🥊</i>HOOK</button>
+    <button class="tb" data-k="TGrab"><i>✊</i>GRAB</button>
+    <button class="tb" data-k="TBlock"><i>🛡</i>BLOCK</button>
   </div>
 </div>
 
