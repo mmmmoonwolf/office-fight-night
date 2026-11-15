@@ -45,7 +45,29 @@ async function offline(browser) {
   // hit feel: the freeze and the victim's squash grow with the damage
   const hs = await ev("[2,20].map(d=>{const v=G.f[1];G.hitStop=0;v.state='idle';v.invT=0;v.hp=100;v.fx.parry=0;v.style=STYLES.box;v.takeHit(G.f[0],{dmg:d,knock:1,stun:.2});return [G.hitStop,v.squashK];})");
   ok(hs[0][0] >= 0.04 && hs[1][0] > hs[0][0] + 0.03 && hs[1][1] > hs[0][1], 'hit-stop and squash scale with damage');
-  // hats replace the old glove unlocks
+  // dodge roll: block + direction rolls, and the roll is invincible
+  await ev("G.f.forEach(f=>{f.state='idle';f.atk=null;f.invT=0;f.rollCd=0;f.hp=100;});G.f[1].pos.x=G.f[0].pos.x+1.2;G.f[1].pos.z=G.f[0].pos.z;window.__ai2=aiThink;aiThink=()=>({mx:0,mz:0,atk:null,block:false,jump:false,grab:false})");
+  await pg.keyboard.down('KeyI'); await pg.keyboard.down('KeyA'); await sleep(90);
+  const roll = await ev("[G.f[0].state, G.f[0].invT>0, G.f[0].takeHit(G.f[1],{dmg:10,knock:1})]");
+  await pg.keyboard.up('KeyA'); await pg.keyboard.up('KeyI'); await sleep(600);
+  ok(roll[0] === 'roll' && roll[1] && roll[2] === false, 'block + direction = dodge roll that hits pass through');
+  // perfect block: block pressed just before the hit → no damage, attacker staggers
+  const pb = await ev("const a=G.f[1],v=G.f[0];a.pos.x=v.pos.x+1.2;a.pos.z=v.pos.z;v.state='block';v.blockAt=v.t;v.face=Math.atan2(a.pos.x-v.pos.x,a.pos.z-v.pos.z);a.state='idle';const h0=v.hp;const r=v.takeHit(a,{dmg:10,knock:2});[r,v.hp===h0,a.state]");
+  ok(pb[0] === 'parried' && pb[1] && pb[2] === 'stun', 'perfect block takes no damage and staggers the attacker');
+  const lb = await ev("const a=G.f[1],v=G.f[0];v.state='block';v.blockAt=v.t-1;a.state='idle';const h0=v.hp;const r=v.takeHit(a,{dmg:10,knock:2});[r,v.hp<h0]");
+  ok(lb[0] === 'blocked' && lb[1], 'a late block is a normal block (chip damage)');
+  // wall splat: knocked hard into a wall → stuck to it, extra damage
+  const sp = await ev("const v=G.f[0];v.state='stun';v.stunT=1;v.hp=100;v.wallCd=0;v.impact=8;v.vel.x=-6;v.vel.z=0;v.lastAtt=G.f[1];v.lastAttT=v.t;v.onWallHit({tag:'piano'});[v.splatT>0,v.hp<100-5]");
+  ok(sp[0] && sp[1], 'wall splat sticks the fighter and deals object damage');
+  await ev("G.f[0].splatT=0;G.f[0].state='idle';aiThink=__ai2");
+  // crazy rules + last stand
+  ok(await ev("MUT.k='bighead';G.f[0].animate(0.016);const big=G.f[0].head.scale.x>1.9;MUT.k=null;G.f[0].animate(0.016);big&&G.f[0].head.scale.x<1.3"), 'BIG HEADS crazy rule scales heads');
+  ok(await ev("const v=G.f[0];v.lastStand=false;v.hp=25;v.state='idle';v.invT=0;v.fx.parry=0;v.style=STYLES.box;v.takeHit(G.f[1],{dmg:10,knock:1});const r=v.lastStand;v.hp=100;v.lastStand=false;r"), 'dropping under 20 % HP triggers last stand');
+  // sudden death on a tie at time-up, then the bounty reward
+  await ev("G.f.forEach(f=>{f.hp=60;f.state='idle';});G.timer=0.05");await sleep(250);
+  ok(await ev("G.sudden&&G.phase==='fight'&&G.f.every(f=>f.hp===1)&&G.timer>20"), 'a draw on time goes to sudden death (1 HP each)');
+  await ev("G.f.forEach(f=>{f.hp=100;});G.timer=99;G.sudden=false");
+  ok(await ev("const a=G.f[0],v=G.f[1];a.hp=50;a.rage=0;v.bounty=true;const ph=G.phase;G.phase='between';onKO(v,a);G.phase=ph;const r=a.hp===80&&a.rage===100&&!v.bounty;a.hp=100;a.rage=0;r"), 'KO-ing the bounty leader pays +30 HP and a full special');
   ok(await ev("STATS.wins={kip:3};const r=hatOk(2)&&!hatOk(3)&&HATS[2].k==='crown';STATS.wins={};r"), 'hats unlock by total wins');
   ok(await ev("HATS.every(h=>h.k==='none'||makeHat(h.k).children.length>0) && BOSS_CH.hatKey==='crown'"), 'every hat builds, the boss wears the crown');
   ok(await ev("p2pIce().then(()=>{}),localStorage.setItem('ofn.ice',JSON.stringify([{urls:'turn:relay.example:3478',username:'u',credential:'c'}])),ICE_CACHE=null,p2pIce().then(c=>{localStorage.removeItem('ofn.ice');ICE_CACHE=null;return c.iceServers.some(s=>String(s.urls).startsWith('turn:'))&&c.iceServers.some(s=>String(s.urls).startsWith('stun:'));})"), 'TURN servers from settings are added to the P2P ICE list');

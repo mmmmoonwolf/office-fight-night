@@ -199,6 +199,7 @@ const SFX={ac:null,nb:null,out:null,musOut:null,ambOut:null,muted:false,mus:null
       const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1200*(0.8+p*0.2)*(kind==='win'||kind==='laugh'?1.35:1);f2.Q.value=7;
       const g=ac.createGain();this.env(g,t,0.012,0.9,K[2]+0.04);o.connect(f1);o.connect(f2);f1.connect(g);f2.connect(g);g.connect(this.out);o.start(t);o.stop(t+K[2]+0.1);}},
   koWhoosh(){this.smp('rocket',0.6);},
+  perfect(){this.tone('sine',1760,0,0.35,0.22);this.tone('triangle',2637,0,0.28,0.12,0.03);if(!this.smp('bell',0.45,1.6))this.tone('sine',3520,0,0.2,0.08,0.06);},
   whoosh(){this.noise(rand(0.1,0.18),'bandpass',rand(400,800),rand(0.8,1.6),0.1,rand(1800,3200));},
   hit(h){if(this.smp(h?'punchH':'punchM',h?1:0.8)){if(h)this.tone('sine',95,38,0.2,0.45);return;}
     const v=Math.floor(Math.random()*3),p=rand(0.85,1.2);

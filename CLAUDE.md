@@ -186,6 +186,21 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
 - `takeHit(att, {dmg, knock, stun, launch, kd, unblockable, dir, heavy, thrown})` is the single damage entry point.
   `kd` = knockdown (lands into `down`, then 0.7 s invulnerable). Blocking cuts damage to 15 % from the front.
 - jab, jab, hook within 0.45 s → `combo` launcher. Grab beats block. Specials need rage 100.
+- **Dodge roll**: block + a direction (> 0.5) on the ground → state `roll` (`startRoll`, `ROLL_T` 0.38 s + 0.1 s
+  vulnerable end, `invT` covers 80 %, `rollCd` 0.55 s). Chibi flips around the hips in `animate`; 3D plays `jumping`.
+- **Perfect block**: a hit landing < 0.16 s after block was pressed (`blockAt`) from the front, by a melee attacker
+  within 3.4 m → no damage, attacker `stun` 0.8 s, `takeHit` returns `'parried'`, `SFX.perfect`. CPUs only get it with
+  `AICFG[diff].perf` probability; they roll with `AICFG[diff].roll`.
+- **Wall splat** (`onWallHit`): a knocked fighter (`stun`/`knockdown`) hitting a block faster than 3.6 m/s sticks for
+  0.42 s (`splatT`, slides down, then drops), takes `SPLAT[tag]` damage (×1.6 within 1.2 s of a throw, `thrownAt`),
+  and the last attacker (`lastAtt`) gets rage + a combo hit. It can KO (goes through `takeHit`).
+- **Crazy rules** (`MUTS`, `MUT.k`, `mutIs(k)`): from round 2, 75 % chance per round when `G.mutOn` (menu
+  `#mutSeg`): bighead, moon (gravity ×0.42), slip, rage (+28/s), turbo (dt ×1.3 in the loop), tiny, homerun
+  (knock ×1.7), crit (50 %). Online `s.mu`. **Sudden death**: a tie at time-up → everyone alive on 1 HP, 30 s
+  (`G.sudden`, once per round). **Last stand**: under 20 % HP → rage gains ×2, embers, red screen edge (`#lowhp`) for
+  your own fighter. **Bounty** (FFA): the sole round leader wears 👑 (`f.bounty`, tag, `s.bo`); KO them for +30 HP and
+  a full special (`onKO`).
+- Balance: `node scripts/balance-sim.js 600` (CPU vs CPU, random loadouts) — styles were tuned to ~45–56 % win rate.
 - Hitting while the customer event is active inside the store costs 6 HP ("ลูกค้าเห็น").
 
 ## Online model (`js/net.js`)

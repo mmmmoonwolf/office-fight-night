@@ -72,7 +72,7 @@ function finish3D(f,m,clips){
         // big hair or a big hat underneath → a bigger hat on top, so it still reads
         const want=new THREE.Matrix4().compose(p,new THREE.Quaternion(),new THREE.Vector3(r,r,r)),loc=new THREE.Matrix4().copy(hb.matrixWorld).invert().multiply(want);
         const hat=makeHat(f.hatKey);loc.decompose(hat.position,hat.quaternion,hat.scale);hb.add(hat);f.hatObj=hat;}}
-    Object.assign(f.b3,{ready:true,mixer:mx,model:m});
+    Object.assign(f.b3,{ready:true,mixer:mx,model:m,headBone:bone('Head')});
     if(f.held){const t=f.held.type;f.removeHeld();f.setHeldVis(t);}
 }
 // which clip should play now, and where (t = seconds, or null to let it run)
@@ -88,6 +88,7 @@ function pick3D(f){
   if(S==='grab'){const w=B3ATK.throwBig,k=Math.min(1,f.grabT/(f.superGrab?0.55:0.32));return{c:'throwBig',t:w.a+(w.i-w.a)*k};}
   if(S==='recover'&&f.t-(f.throwAt||-9)<0.6){const w=B3ATK.throw,k=(f.t-f.throwAt)/0.6;return{c:'throw',t:k<0.2?w.a+(w.i-w.a)*k/0.2:w.i+(w.e-w.i)*(k-0.2)/0.8};}
   if(S==='block')return{c:'block',t:1.25};
+  if(S==='roll')return{c:'jumping',t:0.62};
   if(S==='dash')return f.dashing&&f.dashing.tornado?{c:'hurricane',loop:1,speed:1.4}:{c:'run',loop:1,speed:1.6};
   if(S==='attack'&&A){const d=A.def,P=d.pose||A.type,slot=A.slot;
     if(P==='rush')return{c:'rush',t:0.4+Math.max(0,A.t-d.startup)*1.6};
@@ -112,12 +113,12 @@ function pick3D(f){
 function play3D(f,c,t,dt,speed){const B=f.b3,a=B.acts[c];if(!a)return;
   if(B.cur!==c){const old=B.acts[B.cur];a.reset();a.setEffectiveWeight(1);a.play();if(old)a.crossFadeFrom(old,c==='stunned'||/^hit/.test(c)?0.06:0.12,false);B.cur=c;}
   if(t!=null){a.timeScale=0;a.time=Math.min(t,a.getClip().duration-0.001);}else a.timeScale=speed||1;
-  B.mixer.update(dt);}
+  B.mixer.update(dt);if(B.headBone)B.headBone.scale.setScalar(mutIs('bighead')?1.75:1);}
 // host: choose + play, then write the clip into the snapshot channels
 function upd3D(f,dt){const B=f.b3;if(!B||!B.ready)return;const p=pick3D(f);
   play3D(f,p.c,p.t,dt,p.speed);const a=B.acts[p.c];
   if(f.state==='ko'||f.state==='down')f.body.rotation.x=f.koFly?f.body.rotation.x:0;
-  if(!(f.state==='attack'&&f.atk&&(f.atk.def.pose==='roll')))f.body.position.y=0;
+  if(!(f.state==='attack'&&f.atk&&(f.atk.def.pose==='roll'))&&f.state!=='roll')f.body.position.y=0;
   f.legs[0].rotation.x=B3.CLIPS.indexOf(p.c);f.legs[1].rotation.x=a?a.time:0;}
 // clients / KO replay: play what the snapshot says
 function apply3D(f,ci,t){const B=f.b3;if(!B||!B.ready)return;const c=B3.CLIPS[Math.round(ci)];if(!c)return;play3D(f,c,t,1/30);
