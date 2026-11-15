@@ -15,31 +15,63 @@ function projMesh(kind){
   if(kind==='chat'){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:chatTex}));s.scale.set(0.75,0.56,1);return s;}
   if(kind==='file'){const g=new THREE.Group();vbox(0.4,0.06,0.5,M('#2c6fb3'),0,0,0,g);vbox(0.3,0.065,0.3,M('#fff'),0,0,0.05,g);return g;}
   if(kind==='book'){const g=new THREE.Group();vbox(0.34,0.46,0.09,M(pick(['#c0392b','#2980b9','#27ae60','#f39c12','#8e44ad'])),0,0,0,g);return g;}
+  if(/^(paint|pbomb)[01]$/.test(kind)){const big=kind[1]==='b',m=new THREE.Mesh(new THREE.SphereGeometry(big?0.24:0.13,10,8),new THREE.MeshStandardMaterial({color:PAINTCOL[+kind.slice(-1)],roughness:.3,emissive:new THREE.Color(PAINTCOL[+kind.slice(-1)]),emissiveIntensity:.35}));return m;}
   if(kind==='paper'){const p=new THREE.Mesh(new THREE.PlaneGeometry(0.35,0.45),new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide}));return p;}
   return new THREE.Group();
 }
 function fireProj(owner,kind,ang,o){
   const mesh=o.mesh||projMesh(kind);scene.add(mesh);
   const sp=o.speed||12,y=owner.y+1.3*owner.S;
-  const p={id:++PJSEQ,wt:o.wt||null,mesh,owner,kind,x:owner.pos.x+Math.sin(ang)*0.7,y,z:owner.pos.z+Math.cos(ang)*0.7,vx:Math.sin(ang)*sp,vy:o.vy||0,vz:Math.cos(ang)*sp,grav:o.grav||0,dmg:o.dmg||5,knock:o.knock||3,stun:o.stun||0.35,launch:o.launch||0,kd:o.kd||0,life:o.life||1.3,r:o.r||0.4,spin:o.spin||0,visual:o.visual,target:o.target};
+  const p={id:++PJSEQ,wt:o.wt||null,mesh,owner,kind,x:owner.pos.x+Math.sin(ang)*0.7,y,z:owner.pos.z+Math.cos(ang)*0.7,vx:Math.sin(ang)*sp,vy:o.vy||0,vz:Math.cos(ang)*sp,grav:o.grav||0,dmg:o.dmg||5,knock:o.knock||3,stun:o.stun||0.35,launch:o.launch||0,kd:o.kd||0,life:o.life||1.3,r:o.r||0.4,spin:o.spin||0,visual:o.visual,paint:o.paint||0,bomb:o.bomb||0,target:o.target};
   mesh.position.set(p.x,p.y,p.z);projs.push(p);return p;
 }
+/* ================= PAINT SPLAT MODE =================
+   2 teams; jab = paint pellet, hook = lobbed paint bomb, jab-jab-hook = 5-pellet spray. Every pellet / bomb that lands
+   paints the floor: a 1 m turf grid over WORLD records which team owns each cell (host), and a flat decal is drawn
+   (paintAt is broadcast online like the other fx). Round = 75 s, KO'd fighters respawn after 3 s, most turf wins. */
+const PAINTCOL=[0xff3b6b,0x2fb8ff];
+const PAINT={cells:null,nx:0,nz:0,cnt:[0,0],decals:[],matsD:null};
+function paintReset(){PAINT.nx=Math.ceil(WORLD.x1-WORLD.x0);PAINT.nz=Math.ceil(WORLD.z1-WORLD.z0);PAINT.cells=new Int8Array(PAINT.nx*PAINT.nz).fill(-1);PAINT.cnt=[0,0];
+  PAINT.decals.forEach(d=>scene.remove(d));PAINT.decals.length=0;}
+function paintAt(x,y,z,team,r){
+  team=team?1:0;r=clamp(+r||1,0.3,3.5);
+  if(!PAINT.matsD)PAINT.matsD=PAINTCOL.map(c=>new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.9,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2}));
+  const d=new THREE.Mesh(new THREE.CircleGeometry(r,14),PAINT.matsD[team]);d.rotation.x=-Math.PI/2;d.rotation.z=rand(0,6.3);d.scale.set(rand(0.85,1.15),rand(0.85,1.15),1);
+  d.position.set(x,y+0.03+PAINT.decals.length%7*0.002,z);scene.add(d);PAINT.decals.push(d);if(PAINT.decals.length>700)scene.remove(PAINT.decals.shift());
+  if(!PAINT.cells)paintReset();
+  for(let cx=Math.floor(x-r);cx<=Math.ceil(x+r);cx++)for(let cz=Math.floor(z-r);cz<=Math.ceil(z+r);cz++){
+    if(Math.hypot(cx+0.5-x,cz+0.5-z)>r)continue;const i=(cx-Math.floor(WORLD.x0))+(cz-Math.floor(WORLD.z0))*PAINT.nx;
+    if(i<0||i>=PAINT.cells.length||cx<WORLD.x0||cx>=WORLD.x1)continue;const o=PAINT.cells[i];if(o===team)continue;if(o>=0)PAINT.cnt[o]--;PAINT.cells[i]=team;PAINT.cnt[team]++;}
+}
+const turfPct=()=>{const t=PAINT.cnt[0]+PAINT.cnt[1];return t?[PAINT.cnt[0]/t,PAINT.cnt[1]/t]:[0.5,0.5];};
+function paintShoot(f,k){
+  const tm=f.team?1:0,base=f.face;
+  if(k==='spray'){for(let i=-2;i<=2;i++)fireProj(f,'paint'+tm,base+i*0.13,{speed:20,dmg:6,knock:1.5,stun:.2,life:0.75,r:0.35,grav:4,paint:1.1});SFX.whoosh();}
+  else if(k==='bomb'){fireProj(f,'pbomb'+tm,base,{speed:7,vy:5.5,grav:16,dmg:0,life:2,r:0.4,paint:2.3,bomb:1});SFX.whoosh();}
+  else{fireProj(f,'paint'+tm,base+rand(-0.04,0.04),{speed:22,dmg:7,knock:1.2,stun:.18,life:0.85,r:0.35,grav:3,paint:1.0});SFX.tone('square',520,260,0.06,0.05);}
+}
+// a paint projectile is done (hit someone, a wall, the floor, or ran out): splat + bomb splash (host)
+function paintEnd(p){
+  const gy=groundAt(p.x,p.z,p.y+0.5),tm=p.kind.endsWith('1')?1:0;
+  if(p.bomb){paintAt(p.x,gy,p.z,tm,p.paint);ringFx(p.x,gy,p.z,2.4,PAINTCOL[tm]);puff(p.x,gy+0.3,p.z,PAINTCOL[tm],8,0.6,3);SFX.splash();
+    if(p.owner)for(const e of enemiesOf(p.owner)){const d=Math.hypot(e.pos.x-p.x,e.pos.z-p.z);if(d<2.4&&Math.abs(e.y-gy)<2)e.takeHit(p.owner,{dmg:16*(1-d/3.2),knock:5,stun:.5,dir:{x:e.pos.x-p.x,z:e.pos.z-p.z},heavy:1});}}
+  else paintAt(p.x,gy,p.z,tm,p.paint*rand(0.8,1.15));}
 function killProj(i,fx){const p=projs[i];if(fx)burst(V(p.x,p.y,p.z),0xffffff,5,2);scene.remove(p.mesh);projs.splice(i,1);}
 function updProjs(dt){
   for(let i=projs.length-1;i>=0;i--){const p=projs[i];p.life-=dt;
     if(p.target){const t=p.target;const dx=t.pos.x-p.x,dz=t.pos.z-p.z,dy=t.y+1.3-p.y,d=Math.hypot(dx,dy,dz);if(d<0.4||p.life<=0){killProj(i);continue;}const sp=14;p.vx=dx/d*sp;p.vy=dy/d*sp;p.vz=dz/d*sp;}
     p.vy-=p.grav*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.mesh.position.set(p.x,p.y,p.z);
     if(p.spin){p.mesh.rotation.y+=p.spin*dt;p.mesh.rotation.x+=p.spin*0.6*dt;}
-    if(p.life<=0){killProj(i,!p.visual);continue;}
+    if(p.life<=0){if(p.paint)paintEnd(p);killProj(i,!p.visual&&!p.paint);continue;}
     if(p.visual)continue;
     let dead=false;
     for(const e of G.f){if(e===p.owner||e.team===p.owner.team||e.state==='ko')continue;
       if(Math.hypot(e.pos.x-p.x,e.pos.z-p.z)<p.r+e.r&&p.y>e.y-0.2&&p.y<e.y+e.h){const v=Math.hypot(p.vx,p.vz)||1;
-        e.takeHit(p.owner,{dmg:p.dmg,knock:p.knock,stun:p.stun,launch:p.launch,kd:p.kd,dir:{x:p.vx/v,z:p.vz/v},heavy:p.dmg>=10});dead=true;break;}}
+        if(!p.bomb)e.takeHit(p.owner,{dmg:p.dmg,knock:p.knock,stun:p.stun,launch:p.launch,kd:p.kd,dir:{x:p.vx/v,z:p.vz/v},heavy:p.dmg>=10});dead=true;break;}}
     const b=!dead&&pointInSolid(p.x,p.y,p.z);
     if(b&&b.tag==='glass2'){breakPane(b,null);}
     else if(b&&b.brk&&(p.wt||p.dmg>=10))hitBreakable(b,p.dmg>=14?2:1,p.owner);
-    if(dead||(b&&b.tag!=='curb')||p.y<groundAt(p.x,p.z,p.y)-0.05){killProj(i,true);}
+    if(dead||(b&&b.tag!=='curb')||p.y<groundAt(p.x,p.z,p.y)-0.05){if(p.paint)paintEnd(p);killProj(i,!p.paint);}
   }
 }
 function ringFx(x,y,z,maxR,color,life=0.45){const m=new THREE.Mesh(new THREE.RingGeometry(0.85,1,40),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,side:THREE.DoubleSide}));m.rotation.x=-Math.PI/2;m.position.set(x,y+0.1,z);scene.add(m);rings.push({mesh:m,t:0,life,maxR});}
@@ -219,6 +251,9 @@ const ATK={
   slapL:{startup:.08,active:.07,recover:.12,dmg:4,range:1.5,knock:1.4,stun:.24,rage:7,pose:'slap'},
   slapH:{startup:.17,active:.09,recover:.24,dmg:8,range:1.6,knock:3.6,stun:.4,rage:10,pose:'slapH',heavy:1},
   spinSlap:{startup:.12,active:.46,recover:.3,dmg:4,range:1.9,knock:1.6,stun:.45,rage:4,pose:'spin',arc:1,multi:{n:4,iv:.12,last:{dmg:7,knock:7,launch:5,kd:1,heavy:1}},call:'ตบหมุน 360!!'},
+  pshot:{startup:.05,active:.02,recover:.13,dmg:0,range:9,knock:0,stun:0,rage:0,pose:'jab',shoot:'shot'},
+  pbomb:{startup:.16,active:.02,recover:.3,dmg:0,range:9,knock:0,stun:0,rage:0,pose:'hook',shoot:'bomb'},
+  pspray:{startup:.12,active:.02,recover:.3,dmg:0,range:7,knock:0,stun:0,rage:0,pose:'jab',shoot:'spray'},
   kickL:{startup:.14,active:.08,recover:.2,dmg:6,range:2.0,knock:2.2,stun:.3,rage:8,pose:'kick'},
   kickH:{startup:.26,active:.1,recover:.34,dmg:12,range:2.2,knock:5.5,stun:.5,rage:12,pose:'kickH',heavy:1},
   dropkick:{startup:.16,active:.38,recover:.45,dmg:15,range:1.5,knock:11,stun:.9,launch:4,kd:1,rage:12,pose:'dropkick',lunge:{sp:9,a:.1,b:.54},sweep:1,jumpV:4.2,heavy:1,call:'ถีบยอดหน้า!!'},
@@ -393,7 +428,7 @@ class Fighter{
   fwd(){return{x:Math.sin(this.face),z:Math.cos(this.face)};}
   heal(n){this.hp=Math.min(this.maxHp,this.hp+n);}
   alive(){return this.state!=='ko';}
-  lockOn(){let best=null,bd=99;for(const e of enemiesOf(this)){const dx=e.pos.x-this.pos.x,dz=e.pos.z-this.pos.z,d=Math.hypot(dx,dz);if(Math.abs(e.y-this.y)>2)continue;const ad=angDiff(this.face,Math.atan2(dx,dz));if((d<4.5&&ad<1.6)||d<2.2){const sc=d+ad;if(sc<bd){bd=sc;best=e;}}}
+  lockOn(){let best=null,bd=99;for(const e of enemiesOf(this)){const dx=e.pos.x-this.pos.x,dz=e.pos.z-this.pos.z,d=Math.hypot(dx,dz);if(Math.abs(e.y-this.y)>2)continue;const ad=angDiff(this.face,Math.atan2(dx,dz));const P=G.mode==='paint';if((d<(P?11:4.5)&&ad<(P?(this.human==null?2.4:0.9):1.6))||d<2.2){const sc=d+ad;if(sc<bd){bd=sc;best=e;}}}
     if(best){this.face=this.faceT=Math.atan2(best.pos.x-this.pos.x,best.pos.z-this.pos.z);}}
   tryAttack(type){
     let t=type,slot=type;
@@ -402,7 +437,10 @@ class Fighter{
       this.rage=0;this.spKey=this.lo.sp;
       say(this,SPECIALS[this.spKey].name,true);G.shake=Math.max(G.shake,0.12);
       const Sp=SPECIALS[this.spKey];t=Sp.atk||'cast';slot='special';
-    }else if(this.held&&(type==='jab'||type==='hook'))t=type==='jab'?'swingL':'swingH';
+    }else if(G.mode==='paint'&&(type==='jab'||type==='hook')){
+      if(this.t-this.lastAtkEnd<0.45)this.seq.push(type);else this.seq=[type];if(this.seq.length>4)this.seq.shift();
+      const n=this.seq.length;if(n>=3&&this.seq[n-1]==='hook'&&this.seq[n-2]==='jab'&&this.seq[n-3]==='jab'){slot='combo';this.seq=[];t='pspray';}else t=type==='jab'?'pshot':'pbomb';}
+    else if(this.held&&(type==='jab'||type==='hook'))t=type==='jab'?'swingL':'swingH';
     else{
       if(this.t-this.lastAtkEnd<0.45)this.seq.push(type);else this.seq=[type];
       if(this.seq.length>4)this.seq.shift();
@@ -645,7 +683,7 @@ class Fighter{
       else if(d.multi){while(this.atk===a&&a.hits<d.multi.n&&a.t>=d.startup+a.hits*d.multi.iv){a.hits++;a.hitSet.clear();this.resolveHit(a.hits===d.multi.n?d.multi.last:null);if(d.pose==='spin'||d.pose==='rush')windFx(this.pos.x,this.y+1.1,this.pos.z,this.face+rand(-1,1)+(d.pose==='spin'?a.hits*1.6:0),1.4);}}
       else if(d.sweep){if(a.t>=d.startup&&a.t<=d.startup+d.active)this.resolveHit();}
       else if(d.onLand){if(!a.hit&&a.jumped&&((onG&&a.t>0.15)||a.t>d.startup+0.6)){a.hit=true;a.t=Math.max(a.t,d.startup);this.resolveHit();landQuake(this,d);}}
-      else if(!a.hit&&a.t>=d.startup){a.hit=true;this.resolveHit();}
+      else if(!a.hit&&a.t>=d.startup){a.hit=true;if(d.shoot){if(NET.role!=='client')paintShoot(this,d.shoot);this.rage=Math.min(100,this.rage+2);}else this.resolveHit();}
       if(this.atk===a&&this.state==='attack'){if(a.t>=d.startup+d.active+d.recover&&(!d.onLand||a.hit)){this.state='idle';this.atk=null;this.lastAtkEnd=this.t;if(this.queued){const q=this.queued;this.queued=null;this.tryAttack(q);}}}
       else if(this.state!=='attack'){this.atk=null;}
     }
@@ -874,16 +912,17 @@ function aiThink(f,dt){
     else if(mz==='out'&&ml==='g'){const w=outdoorWp({x:f.pos.x,z:f.pos.z},{x:tg.pos.x,z:tg.pos.z});if(w.x!==tg.pos.x||w.z!==tg.pos.z){isT=false;gx=w.x;gz=w.z;}}
     if(isT&&!watch){
       if(f.hp/f.maxHp<0.55){const p=nearestPower(f,9,true);if(p&&Math.abs(p.y-f.y)<1.5){gx=p.x;gz=p.z;isT=false;}}
-      if(isT&&!f.held&&d>3.2){const w=nearestWeapon(f,5.5);if(w){gx=w.x;gz=w.z;isT=false;if(Math.hypot(w.x-f.pos.x,w.z-f.pos.z)<1.1)A.grab=true;}}
+      if(isT&&!f.held&&d>3.2&&G.mode!=='paint'){const w=nearestWeapon(f,5.5);if(w){gx=w.x;gz=w.z;isT=false;if(Math.hypot(w.x-f.pos.x,w.z-f.pos.z)<1.1)A.grab=true;}}
     }
-    const reach=1.65+(f.held?WEAPONS[f.held.type].range:0),spR=SPECIALS[f.lo.sp].range;
+    const paint=G.mode==='paint',reach=paint?8.5:1.65+(f.held?WEAPONS[f.held.type].range:0),spR=SPECIALS[f.lo.sp].range;
     if(!watch&&isT&&d<=reach&&Math.abs(dy)<1.3&&Math.random()<C.aggr){
       if(f.rage>=100&&Math.random()<C.spec&&d<=spR)A.atk='special';
       else if(tg.state==='block'&&Math.random()<.55)A.grab=true;
-      else A.atk=Math.random()<.6?'jab':'hook';
-      A.mx=A.mz=0;
+      else A.atk=paint?(d>4.5&&d<7.5&&Math.random()<.25?'hook':'jab'):Math.random()<.6?'jab':'hook';
+      A.mx=A.mz=0;if(paint&&d<3.5){A.mx=-dx/d;A.mz=-dz/d;}
     }else if(!watch&&f.rage>=100&&d<=spR&&Math.random()<C.spec*0.5){A.atk='special';A.mx=A.mz=0;}
     else if(!watch&&f.held&&d<7&&d>2.6&&Math.random()<0.12){A.grab=true;}
+    else if(paint&&!watch&&Math.random()<0.35){A.atk='jab';A.mx=A.mz=0;f.faceT=Math.atan2(gx-f.pos.x,gz-f.pos.z)+rand(-0.6,0.6);} // paint turf on the way
     else{
       let mx=gx-f.pos.x,mzz=gz-f.pos.z;const m=Math.hypot(mx,mzz)||1;
       if(isT&&d<1.2){const s=Math.random()<.5?1:-1;mx=-dz/d*s;mzz=dx/d*s;}else{mx/=m;mzz/=m;}
