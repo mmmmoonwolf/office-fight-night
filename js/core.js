@@ -40,10 +40,10 @@ const ROSTER=[
   sp:'wind',emote:'dance',quotes:['ซูมมม!','เปิดเพลงดังๆ!','จังหวะนี้ของฉัน!','หลบไปเลย เต้นผ่าน!','เบสแน่นกว่าหมัดอีก!']},
 ];
 // everyone is equal: characters only differ in looks — fighting style + special are picked separately (LOADOUT)
-ROSTER.forEach(c=>Object.assign(c,{hp:100,pow:1,spd:1,aspd:1,size:1,body:'3d'}));
+ROSTER.forEach(c=>Object.assign(c,{hp:150,pow:1,spd:1,aspd:1,size:1,body:'3d'}));
 // the arcade's final boss — not selectable
 const BOSS_CH={id:'boss',name:'Boss Bonkers',role:'The big boss with the magic scarf',body:'3d',skin:'#f2c6a2',hair:'#ff7a1a',hairStyle:'model',shirt:'#5a1d8a',shorts:'#1b1e26',accent:'#ffd23d',sleeves:true,acc:[],hatKey:'crown',
-  hp:125,pow:1.2,spd:0.86,aspd:0.92,size:1.1,sp:'drop',emote:'point',
+  hp:185,pow:1.2,spd:0.86,aspd:0.92,size:1.1,sp:'drop',emote:'point',
   quotes:['บอสมาแล้ว!','บองเกอร์สสส!','ใครกล้าท้าบอส!?','ผ้าพันคอนี้มีพลัง!','ยอมแพ้ซะดีๆ!']};
 const HURT=['โอ๊ย!','เจ็บนะ!','ขอลาป่วย!','จะฟ้อง HR!','ขอเบิกค่ารักษา!','ยังไม่ได้กินข้าวเลย!','พักเที่ยงก่อน!','ขอลาพักร้อน!','ประกันสังคมช่วยด้วย!'];
 const GLOVES=[

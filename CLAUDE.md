@@ -13,7 +13,7 @@ someone is knocked into them — they drop onto the sidewalk and take fall damag
 
 - 8 original cartoon characters (`ROSTER` in `js/core.js`): Kip Kaboom, Momo Mellow, Ruby Rumble, Grumbo, Nana Nitro,
   Duke Jiggly, Pippa Pop, Zuzu Zoom — each a rigged Mixamo model (`model` → `assets/models/char_<model>.glb`) with a pre-rendered card
-  portrait (`assets/portraits/<id>.png`, drawn by `portrait()`). **Everyone has the same stats**; they only differ in
+  portrait (`assets/portraits/<id>.png`, drawn by `portrait()`). **Everyone has the same stats** (150 HP; boss 185); they only differ in
   looks. Their chibi fields are only the fallback when a model can't load (and on the stubbed test pages). The arcade's
   final boss is `BOSS_CH` "Boss Bonkers" (the original fighter.glb character, recoloured; arcade list index `-1`).
 - **Loadout** = fighting style + special, picked after the character on the `#loadP` screen (`openLoadout` in game.js;
@@ -59,7 +59,7 @@ someone is knocked into them — they drop onto the sidewalk and take fall damag
   the claude.ai Artifact `room` capability, or peer-to-peer WebRTC via PeerJS when served from GitHub Pages / any static host
 - Weapons to pick up/throw, power-ups, combos (jab-jab-hook), grabs/throws, stage hazards, random events
   (customer walks in → no punching inside, piano movers, rain makes the street slippery, motorbikes, stray dog),
-  KO replay, photo mode, glove unlocks/titles stored in `localStorage`, sick-leave note for the loser
+  photo mode (the KO replay is switched off: `G.replayPending` stays false and `record()` isn't called; the code is kept), glove unlocks/titles stored in `localStorage`, sick-leave note for the loser
 - **UI text is English** (menus, cards, loadout, move list, lobby, pause, HUD, centre announcements, event banners, key
   prompts, end screen, sick note), set in **Fredoka** (body) and **Luckiest Guy** (titles, big buttons, timer, banners)
   from Google Fonts, with Kanit as the Thai fallback. **In-game text stays Thai**: floating popups over people and
@@ -141,9 +141,10 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
   looks at the fighter's back (`Fighter.hairFade`, run every frame after `updCamera`; off in photo mode).
 - `zoneOf` ('in'/'out'), `lvlOf` and `onMezz` drive AI path-finding: `exitWp` picks the cheapest door or smashed hole
   between store and street, `outdoorWp` walks around the block via its corners (`BCORN`, `segHitsRect`).
-- Events (`updEvents`, host only; `G.forceEvent` forces the next one): customer, piano movers, rain, **flood**
+- Events (`updEvents`, host only; `G.forceEvent` forces the next one): customer, piano movers, rain, **flood** (rare: ≥ 90 s
+  apart via `G.lastFlood`, 25 % when eligible)
   (`FLOOD`: water rises to 0.5 m, `inWater` → 62 % speed + splashes, floating junk, a live cable shocks anyone in the
-  water near one pole), **blackout** (`EV.blackout`: lights down, gloves glow), **storm** (`EV.storm`: gusts push
+  water near one pole), **blackout** (`EV.blackout`: lights down — no longer in the random pool, only via `G.forceEvent`), **storm** (`EV.storm`: gusts push
   everyone outdoors, thunder flashes), **delivery van** (`NPC.van`, one lap of the loop on `VANPATH`), motorbikes on
   every road (`dir` ±1 along x, ±2 along z). Flood level, blackout and van travel in the snapshot (`s.ev`).
 
@@ -197,8 +198,8 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
   `kd` = knockdown (lands into `down`, then 0.7 s invulnerable). Blocking cuts damage to 15 % from the front.
 - jab, jab, hook within 0.45 s → `combo` launcher. Grab beats block. Specials need rage 100.
 - **Dodge roll**: block + a direction (> 0.5) on the ground → state `roll` (`startRoll`, `ROLL_T` 0.44 s + 0.1 s
-  vulnerable end, `invT` covers 80 %, `rollCd` 0.55 s). 3D plays the `roll` clip (Mixamo Standing Dive Forward,
-  0.1 → 1.45 s squeezed into the roll); only the chibi fallback flips around the hips in `animate`.
+  vulnerable end, `invT` covers 80 %, `rollCd` 0.55 s). 3D plays the `roll` clip (Mixamo Stand To Roll,
+  0.35 → 1.95 s squeezed into the roll); only the chibi fallback flips around the hips in `animate`.
 - **Perfect block**: a hit landing < 0.16 s after block was pressed (`blockAt`) from the front, by a melee attacker
   within 3.4 m → no damage, attacker `stun` 0.8 s, `takeHit` returns `'parried'`, `SFX.perfect`. CPUs only get it with
   `AICFG[diff].perf` probability; they roll with `AICFG[diff].roll`.

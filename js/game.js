@@ -254,9 +254,9 @@ function startRound(loc){
   MUT.k=null;const later2=G.mode==='arcade'?G.arc.stage>0:G.round>1;
   if(G.mutOn&&G.mode!=='train'&&later2&&Math.random()<0.75)MUT.k=pick(MUTS).k;
   const mu=MUTS.find(m=>m.k===MUT.k);if(mu)setTimeout(()=>{if(G.phase==='intro'||G.phase==='fight')banner(mu.ic+' CRAZY RULE: '+mu.en+' '+mu.ic,3.2);},1300);
-  // FFA bounty: whoever leads on rounds wears the crown — KO them for +30 HP and a full special bar
+  // FFA bounty: whoever leads on rounds wears the crown — KO them for +45 HP and a full special bar
   G.f.forEach(f=>f.bounty=false);
-  if(G.mode==='ffa'){const sc=G.f.map(f=>G.wins[f.team]||0),mx=Math.max(...sc);if(mx>0&&sc.filter(v=>v===mx).length===1){const L=G.f[sc.indexOf(mx)];L.bounty=true;setTimeout(()=>{if(G.phase==='intro'||G.phase==='fight')banner('👑 BOUNTY on '+L.ch.name+' — KO them for +30 HP & a full special!',3);},mu?4600:1300);}}
+  if(G.mode==='ffa'){const sc=G.f.map(f=>G.wins[f.team]||0),mx=Math.max(...sc);if(mx>0&&sc.filter(v=>v===mx).length===1){const L=G.f[sc.indexOf(mx)];L.bounty=true;setTimeout(()=>{if(G.phase==='intro'||G.phase==='fight')banner('👑 BOUNTY on '+L.ch.name+' — KO them for +45 HP & a full special!',3);},mu?4600:1300);}}
   if(G.mode==='train'){SFX.vo('ready');Object.assign(TR,{last:-9,hits:0,dmg:0});showCenter('TRAINING 🥋','No timer · special refills itself · T switches the dummy',1.6);return;}
   if(G.mode==='arcade'?G.arc.stage===G.arc.list.length-1:G.round>=3)SFX.vo('final_round');else SFX.voRound(G.mode==='arcade'?G.arc.stage+1:G.round);
   showCenter(G.mode==='arcade'?('STAGE '+(G.arc.stage+1)):(G.round>=3?'FINAL ROUND!':'ROUND '+G.round),G.round===1||G.mode==='arcade'?vs:'',1.3);
@@ -264,7 +264,7 @@ function startRound(loc){
 function aliveTeams(){const s=new Set();G.f.forEach(f=>{if(f.state!=='ko')s.add(f.team);});return[...s];}
 function onKO(f,att){
   G.lastKO=f;hype=1;SFX.crowd();
-  if(f.bounty&&att&&att!==f&&att.state!=='ko'){f.bounty=false;att.heal(30);att.rage=100;banner('👑 '+att.ch.name+' claimed the bounty! +30 HP',2.4);popup('ค่าหัว!! 💰',att.headPos().add(V(0,1,0)),'combo',1.3);}
+  if(f.bounty&&att&&att!==f&&att.state!=='ko'){f.bounty=false;att.heal(45);att.rage=100;banner('👑 '+att.ch.name+' claimed the bounty! +45 HP',2.4);popup('ค่าหัว!! 💰',att.headPos().add(V(0,1,0)),'combo',1.3);}
   if(G.phase!=='fight')return;
   const at=aliveTeams();
   if(at.length<=1)endRoundBy(at.length?at[0]:-1,'ko');
@@ -277,7 +277,7 @@ function endRoundBy(team,how){
   if(ws[0])say(ws[0],pick(ws[0].ch.quotes),true);
   const wname=team<0?'':(G.mode==='team'?(team===0?'Red team':'Blue team'):(G.f.find(f=>f.team===team).ch.name));
   if(team<0)SFX.vo('its_a_tie',0.8);
-  if(how==='ko'){G.slowT=1.0;showCenter('K.O.!!',wname?wname+' wins the round!':'DRAW!',2.2);G.replayPending=REC.length>40;}
+  if(how==='ko'){G.slowT=1.0;showCenter('K.O.!!',wname?wname+' wins the round!':'DRAW!',2.2);G.replayPending=false;}
   else{SFX.bell();SFX.vo('time_over',0.4);showCenter('TIME!',wname?wname+' wins on points!':'Draw! Back to work',2.4);}
 }
 function timeUp(){
@@ -661,7 +661,6 @@ function loop(now){
       if(G.phase==='intro'&&G.phaseT>1.4){G.phase='fight';showCenter('FIGHT!','',0.8);SFX.bell();SFX.vo('go',0.15);}
       else if(G.phase==='ko'){if(G.replayPending&&G.phaseT>1.5){G.replayPending=false;startReplay();}else if(!G.replayPending&&G.phaseT>3.0)endRound();}
       else if(G.phase==='post'&&G.phaseT>0.7)endRound();
-      if(G.phase==='fight'||G.phase==='ko')record();
       if(G.phase!=='menu')updHUD(raw);
     }
     updProjs(dt);updEffects(dt);updParts(dt);updItems(dt);updNPC(dt);if(G.mode!=='train')updEvents(dt);
