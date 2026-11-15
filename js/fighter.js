@@ -311,7 +311,7 @@ const UPV=V(0,1,0);
 const WALLFX={piano:['ชนเปียโน! 🎹','piano'],grand:['ชนแกรนด์! 🎹','piano'],bench:['ชนเก้าอี้!','thud'],guitar:['ชนกีตาร์! 🎸','guitar'],glass:['ชนกระจก!','glass'],counter:['ชนเคาน์เตอร์!','thud'],box:['ชนกล่องพัสดุ! 📦','thud'],shelf:['หนังสือร่วง! 📚','thud'],car:['รถร้อง! 🚨','alarm'],bike:['ชนมอไซค์!','metal'],cart:['ส้มตำหก! 🌶','thud'],pole:['ชนเสาไฟ!','metal'],planter:['ชนกระถาง!','thud'],stage:['ชนแท่น!','thud'],amp:['ชนตู้แอมป์! 🔊','wood'],sofa:['ล้มลงโซฟา! 🛋️','sofa'],table:['ชนโต๊ะ!','wood'],lamp:['ชนโคมไฟ! 💡','glass'],tv:['ชนทีวี! 📺','glass'],drums:['ชนกลอง! 🥁','plate'],keyboard:['ชนคีย์บอร์ด!','plate'],ac:['ชนแอร์!','metal'],bin:['ชนถังขยะ! 🗑️','metal'],mezz:['ติดผนัง!','thud'],stairs:['ชนบันได!','thud'],desk:['ชนโต๊ะ!','thud'],case:['ชนตู้ไวโอลิน! 🎻','violin'],cello:['ชนเชลโล่! 🎻','cello'],glass2:['ชนกระจก!','glass'],wall:['ติดผนัง!','thud']};
 const tigerTex=canvasTex(128,64,(g,w,h)=>{g.fillStyle='#ff9a1a';g.fillRect(0,0,w,h);g.fillStyle='#111';for(let i=0;i<9;i++){g.beginPath();const x=i*15;g.moveTo(x,0);g.lineTo(x+8,0);g.lineTo(x+2,h);g.lineTo(x-5,h);g.fill();}});
 
-const ROLL_T=0.38;
+const ROLL_T=0.44;
 class Fighter{
   constructor(ch,slot,o){
     this.ch=ch;this.slot=slot;this.team=o.team;this.human=o.human;this.color=o.color;this.label=o.label;
@@ -608,7 +608,7 @@ class Fighter{
           v.takeHit(this,{dmg:10*ch.pow*(this.style.throwMul||1),knock:7.5*(this.style.throwMul?1.25:1),stun:.8,launch:6.5,kd:1,unblockable:1,dir:fw,thrown:1,heavy:1});popup('ทุ่ม!!',v.headPos().add(V(0,0.8,0)),'combo',0.9);}}
     }
     else if(S==='recover'){this.recT-=dt;if(this.recT<=0)this.state='idle';}
-    else if(S==='roll'){this.rollT+=dt;const k=this.rollT/ROLL_T,sp=k<0.7?9.5:k<1?4:0;this.pos.x+=Math.sin(this.rollDir)*sp*dt;this.pos.z+=Math.cos(this.rollDir)*sp*dt;
+    else if(S==='roll'){this.rollT+=dt;const k=this.rollT/ROLL_T,sp=k<0.7?8.2:k<1?3.5:0;this.pos.x+=Math.sin(this.rollDir)*sp*dt;this.pos.z+=Math.cos(this.rollDir)*sp*dt;
       if(this.rollT>=ROLL_T+0.1)this.state='idle';}
     else if(S==='dash'){
       const D=this.dashing;
@@ -775,11 +775,12 @@ class Fighter{
     if(AP==='dropkick'&&A.t>A.def.startup*0.4&&A.t<A.def.startup+A.def.active)this.body.rotation.x=lerp(this.body.rotation.x,-1.05,1-Math.exp(-18*dt));
     if(AP==='roll'&&A.t>A.def.lunge.a&&A.t<A.def.lunge.b){const k=(A.t-A.def.lunge.a)/(A.def.lunge.b-A.def.lunge.a);this.body.rotation.x=k*Math.PI*4;by=0.55*Math.sin(k*Math.PI);}
     if(S==='ko'&&this.koFly)this.body.rotation.x-=dt*16;
-    if(S==='roll'){const k=clamp(this.rollT/ROLL_T,0,1),a=k*Math.PI*2,h=0.6;this.body.rotation.x=a;by=h-h*Math.cos(a)+Math.sin(k*Math.PI)*0.25;this.body.position.z=-h*Math.sin(a);}
+    const flip=S==='roll'&&!(this.b3&&this.b3.ready);
+    if(flip){const k=clamp(this.rollT/ROLL_T,0,1),a=k*Math.PI*2,h=0.6;this.body.rotation.x=a;by=h-h*Math.cos(a)+Math.sin(k*Math.PI)*0.25;this.body.position.z=-h*Math.sin(a);}
     else this.body.position.z=0;
     if(ap)by=clamp(ap.p[11]*0.72,-0.16,0.12);
     if(this.win&&(this.ch.emote==='jump'||!this.ch.emote))by=Math.abs(Math.sin(t*7))*0.35;
-    if(S==='roll'){const k=clamp(this.rollT/ROLL_T,0,1),a=k*Math.PI*2;by=0.6-0.6*Math.cos(a)+Math.sin(k*Math.PI)*0.25;}
+    if(flip){const k=clamp(this.rollT/ROLL_T,0,1),a=k*Math.PI*2;by=0.6-0.6*Math.cos(a)+Math.sin(k*Math.PI)*0.25;}
     this.body.position.y=by;
     this.head.scale.setScalar(mutIs('bighead')?2.1:1.26);
     const bs=this.S*(mutIs('tiny')?0.62:1)*(this.fx.buff>0?1.25:1)*(this.win&&this.ch.emote==='flex'?1+Math.abs(Math.sin(t*6))*0.04:1);
