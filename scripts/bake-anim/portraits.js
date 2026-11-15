@@ -11,8 +11,8 @@ const out=await p.evaluate(async(ids)=>{const r=new THREE.WebGLRenderer({antiali
     const k=m.getObjectByName('mixamorigHips').position.y/boyHips,c=clips.animations.find(a=>a.name==='idle').clone();c.tracks.forEach(t=>{if(t.name==='mixamorigHips.position')for(let q=0;q<t.values.length;q++)t.values[q]*=k;});
     const bb=new THREE.Box3().setFromObject(m);m.scale.multiplyScalar(2/(bb.max.y-bb.min.y));sc.add(m);const mx=new THREE.AnimationMixer(m);mx.clipAction(c).play();mx.setTime(0.4);m.updateMatrixWorld(true);
     const h=m.getObjectByName('mixamorigHead').getWorldPosition(new THREE.Vector3()),top=m.getObjectByName('mixamorigHeadTop_End');const ht=top?top.getWorldPosition(new THREE.Vector3()).y:h.y+0.3;
-    const cy=h.y+0.13,span=0.95;const cam=new THREE.PerspectiveCamera(28,1,0.05,50);cam.position.set(0.22*span,cy+0.05*span,h.z+span/(2*Math.tan(14*Math.PI/180)));cam.lookAt(h.x,cy,h.z);
+    const A=({boggle:{span:1.3,dy:-0.02},chuckles:{span:1.0,dy:-0.22}})[id]||{},cy=h.y+0.13+(A.dy||0),span=A.span||0.95;const cam=new THREE.PerspectiveCamera(28,1,0.05,50);cam.position.set(0.22*span,cy+0.05*span,h.z+span/(2*Math.tan(14*Math.PI/180)));cam.lookAt(h.x,cy,h.z);
     r.render(sc,cam);res[id]=r.domElement.toDataURL('image/png');}
-  return res;},['kip','momo','ruby','grumbo','nana','duke','pippa','zuzu']);
+  return res;},['kip','momo','ruby','grumbo','nana','duke','pippa','zuzu','boggle','chuckles']);
 for(const id in out){fs.writeFileSync(path.join(R,'assets/portraits/'+id+'.png'),Buffer.from(out[id].split(',')[1],'base64'));}
 console.log('ERR',errs);await b.close();})();
