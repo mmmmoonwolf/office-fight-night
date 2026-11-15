@@ -136,7 +136,14 @@ used at load time must be declared in an earlier file (that is why `NET` lives i
 - Every solid thing is an AABB in `blocks` (`solid(x0,x1,z0,z1,y0,y1,tag)`). `groundAt` returns the highest top a
   fighter can stand on (step height `STEP` = 0.42); `resolveBlocks` pushes fighters out sideways and reports
   high-speed impacts to `Fighter.onWallHit` (tag → sound/popup in `WALLFX`).
-- Walls that would hide the action fade via `fadeGroup(meshes, cond)`.
+- Walls that would hide the action fade via `fadeGroup(meshes, cond)`. On top of that, **`updOccluders`** (game.js,
+  10 Hz, visual only so clients run it too) casts rays from the camera to every local fighter's chest and head against
+  `OCC.list` (scene meshes > 0.35 m, rebuilt every 2 s): blocking meshes fade to 25 % (material cloned on first use,
+  restored afterwards; whole furniture groups fade together) and blocking `fadeGroup` walls get `userData.occHit`,
+  which `updFades` honours. **`camArm`** slides the camera in towards the fighter instead of parking it inside a block.
+  1-player framing leans 30 % towards the nearest opponent within 13 m (and pulls back a little); touch has hold-to-turn
+  ⟲ ⟳ buttons (`#camBtns`, `CAM.turn`). An audit of 2,648 spot × angle samples went from 157 fully-hidden views
+  (+ 74 cameras inside geometry) to 1.
 - Long hair (`long`/`longM`) hanging behind the body uses its own material and fades to 30 % while the camera
   looks at the fighter's back (`Fighter.hairFade`, run every frame after `updCamera`; off in photo mode).
 - `zoneOf` ('in'/'out'), `lvlOf` and `onMezz` drive AI path-finding: `exitWp` picks the cheapest door or smashed hole

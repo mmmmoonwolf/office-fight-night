@@ -37,8 +37,8 @@ const lvlOf=f=>f.y<1.9?'g':(f.pos.x>11.15?'f2':'mz');
 
 /* fade walls */
 const fades=[];
-function fadeGroup(meshes,cond){meshes.forEach(m=>{m.material=m.material.clone();m.material.transparent=true;});fades.push({meshes,cond,o:1});}
-function updFades(dt,focus){for(const f of fades){const want=f.cond(camera.position,focus)?0.16:1;f.o=lerp(f.o,want,1-Math.exp(-8*dt));f.meshes.forEach(m=>{m.material.opacity=f.o;m.material.depthWrite=f.o>0.9;m.castShadow=f.o>0.9;});}}
+function fadeGroup(meshes,cond){meshes.forEach(m=>{m.material=m.material.clone();m.material.transparent=true;m.userData.fadeGroup=1;});fades.push({meshes,cond,o:1});}
+function updFades(dt,focus){for(const f of fades){const want=f.cond(camera.position,focus)||f.meshes.some(m=>m.userData.occHit)?0.16:1;f.o=lerp(f.o,want,1-Math.exp(-8*dt));f.meshes.forEach(m=>{m.material.opacity=f.o;m.material.depthWrite=f.o>0.9;m.castShadow=f.o>0.9;});}}
 
 /* ================= BREAKABLES (the store can be wrecked) ================= */
 // a breakable is a collision block with .brk = {kind,hp,name,cost,meshes|group,rubble,exit}; state is restored every round
