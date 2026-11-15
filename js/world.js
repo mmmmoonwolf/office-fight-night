@@ -727,11 +727,11 @@ function powerMesh(type){
   return g;
 }
 const POWER={
-  coffee:{en:'Iced coffee ☕',enTxt:'Iced coffee +25 HP ☕',name:'กาแฟเย็น ☕',txt:'กาแฟเย็น +25 ☕',fn:f=>f.heal(25),snd:'drink'},
+  coffee:{en:'Iced coffee ☕',enTxt:'Iced coffee +35 HP ☕',name:'กาแฟเย็น ☕',txt:'กาแฟเย็น +35 ☕',fn:f=>f.heal(35),snd:'drink'},
   bonus:{en:'Bonus envelope 💰',enTxt:'Bonus envelope: special full 💰',name:'ซองโบนัส 💰',txt:'ซองโบนัส! พลังเต็ม 💰',fn:f=>{f.rage=100;},snd:'coin'},
   ot:{en:'Mystery envelope ❓',enTxt:'Overtime slip! slowed down 😩',name:'ซองเอกสาร ❓',txt:'โดนใบสั่ง OT! ช้าลง 😩',fn:f=>{f.fx.slow=6;},snd:'zap',bad:1},
-  yadom:{en:'Inhaler 🌿',enTxt:'Inhaler: dizziness gone 🌿',name:'ยาดม 🌿',txt:'ยาดม สดชื่น! 🌿',fn:f=>{f.heal(10);f.fx.dizzy=0;f.fx.immune=6;},snd:'drink'},
-  somtam:{en:'Som tam 🌶',enTxt:'Som tam +35 HP, spicy! 🌶',name:'ส้มตำ 🌶',txt:'ส้มตำ +35 เผ็ดดด 🌶',fn:f=>{f.heal(35);f.fx.dizzy=Math.max(f.fx.dizzy,0.8);},snd:'drink'},
+  yadom:{en:'Inhaler 🌿',enTxt:'Inhaler: dizziness gone 🌿',name:'ยาดม 🌿',txt:'ยาดม สดชื่น! 🌿',fn:f=>{f.heal(15);f.fx.dizzy=0;f.fx.immune=6;},snd:'drink'},
+  somtam:{en:'Som tam 🌶',enTxt:'Som tam +50 HP, spicy! 🌶',name:'ส้มตำ 🌶',txt:'ส้มตำ +50 เผ็ดดด 🌶',fn:f=>{f.heal(50);f.fx.dizzy=Math.max(f.fx.dizzy,0.8);},snd:'drink'},
 };
 const WSPOTS=[{x:-3.6,y:0,z:-9.8,t:'chair'},{x:0.6,y:0,z:-9.8,t:'chair'},{x:-12.1,y:0.45,z:-7.75,t:'chair'},{x:-6,y:0,z:-5,t:'chair'},{x:2,y:0,z:-6.5,t:'stand'},{x:-4.8,y:0,z:0.2,t:'stand'},{x:-5.2,y:0,z:2.2,t:'guitar'},{x:6.6,y:0,z:2.2,t:'box'},{x:8.8,y:0,z:0.2,t:'box'},{x:9.6,y:2.4,z:-9,t:'box'},{x:4,y:0,z:-5.4,t:'guitar'},
   {x:-9.5,y:0.15,z:4.2,t:'cone'},{x:5,y:0.15,z:6.9,t:'cone'},{x:-12,y:0,z:10.9,t:'cone'},{x:13,y:0.15,z:6.6,t:'box'},{x:-1.5,y:0.15,z:4.1,t:'stand'},{x:-16,y:1.05,z:9,t:'box'},
@@ -778,14 +778,14 @@ function updEvents(dt){
   if(anyInside()&&!NPC.customer)opts.push('customer','customer');
   if(anyInside()&&!NPC.movers)opts.push('movers');
   if(G.rain<=0)opts.push(anyOutside()?'rain':'rainLow');
-  if(FLOOD.t<=0&&FLOOD.lvl<=0)opts.push('flood');
-  if(EV.blackout<=0)opts.push('blackout');
+  if(FLOOD.t<=0&&FLOOD.lvl<=0&&G.clock-(G.lastFlood??-1e9)>90&&Math.random()<0.25)opts.push('flood'); // rare
+  // (blackout is no longer picked at random — startBlackout() only runs via G.forceEvent)
   if(EV.storm<=0&&anyOutside())opts.push('storm');
   if(!NPC.van)opts.push('van');
   const e=G.forceEvent||pick(opts);G.forceEvent=null;
   if(e==='customer')startCustomer();
   else if(e==='movers')startMovers();
-  else if(e==='flood')startFlood();
+  else if(e==='flood'){G.lastFlood=G.clock;startFlood();}
   else if(e==='blackout')startBlackout();
   else if(e==='storm')startStorm();
   else if(e==='van')startVan();
