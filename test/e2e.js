@@ -69,20 +69,21 @@ async function offline(browser) {
   ok((await ev("__slots.join()")).endsWith('combo'), 'touch COMBO button lands the jab-jab-hook combo');
   ok(await ev("const f=G.f[0];f.startAtk=Fighter.prototype.startAtk;f.state='idle';f.atk=null;f.queued=null;f.tryAttack('jab');f.update(0.02,{mx:0,mz:0,atk:'hook',block:false,jump:false,grab:false});f.atk.t<f.atk.def.startup&&f.queued==='hook'"), 'a press during wind-up is buffered (not dropped)');
   // sudden death on a tie at time-up, then the bounty reward
-  await ev("G.f.forEach(f=>{f.hp=60;f.state='idle';});G.timer=0.05");await sleep(250);
+  await ev("window.__ai3=aiThink;aiThink=()=>({mx:0,mz:0,atk:null,block:false,jump:false,grab:false});projs.length=0;G.f.forEach(f=>{f.hp=60;f.state='idle';f.atk=null;f.queued=null;f.invT=9;f.pos.y=0;});G.f[1].pos.x=G.f[0].pos.x+6;G.timer=0.05");await sleep(250);
   ok(await ev("G.sudden&&G.phase==='fight'&&G.f.every(f=>f.hp===1)&&G.timer>20"), 'a draw on time goes to sudden death (1 HP each)');
-  await ev("G.f.forEach(f=>{f.hp=100;});G.timer=99;G.sudden=false");
-  ok(await ev("const a=G.f[0],v=G.f[1];a.hp=50;a.rage=0;v.bounty=true;const ph=G.phase;G.phase='between';onKO(v,a);G.phase=ph;const r=a.hp===95&&a.rage===100&&!v.bounty;a.hp=100;a.rage=0;r"), 'KO-ing the bounty leader pays +30 HP and a full special');
+  await ev("G.f.forEach(f=>{f.hp=100;f.invT=0;});G.timer=99;G.sudden=false");
+  ok(await ev("const a=G.f[0],v=G.f[1];a.hp=50;a.rage=0;v.bounty=true;const ph=G.phase;G.phase='between';onKO(v,a);G.phase=ph;const r=a.hp===95&&a.rage===100&&!v.bounty;a.hp=100;a.rage=0;aiThink=__ai3;r"), 'KO-ing the bounty leader pays +45 HP and a full special');
   ok(await ev("STATS.wins={kip:3};const r=hatOk(2)&&!hatOk(3)&&HATS[2].k==='crown';STATS.wins={};r"), 'hats unlock by total wins');
   ok(await ev("HATS.every(h=>h.k==='none'||makeHat(h.k).children.length>0) && BOSS_CH.hatKey==='crown'"), 'every hat builds, the boss wears the crown');
   ok(await ev("p2pIce().then(()=>{}),localStorage.setItem('ofn.ice',JSON.stringify([{urls:'turn:relay.example:3478',username:'u',credential:'c'}])),ICE_CACHE=null,p2pIce().then(c=>{localStorage.removeItem('ofn.ice');ICE_CACHE=null;return c.iceServers.some(s=>String(s.urls).startsWith('turn:'))&&c.iceServers.some(s=>String(s.urls).startsWith('stun:'));})"), 'TURN servers from settings are added to the P2P ICE list');
   for (let i = 0; i < 20; i++) { await pg.keyboard.down('KeyD'); await pg.keyboard.press('KeyJ'); await pg.keyboard.press('KeyK'); await pg.keyboard.up('KeyD'); await pg.keyboard.press('Space'); await sleep(80); }
+  await ev("window.__spDmg=0;{const o=G.f[1].takeHit.bind(G.f[1]);G.f[1].takeHit=function(a,h){const h0=this.hp,r=o(a,h);if(this.hp<h0)window.__spDmg+=h0-this.hp;return r;};}");
   for (const sp of ['files', 'chat', 'books', 'trap', 'fork', 'chord', 'drop', 'audit', 'flash', 'dash', 'pull', 'cloud', 'buff', 'finisher', 'random', 'rush', 'superKick', 'skyUpper', 'quake', 'megaSlap', 'suplex', 'wind', 'parry']) {
     await ev(`G.f[0].lo.sp='${sp}';G.f[0].rage=100;G.f[0].state='idle';G.f[1].pos.x=G.f[0].pos.x+1.5;G.f[1].pos.z=G.f[0].pos.z;G.f[1].hp=Math.max(G.f[1].hp,60);G.f[1].state='idle';G.f[1].invT=0;G.f[0].tryAttack('special')`);
     await sleep(350);
   }
   await sleep(1200);
-  ok(await ev('G.f[1].hp < G.f[1].maxHp'), 'specials deal damage');
+  ok(await ev('window.__spDmg>0'), 'specials deal damage');
   await ev("window.__ai=aiThink;aiThink=()=>({mx:0,mz:0,atk:null,block:false,jump:false,grab:false})"); // CPU stands still for the scripted checks
   await ev("G.f[1].lo={st:'box',sp:'rush'};G.f[1].style=STYLES.box");
   for (const st of Object.keys(await ev('STYLES'))) {
